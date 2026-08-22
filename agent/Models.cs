@@ -1,0 +1,2 @@
+namespace AssetFlow.Agent;
+public record DiskInfo(string Name,string? Filesystem,long TotalBytes,long FreeBytes);public record SoftwareInfo(string Name,string? Version,string? Publisher);public record Inventory(string Hostname,string? SerialNo,string? Manufacturer,string? Model,string Username,string? Department,string OsName,string OsVersion,string? CpuName,long MemoryBytes,string? BiosVersion,string? IpAddress,string? MacAddress,bool? BitlockerEnabled,bool? FirewallEnabled,string AntivirusStatus,List<DiskInfo> Disks,List<SoftwareInfo> Software);

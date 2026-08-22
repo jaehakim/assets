@@ -1,0 +1,1 @@
+$name='AssetFlowAgent';if(Get-Service $name -ErrorAction SilentlyContinue){Stop-Service $name -Force;sc.exe delete $name|Out-Null};Write-Host 'Service removed. Inventory identity remains in ProgramData\AssetFlow.'

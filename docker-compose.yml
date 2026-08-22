@@ -1,0 +1,31 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-assetflow}
+      POSTGRES_USER: ${POSTGRES_USER:-assetflow}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-assetflow-local-only}
+    volumes: ["./deploy/postgres-data:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-assetflow}
+      DB_USER: ${POSTGRES_USER:-assetflow}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-assetflow-local-only}
+      AGENT_REGISTRATION_TOKEN: ${AGENT_REGISTRATION_TOKEN:-change-me}
+    depends_on:
+      postgres: {condition: service_healthy}
+  frontend:
+    build: ./frontend
+    restart: unless-stopped
+    ports: ["${WEB_PORT:-18080}:80"]
+    depends_on: [backend]
+networks:
+  default: {name: assetflow}

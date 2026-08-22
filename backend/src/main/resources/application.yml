@@ -1,0 +1,8 @@
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/assetflow}
+    username: ${DB_USER:assetflow}
+    password: ${DB_PASSWORD:assetflow}
+  sql.init.mode: always
+server.port: 8080
+assetflow.registration-token: ${AGENT_REGISTRATION_TOKEN:change-me}

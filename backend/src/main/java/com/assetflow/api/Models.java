@@ -1,0 +1,4 @@
+package com.assetflow.api;
+import jakarta.validation.constraints.NotBlank;
+import java.util.*;
+public final class Models{private Models(){} public record Register(@NotBlank String agentKey,@NotBlank String hostname,@NotBlank String version){} public record Registered(UUID agentId,String deviceToken){} public record Heartbeat(@NotBlank String version){} public record Disk(String name,String filesystem,long totalBytes,long freeBytes){} public record Software(String name,String version,String publisher){} public record Inventory(@NotBlank String hostname,String serialNo,String manufacturer,String model,String username,String department,String osName,String osVersion,String cpuName,long memoryBytes,String biosVersion,String ipAddress,String macAddress,Boolean bitlockerEnabled,Boolean firewallEnabled,String antivirusStatus,List<Disk> disks,List<Software> software){}}
