@@ -6,6 +6,7 @@ import "./operations.css";
 import "./asset-detail.css";
 import "./admin-kit.css";
 import "./lifecycle.css";
+import "./login-pro.css";
 const menuGroups = [
   {
     label: "OVERVIEW",
@@ -48,7 +49,8 @@ function Login({ onLogin }) {
   const [u, setU] = useState(""),
     [p, setP] = useState(""),
     [error, setError] = useState(""),
-    [busy, setBusy] = useState(false);
+    [busy, setBusy] = useState(false),
+    [showPassword, setShowPassword] = useState(false);
   async function submit(e) {
     e.preventDefault();
     setBusy(true);
@@ -79,48 +81,49 @@ function Login({ onLogin }) {
         <div>
           <span className="login-kicker">IT OPERATIONS CENTER</span>
           <h2>
-            조직의 모든 IT 자산을
+            IT 자산 운영의 기준을
             <br />
-            한눈에 관리하세요.
+            하나의 화면에.
           </h2>
           <p>
-            장비 현황, 보안 기준, 소프트웨어와 Agent 상태를 하나의 운영 화면에서
-            확인합니다.
+            수집부터 보안, 생애주기와 시스템 운영까지 신뢰할 수 있는 데이터로
+            관리하세요.
           </p>
-          <ul>
-            <li>실시간 자산 인벤토리</li>
-            <li>보안 규정 준수 현황</li>
-            <li>안전한 Agent 자동 업데이트</li>
-          </ul>
+          <div className="login-capabilities">
+            <div><i>01</i><span><b>Asset Intelligence</b><small>장비·사용자·소프트웨어 통합 인벤토리</small></span></div>
+            <div><i>02</i><span><b>Security Posture</b><small>암호화·백신·보안 기준 상태 추적</small></span></div>
+            <div><i>03</i><span><b>Lifecycle Control</b><small>도입부터 실사·보증·폐기까지 관리</small></span></div>
+          </div>
+          <div className="login-live"><span><i /> SYSTEM ONLINE</span><small>Secure operations workspace</small></div>
         </div>
-        <small>AssetFlow · Enterprise Asset Intelligence</small>
+        <small>© 2026 AssetFlow · Enterprise Asset Intelligence</small>
       </section>
       <form onSubmit={submit}>
         <div className="brand">
           <b>A</b> AssetFlow
         </div>
-        <h1>관리자 로그인</h1>
-        <p>IT 자산 정보는 인증된 관리자만 확인할 수 있습니다.</p>
+        <span className="form-kicker">SECURE ADMIN PORTAL</span>
+        <h1>다시 오신 것을 환영합니다</h1>
+        <p>관리자 계정으로 AssetFlow 운영 환경에 접속하세요.</p>
+        <div className="secure-notice"><i>✓</i><span><b>보호된 관리 환경</b><small>인증 정보는 암호화된 연결로 전송됩니다.</small></span></div>
         <label>
-          아이디
+          <span>관리자 아이디</span>
           <input
             autoFocus
+            autoComplete="username"
             value={u}
             onChange={(e) => setU(e.target.value)}
+            placeholder="아이디를 입력하세요"
             required
           />
         </label>
         <label>
-          비밀번호
-          <input
-            type="password"
-            value={p}
-            onChange={(e) => setP(e.target.value)}
-            required
-          />
+          <span>비밀번호</span>
+          <div className="password-field"><input type={showPassword ? "text" : "password"} autoComplete="current-password" value={p} onChange={(e) => setP(e.target.value)} placeholder="비밀번호를 입력하세요" required /><button type="button" onClick={() => setShowPassword(x => !x)} aria-label={showPassword ? "비밀번호 숨기기" : "비밀번호 보기"}>{showPassword ? "숨김" : "보기"}</button></div>
         </label>
-        {error && <div className="loginerror">{error}</div>}
-        <button disabled={busy}>{busy ? "로그인 중…" : "로그인"}</button>
+        {error && <div className="loginerror" role="alert"><b>!</b>{error}</div>}
+        <button className="login-submit" disabled={busy}>{busy ? <><i className="login-spinner" /> 인증 확인 중…</> : <>관리자 로그인 <span>→</span></>}</button>
+        <div className="login-help"><span>로그인에 문제가 있나요?</span><small>시스템 담당자에게 계정 상태를 문의하세요.</small></div>
       </form>
     </div>
   );
