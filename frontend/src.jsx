@@ -700,24 +700,23 @@ function AssetTable({ rows, loading, onDetail }) {
       <table>
         <thead>
           <tr>
-            <th>장비명</th>
+            <th>장비명 / 상세정보</th>
             <th>사용자 / 부서</th>
             <th>운영체제</th>
             <th>Agent 버전</th>
             <th>IP 주소</th>
             <th>마지막 접속</th>
             <th>상태</th>
-            <th className="detail-col">정보</th>
           </tr>
         </thead>
         <tbody>
           {loading ? (
             <tr>
-              <td colSpan="8">불러오는 중…</td>
+              <td colSpan="7">불러오는 중…</td>
             </tr>
           ) : !rows.length ? (
             <tr>
-              <td colSpan="8" className="none">
+              <td colSpan="7" className="none">
                 등록된 자산이 없습니다.
               </td>
             </tr>
@@ -733,8 +732,23 @@ function AssetTable({ rows, loading, onDetail }) {
                 }
               >
                 <td>
-                  <b>{a.hostname}</b>
-                  <small>{a.serial_no || "-"}</small>
+                  <div className="asset-name">
+                    <div>
+                      <b>{a.hostname}</b>
+                      <small>{a.serial_no || "-"}</small>
+                    </div>
+                    <button
+                      className="info-button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDetail(a.id);
+                      }}
+                      aria-label={`${a.hostname} 상세정보 보기`}
+                      title="Agent 수집 상세정보 보기"
+                    >
+                      <Icon name="info" />
+                    </button>
+                  </div>
                 </td>
                 <td>
                   {a.username || "-"} / {a.department || "미지정"}
@@ -751,19 +765,6 @@ function AssetTable({ rows, loading, onDetail }) {
                   <em className={a.online ? "online" : "offline"}>
                     ● {a.online ? "온라인" : "오프라인"}
                   </em>
-                </td>
-                <td className="detail-col">
-                  <button
-                    className="info-button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onDetail(a.id);
-                    }}
-                    aria-label={`${a.hostname} 상세정보 보기`}
-                    title="상세정보 보기"
-                  >
-                    <Icon name="info" />
-                  </button>
                 </td>
               </tr>
             ))
