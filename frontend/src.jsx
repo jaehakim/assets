@@ -89,12 +89,24 @@ function Login({ onLogin }) {
             수집부터 보안, 생애주기와 시스템 운영까지 신뢰할 수 있는 데이터로
             관리하세요.
           </p>
+          <div className="ops-console" aria-label="AssetFlow 시스템 구성">
+            <div className="console-head"><span><i/><i/><i/></span><b>assetflow / operations</b><em>LIVE</em></div>
+            <div className="topology">
+              <div className="topology-node endpoint"><i>PC</i><span><b>Endpoints</b><small>Windows Agent</small></span></div>
+              <div className="topology-line"><i/></div>
+              <div className="topology-node core"><i>AF</i><span><b>AssetFlow</b><small>Inventory API</small></span></div>
+              <div className="topology-line"><i/></div>
+              <div className="topology-node storage"><i>DB</i><span><b>PostgreSQL</b><small>Asset data</small></span></div>
+            </div>
+            <div className="console-metrics"><span><small>PLATFORM</small><b>k3s</b></span><span><small>WORKLOAD</small><b>2 + 2 Pods</b></span><span><small>SECURITY</small><b className="healthy">Protected</b></span></div>
+            <code><span>$</span> assetflow status --watch <em>inventory synchronized</em></code>
+          </div>
           <div className="login-capabilities">
             <div><i>01</i><span><b>Asset Intelligence</b><small>장비·사용자·소프트웨어 통합 인벤토리</small></span></div>
             <div><i>02</i><span><b>Security Posture</b><small>암호화·백신·보안 기준 상태 추적</small></span></div>
             <div><i>03</i><span><b>Lifecycle Control</b><small>도입부터 실사·보증·폐기까지 관리</small></span></div>
           </div>
-          <div className="login-live"><span><i /> SYSTEM ONLINE</span><small>Secure operations workspace</small></div>
+          <div className="login-live"><span><i /> ALL SYSTEMS OPERATIONAL</span><small>Secure IT operations workspace</small></div>
         </div>
         <small>© 2026 AssetFlow · Enterprise Asset Intelligence</small>
       </section>
@@ -102,9 +114,9 @@ function Login({ onLogin }) {
         <div className="brand">
           <b>A</b> AssetFlow
         </div>
-        <span className="form-kicker">SECURE ADMIN PORTAL</span>
-        <h1>다시 오신 것을 환영합니다</h1>
-        <p>관리자 계정으로 AssetFlow 운영 환경에 접속하세요.</p>
+        <span className="form-kicker">ASSETFLOW CONTROL PLANE</span>
+        <h1>IT 운영 관리자 접속</h1>
+        <p>자산 인벤토리와 시스템 운영 환경에 안전하게 접속합니다.</p>
         <div className="secure-notice"><i>✓</i><span><b>보호된 관리 환경</b><small>인증 정보는 암호화된 연결로 전송됩니다.</small></span></div>
         <label>
           <span>관리자 아이디</span>
