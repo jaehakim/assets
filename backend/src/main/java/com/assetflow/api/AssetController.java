@@ -41,7 +41,11 @@ public class AssetController {
 
   @GetMapping("/assets/{id}")
   public ResponseEntity<?> asset(@PathVariable UUID id) {
-    var rows = db.queryForList("SELECT s.*,a.version agent_version FROM asset s JOIN agent a ON a.id=s.agent_id WHERE s.id=?", id);
+    var rows = db.queryForList("""
+        SELECT s.*,a.version agent_version,a.registered_at agent_registered_at,
+               a.last_seen_at agent_last_seen_at,a.last_ip agent_last_ip
+        FROM asset s JOIN agent a ON a.id=s.agent_id WHERE s.id=?
+        """, id);
     if (rows.isEmpty()) return ResponseEntity.notFound().build();
     var out = new LinkedHashMap<>(rows.getFirst());
     out.put("disks", db.queryForList("SELECT name,filesystem,total_bytes,free_bytes FROM asset_disk WHERE asset_id=?", id));
