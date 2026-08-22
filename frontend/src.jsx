@@ -130,6 +130,7 @@ function ReleaseList() {
               <th>버전</th>
               <th>파일</th>
               <th>크기</th>
+              <th>주요 변경내역</th>
               <th>등록 시각</th>
             </tr>
           </thead>
@@ -142,12 +143,13 @@ function ReleaseList() {
                   </td>
                   <td>{r.filename}</td>
                   <td>{(Number(r.size_bytes) / 1024 / 1024).toFixed(1)} MB</td>
+                  <td className="release-notes">{r.release_notes || "-"}</td>
                   <td>{new Date(r.created_at).toLocaleString("ko-KR")}</td>
                 </tr>
               ))
             ) : (
               <tr>
-                <td colSpan="4">등록된 버전이 없습니다.</td>
+                <td colSpan="5">등록된 버전이 없습니다.</td>
               </tr>
             )}
           </tbody>
@@ -220,12 +222,14 @@ function UpdateHistory() {
 function AgentOps() {
   const [token, setToken] = useState(""),
     [version, setVersion] = useState(""),
+    [releaseNotes, setReleaseNotes] = useState(""),
     [file, setFile] = useState(),
     [message, setMessage] = useState("");
   async function upload(e) {
     e.preventDefault();
     const body = new FormData();
     body.append("version", version);
+    body.append("releaseNotes", releaseNotes);
     body.append("file", file);
     setMessage("업로드 중…");
     try {
@@ -336,6 +340,14 @@ API --> DB[(PostgreSQL)]`}</Diagram>
             type="file"
             accept=".exe"
             onChange={(e) => setFile(e.target.files[0])}
+            required
+          />
+          <textarea
+            className="release-notes-input"
+            placeholder="주요 변경내역을 입력하세요. 예: 장치 등록 안정성 개선 및 보안 상태 수집 항목 추가"
+            value={releaseNotes}
+            onChange={(e) => setReleaseNotes(e.target.value)}
+            maxLength="2000"
             required
           />
           <button>버전 등록</button>

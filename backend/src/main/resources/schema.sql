@@ -3,5 +3,13 @@ CREATE TABLE IF NOT EXISTS asset(id UUID PRIMARY KEY,agent_id UUID UNIQUE NOT NU
 CREATE TABLE IF NOT EXISTS asset_disk(id BIGSERIAL PRIMARY KEY,asset_id UUID NOT NULL REFERENCES asset(id) ON DELETE CASCADE,name VARCHAR(100),filesystem VARCHAR(50),total_bytes BIGINT,free_bytes BIGINT);
 CREATE TABLE IF NOT EXISTS asset_software(id BIGSERIAL PRIMARY KEY,asset_id UUID NOT NULL REFERENCES asset(id) ON DELETE CASCADE,name VARCHAR(500) NOT NULL,version VARCHAR(100),publisher VARCHAR(255));
 CREATE TABLE IF NOT EXISTS agent_release(version VARCHAR(30) PRIMARY KEY,filename VARCHAR(255) NOT NULL,sha256 VARCHAR(64) NOT NULL,size_bytes BIGINT NOT NULL,created_at TIMESTAMPTZ NOT NULL DEFAULT now());
+ALTER TABLE agent_release ADD COLUMN IF NOT EXISTS release_notes TEXT NOT NULL DEFAULT '';
+UPDATE agent_release SET release_notes='보안 장치 인증 기반 자동 업데이트, SHA-256 무결성 검증 및 관리자 배포 기능 추가' WHERE version='0.2.0' AND release_notes='';
+UPDATE agent_release SET release_notes='업데이트 파일 교체 전 Windows 서비스를 안전하게 중지하도록 설치 절차 개선' WHERE version='0.2.1' AND release_notes='';
+UPDATE agent_release SET release_notes='등록 토큰 공백 정규화, 기본 토큰 설치 차단 및 환경변수 우선 적용으로 등록 오류 개선' WHERE version='0.2.2' AND release_notes='';
+UPDATE agent_release SET release_notes='관리자 자산 목록에 장비별 배포 Agent 버전 표시 기능 추가' WHERE version='0.2.3' AND release_notes='';
+UPDATE agent_release SET release_notes='Agent 0.2.4 정식 실행파일 및 무결성 해시 배포' WHERE version='0.2.4' AND release_notes='';
+UPDATE agent_release SET release_notes='시스템 트레이 기능 도입을 위한 Agent 실행 구조 및 업데이트 안정성 개선' WHERE version='0.2.5' AND release_notes='';
+UPDATE agent_release SET release_notes='시스템 트레이에서 PC 요약·관리 페이지 열기 제공, 등록·하트비트 기반 버전 변경 이력 추가' WHERE version='0.2.6' AND release_notes='';
 CREATE TABLE IF NOT EXISTS agent_update_history(id BIGSERIAL PRIMARY KEY,agent_id UUID NOT NULL REFERENCES agent(id) ON DELETE CASCADE,from_version VARCHAR(30),to_version VARCHAR(30) NOT NULL,event_type VARCHAR(30) NOT NULL,created_at TIMESTAMPTZ NOT NULL DEFAULT now());
 CREATE INDEX IF NOT EXISTS idx_agent_update_history_created_at ON agent_update_history(created_at DESC);

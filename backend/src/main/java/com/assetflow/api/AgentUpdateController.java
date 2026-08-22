@@ -33,7 +33,7 @@ public class AgentUpdateController {
 
   @GetMapping("/api/v1/admin/agent-releases")
   public List<Map<String,Object>> list() {
-    return db.queryForList("SELECT version,filename,sha256,size_bytes,created_at FROM agent_release ORDER BY string_to_array(version,'.')::int[] DESC,created_at DESC");
+    return db.queryForList("SELECT version,filename,sha256,size_bytes,release_notes,created_at FROM agent_release ORDER BY string_to_array(version,'.')::int[] DESC,created_at DESC");
   }
 
   @GetMapping("/api/v1/admin/agent-update-history")
@@ -47,9 +47,11 @@ public class AgentUpdateController {
 
   @PostMapping(value="/api/v1/admin/agent-releases", consumes=MediaType.MULTIPART_FORM_DATA_VALUE)
   public ResponseEntity<?> upload(@RequestHeader(value="X-Update-Token", required=false) String token,
-      @RequestParam String version, @RequestPart MultipartFile file) throws Exception {
+      @RequestParam String version, @RequestParam String releaseNotes, @RequestPart MultipartFile file) throws Exception {
     if (!auth.secretValid(updateToken, token)) return ResponseEntity.status(401).body(Map.of("error", "invalid update token"));
     if (!version.matches("[0-9]+\\.[0-9]+\\.[0-9]+(?:\\.[0-9]+)?")) return ResponseEntity.badRequest().body(Map.of("error", "version must be numeric (for example 0.2.0)"));
+    String notes = releaseNotes.trim();
+    if (notes.isEmpty() || notes.length() > 2000) return ResponseEntity.badRequest().body(Map.of("error", "release notes must be between 1 and 2000 characters"));
     if (file.isEmpty()) return ResponseEntity.badRequest().body(Map.of("error", "empty executable"));
     Path temporary = Files.createTempFile(releases, "upload-", ".tmp");
     String sha;
@@ -58,7 +60,7 @@ public class AgentUpdateController {
       MessageDigest digest=MessageDigest.getInstance("SHA-256");try(InputStream in=Files.newInputStream(temporary)){byte[] buffer=new byte[64*1024];for(int read;(read=in.read(buffer))!=-1;)digest.update(buffer,0,read);}sha=HexFormat.of().formatHex(digest.digest());
       Path destination = releases.resolve("AssetFlow.Agent-" + version + ".exe");
       Files.move(temporary, destination, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
-      db.update("INSERT INTO agent_release(version,filename,sha256,size_bytes) VALUES(?,?,?,?) ON CONFLICT(version) DO UPDATE SET filename=excluded.filename,sha256=excluded.sha256,size_bytes=excluded.size_bytes,created_at=now()", version, destination.getFileName().toString(), sha, Files.size(destination));
+      db.update("INSERT INTO agent_release(version,filename,sha256,size_bytes,release_notes) VALUES(?,?,?,?,?) ON CONFLICT(version) DO UPDATE SET filename=excluded.filename,sha256=excluded.sha256,size_bytes=excluded.size_bytes,release_notes=excluded.release_notes,created_at=now()", version, destination.getFileName().toString(), sha, Files.size(destination), notes);
       return ResponseEntity.ok(Map.of("version", version, "sha256", sha, "size", Files.size(destination)));
     } finally { Files.deleteIfExists(temporary); }
   }
