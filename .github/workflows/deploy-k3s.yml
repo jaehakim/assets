@@ -1,0 +1,69 @@
+name: Build and deploy to k3s
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+  packages: write
+concurrency:
+  group: assetflow-production
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - component: backend
+            context: backend
+          - component: frontend
+            context: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/metadata-action@v5
+        id: meta
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/assets-${{ matrix.component }}
+          tags: |
+            type=sha
+            type=raw,value=latest
+      - uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+  deploy:
+    needs: build
+    runs-on: [self-hosted, linux, assetflow-production]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure secrets
+        env:
+          GHCR_USERNAME: ${{ github.repository_owner }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DB_PASSWORD: ${{ secrets.ASSETFLOW_DB_PASSWORD }}
+          REGISTRATION_TOKEN: ${{ secrets.AGENT_REGISTRATION_TOKEN }}
+          UPDATE_TOKEN: ${{ secrets.AGENT_UPDATE_TOKEN }}
+          ADMIN_USERNAME: ${{ secrets.ADMIN_USERNAME }}
+          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+        run: |
+          kubectl create namespace assetflow --dry-run=client -o yaml | kubectl apply -f -
+          kubectl -n assetflow create secret docker-registry ghcr-pull --docker-server=ghcr.io --docker-username="$GHCR_USERNAME" --docker-password="$GHCR_TOKEN" --dry-run=client -o yaml | kubectl apply -f -
+          kubectl -n assetflow create secret generic assetflow-secrets --from-literal=DB_PASSWORD="$DB_PASSWORD" --from-literal=POSTGRES_PASSWORD="$DB_PASSWORD" --from-literal=AGENT_REGISTRATION_TOKEN="$REGISTRATION_TOKEN" --from-literal=AGENT_UPDATE_TOKEN="$UPDATE_TOKEN" --from-literal=ADMIN_USERNAME="$ADMIN_USERNAME" --from-literal=ADMIN_PASSWORD="$ADMIN_PASSWORD" --dry-run=client -o yaml | kubectl apply -f -
+      - name: Rolling deploy immutable images
+        run: |
+          kubectl apply -k deploy/k3s
+          kubectl -n assetflow set image deployment/backend backend=ghcr.io/${{ github.repository_owner }}/assets-backend:sha-${GITHUB_SHA::7}
+          kubectl -n assetflow set image deployment/frontend frontend=ghcr.io/${{ github.repository_owner }}/assets-frontend:sha-${GITHUB_SHA::7}
+          kubectl -n assetflow rollout status deployment/backend --timeout=5m
+          kubectl -n assetflow rollout status deployment/frontend --timeout=5m

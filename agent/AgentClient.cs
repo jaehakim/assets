@@ -8,7 +8,7 @@ namespace AssetFlow.Agent;
 
 public sealed class AgentClient
 {
-    public const string Version = "0.2.6";
+    public const string Version = "0.2.7";
     private readonly HttpClient http;
     private readonly AgentState state;
 

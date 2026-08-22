@@ -107,6 +107,14 @@ dotnet publish -c Release -r win-x64 --self-contained true -o publish
 
 ## 변경 이력
 
+### 2026-08-22 — 0.2.7
+
+- 도메인/워크그룹, 장치 UUID, OS 빌드·아키텍처·설치일·최근 부팅 정보 수집
+- CPU 코어, 논리 프로세서, TPM·Secure Boot 및 소프트웨어 설치일 수집
+- 관리자 상세 화면의 시스템·보안 정보 확장
+- GHCR 이미지와 k3s 2 Replica RollingUpdate 기반 무중단 배포 구성
+- 운영형 Admin UI 패턴을 적용한 로그인·대시보드 개편
+
 ### 2026-08-22 — 0.2.6
 
 - Agent 등록 및 하트비트에서 버전 변경을 감지해 업데이트 이력으로 저장
@@ -129,3 +137,4 @@ dotnet publish -c Release -r win-x64 --self-contained true -o publish
 - Nginx 기반 단일 진입점과 반응형 관리자 대시보드 추가
 
 운영 및 Nginx Proxy Manager 연결 방법은 [배포 문서](deploy/README.md)를 참고하십시오.
+k3s·GHCR 기반 무중단 운영 구성은 [k3s 배포 문서](deploy/k3s/README.md)를 참고하십시오.

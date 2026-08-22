@@ -4,7 +4,15 @@ import mermaid from "mermaid";
 import "./style.css";
 import "./operations.css";
 import "./asset-detail.css";
-const menus = ["대시보드", "자산 관리", "Agent 운영"];
+import "./admin-kit.css";
+const menus = [
+  "대시보드",
+  "자산 관리",
+  "Agent 배포",
+  "업데이트 이력",
+  "시스템 가이드",
+  "점검 일지",
+];
 async function api(url, options = {}) {
   const r = await fetch(url, {
     ...options,
@@ -48,6 +56,29 @@ function Login({ onLogin }) {
   }
   return (
     <div className="login">
+      <section className="login-visual">
+        <div className="brand">
+          <b>A</b> AssetFlow
+        </div>
+        <div>
+          <span className="login-kicker">IT OPERATIONS CENTER</span>
+          <h2>
+            조직의 모든 IT 자산을
+            <br />
+            한눈에 관리하세요.
+          </h2>
+          <p>
+            장비 현황, 보안 기준, 소프트웨어와 Agent 상태를 하나의 운영 화면에서
+            확인합니다.
+          </p>
+          <ul>
+            <li>실시간 자산 인벤토리</li>
+            <li>보안 규정 준수 현황</li>
+            <li>안전한 Agent 자동 업데이트</li>
+          </ul>
+        </div>
+        <small>AssetFlow · Enterprise Asset Intelligence</small>
+      </section>
       <form onSubmit={submit}>
         <div className="brand">
           <b>A</b> AssetFlow
@@ -219,7 +250,111 @@ function UpdateHistory() {
     </div>
   );
 }
-function AgentOps() {
+function InspectionLog() {
+  const [rows, setRows] = useState([]),
+    [error, setError] = useState(""),
+    [busy, setBusy] = useState(false);
+  async function load() {
+    try {
+      setRows(await api("/api/v1/admin/system-inspections"));
+      setError("");
+    } catch (e) {
+      setError(e.message);
+    }
+  }
+  async function run() {
+    setBusy(true);
+    try {
+      await api("/api/v1/admin/system-inspections", { method: "POST" });
+      await load();
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  useEffect(() => {
+    load();
+    const timer = setInterval(load, 60000);
+    return () => clearInterval(timer);
+  }, []);
+  return (
+    <section>
+      <div className="intro">
+        <div>
+          <h2>시스템 점검 일지</h2>
+          <p>
+            10분 주기로 자산 연결, 보안 기준과 데이터베이스 상태를 자동
+            기록합니다.
+          </p>
+        </div>
+        <button onClick={run} disabled={busy}>
+          {busy ? "점검 중…" : "지금 점검"}
+        </button>
+      </div>
+      <article className="panel table">
+        <div className="inspection-summary">
+          <b>{rows.length ? date(rows[0].created_at) : "-"}</b>
+          <span>최근 점검</span>
+          <em className={rows[0]?.status === "NORMAL" ? "normal" : "attention"}>
+            {rows[0]?.status === "NORMAL" ? "정상" : "확인 필요"}
+          </em>
+        </div>
+        {error ? (
+          <p className="result">점검 일지 조회 실패: {error}</p>
+        ) : (
+          <div className="tablewrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>점검 시각</th>
+                  <th>구분</th>
+                  <th>DB</th>
+                  <th>온라인 / 전체</th>
+                  <th>장기 미접속</th>
+                  <th>보안 확인</th>
+                  <th>점검 내용</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.length ? (
+                  rows.map((r) => (
+                    <tr key={r.id}>
+                      <td>{date(r.created_at)}</td>
+                      <td>
+                        <em
+                          className={
+                            r.status === "NORMAL" ? "online" : "inspection-warn"
+                          }
+                        >
+                          {r.status === "NORMAL" ? "정상" : "확인 필요"}
+                        </em>
+                      </td>
+                      <td>{r.db_status}</td>
+                      <td>
+                        {r.online_assets} / {r.total_assets}
+                      </td>
+                      <td>{r.stale_assets}</td>
+                      <td>{r.security_alerts}</td>
+                      <td className="inspection-notes">{r.notes}</td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="7" className="none">
+                      점검 기록을 생성하고 있습니다.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </article>
+    </section>
+  );
+}
+function AgentOps({ view }) {
   const [token, setToken] = useState(""),
     [version, setVersion] = useState(""),
     [releaseNotes, setReleaseNotes] = useState(""),
@@ -248,15 +383,27 @@ function AgentOps() {
     <section>
       <div className="intro">
         <div>
-          <h2>Agent 운영 흐름</h2>
+          <h2>
+            {view === "guide"
+              ? "시스템 가이드"
+              : view === "history"
+                ? "업데이트 이력"
+                : "Agent 배포"}
+          </h2>
           <p>
-            자료 수집, 파일 로그, 버전 배포와 자동 업데이트 구조를 확인합니다.
+            {view === "guide"
+              ? "자료 수집과 자동 업데이트 구조를 독립된 운영 문서로 확인합니다."
+              : view === "history"
+                ? "장비별 Agent 등록과 버전 변경 결과를 확인합니다."
+                : "신규 Agent 실행파일과 주요 변경내역을 안전하게 배포합니다."}
           </p>
         </div>
       </div>
-      <article className="panel ops">
-        <h3>자동 업데이트 흐름</h3>
-        <Diagram>{`flowchart LR
+      {view === "guide" && (
+        <>
+          <article className="panel ops">
+            <h3>자동 업데이트 흐름</h3>
+            <Diagram>{`flowchart LR
 A[관리자 EXE 등록] --> B[서버 SHA-256 계산·보관]
 B --> C[Agent 5분 주기 최신 버전 조회]
 C --> D{신규 버전?}
@@ -269,11 +416,11 @@ H --> I[서비스·트레이 종료 후 EXE 교체]
 I --> J[서비스 재시작]
 J --> K[하트비트로 버전 변경 확인]
 K --> L[(장비 업데이트 이력 저장)]`}</Diagram>
-      </article>
-      <div className="opsgrid">
-        <article className="panel ops">
-          <h3>Agent 기능 및 자료 흐름</h3>
-          <Diagram>{`flowchart TD
+          </article>
+          <div className="opsgrid">
+            <article className="panel ops">
+              <h3>Agent 기능 및 자료 흐름</h3>
+              <Diagram>{`flowchart TD
 L[Windows 사용자 로그인] --> TRAY[시스템 트레이 Agent]
 TRAY --> INFO[Agent 버전·PC 정보 확인]
 TRAY --> WEB[관리 페이지 열기]
@@ -284,80 +431,86 @@ T --> S[설치 소프트웨어 최대 2000건]
 T --> P[BitLocker·Firewall·Defender]
 H & N & S & P --> API[Inventory API 전송]
 API --> DB[(PostgreSQL)]`}</Diagram>
+            </article>
+            <article className="panel">
+              <h3>주기 및 저장 위치</h3>
+              <table className="settings">
+                <tbody>
+                  <tr>
+                    <th>인벤토리 수집</th>
+                    <td>CollectionMinutes</td>
+                    <td>기본 60분 / 최소 5분</td>
+                  </tr>
+                  <tr>
+                    <th>업데이트 확인</th>
+                    <td>UpdateCheckMinutes</td>
+                    <td>기본 5분 / 최소 5분</td>
+                  </tr>
+                  <tr>
+                    <th>트레이 정보</th>
+                    <td colSpan="2">버전·PC명·사용자·모델·OS·CPU·RAM·IP</td>
+                  </tr>
+                  <tr>
+                    <th>Agent 설정</th>
+                    <td colSpan="2">%ProgramData%\AssetFlow\agent.json</td>
+                  </tr>
+                  <tr>
+                    <th>실행 로그</th>
+                    <td colSpan="2">설치폴더\logs\agent-YYYYMMDD.log</td>
+                  </tr>
+                  <tr>
+                    <th>실행파일</th>
+                    <td colSpan="2">%ProgramFiles%\AssetFlow\Agent</td>
+                  </tr>
+                </tbody>
+              </table>
+            </article>
+          </div>
+        </>
+      )}
+      {view === "release" && (
+        <article className="panel release">
+          <h3>신규 Agent 실행파일 등록</h3>
+          <form onSubmit={upload}>
+            <input
+              type="password"
+              placeholder="업데이트 등록 토큰"
+              value={token}
+              onChange={(e) => setToken(e.target.value)}
+              required
+            />
+            <input
+              placeholder="버전 (예: 0.3.0)"
+              pattern="[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?"
+              value={version}
+              onChange={(e) => setVersion(e.target.value)}
+              required
+            />
+            <input
+              type="file"
+              accept=".exe"
+              onChange={(e) => setFile(e.target.files[0])}
+              required
+            />
+            <textarea
+              className="release-notes-input"
+              placeholder="주요 변경내역을 입력하세요. 예: 장치 등록 안정성 개선 및 보안 상태 수집 항목 추가"
+              value={releaseNotes}
+              onChange={(e) => setReleaseNotes(e.target.value)}
+              maxLength="2000"
+              required
+            />
+            <button>버전 등록</button>
+          </form>
+          {message && <p className="result">{message}</p>}
+          <ReleaseList />
         </article>
-        <article className="panel">
-          <h3>주기 및 저장 위치</h3>
-          <table className="settings">
-            <tbody>
-              <tr>
-                <th>인벤토리 수집</th>
-                <td>CollectionMinutes</td>
-                <td>기본 60분 / 최소 5분</td>
-              </tr>
-              <tr>
-                <th>업데이트 확인</th>
-                <td>UpdateCheckMinutes</td>
-                <td>기본 5분 / 최소 5분</td>
-              </tr>
-              <tr>
-                <th>트레이 정보</th>
-                <td colSpan="2">버전·PC명·사용자·모델·OS·CPU·RAM·IP</td>
-              </tr>
-              <tr>
-                <th>Agent 설정</th>
-                <td colSpan="2">%ProgramData%\AssetFlow\agent.json</td>
-              </tr>
-              <tr>
-                <th>실행 로그</th>
-                <td colSpan="2">설치폴더\logs\agent-YYYYMMDD.log</td>
-              </tr>
-              <tr>
-                <th>실행파일</th>
-                <td colSpan="2">%ProgramFiles%\AssetFlow\Agent</td>
-              </tr>
-            </tbody>
-          </table>
+      )}
+      {view === "history" && (
+        <article className="panel release">
+          <UpdateHistory />
         </article>
-      </div>
-      <article className="panel release">
-        <h3>신규 Agent 실행파일 등록</h3>
-        <form onSubmit={upload}>
-          <input
-            type="password"
-            placeholder="업데이트 등록 토큰"
-            value={token}
-            onChange={(e) => setToken(e.target.value)}
-            required
-          />
-          <input
-            placeholder="버전 (예: 0.3.0)"
-            pattern="[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?"
-            value={version}
-            onChange={(e) => setVersion(e.target.value)}
-            required
-          />
-          <input
-            type="file"
-            accept=".exe"
-            onChange={(e) => setFile(e.target.files[0])}
-            required
-          />
-          <textarea
-            className="release-notes-input"
-            placeholder="주요 변경내역을 입력하세요. 예: 장치 등록 안정성 개선 및 보안 상태 수집 항목 추가"
-            value={releaseNotes}
-            onChange={(e) => setReleaseNotes(e.target.value)}
-            maxLength="2000"
-            required
-          />
-          <button>버전 등록</button>
-        </form>
-        {message && <p className="result">{message}</p>}
-        <ReleaseList />
-      </article>
-      <article className="panel release">
-        <UpdateHistory />
-      </article>
+      )}
     </section>
   );
 }
@@ -471,7 +624,9 @@ function AssetDetailModal({ assetId, onClose }) {
     data &&
     data.bitlocker_enabled === true &&
     data.firewall_enabled === true &&
-    data.antivirus_status === "Healthy";
+    data.antivirus_status === "Healthy" &&
+    data.tpm_enabled === true &&
+    data.secure_boot_enabled === true;
   return (
     <div
       className="modal-backdrop"
@@ -544,7 +699,7 @@ function AssetDetailModal({ assetId, onClose }) {
                   <b className={secure ? "ok-text" : "warn-text"}>
                     {secure ? "정상" : "확인 필요"}
                   </b>
-                  <small>3개 필수 항목 기준</small>
+                  <small>5개 필수 보안 항목 기준</small>
                 </div>
               </div>
               <div className="detail-layout">
@@ -558,6 +713,7 @@ function AssetDetailModal({ assetId, onClose }) {
                       <DetailItem label="제조사" value={data.manufacturer} />
                       <DetailItem label="모델" value={data.model} />
                       <DetailItem label="시리얼 번호" value={data.serial_no} />
+                      <DetailItem label="장치 UUID" value={data.device_uuid} />
                       <DetailItem label="BIOS 버전" value={data.bios_version} />
                       <DetailItem label="CPU" value={data.cpu_name} wide />
                       <DetailItem
@@ -565,6 +721,30 @@ function AssetDetailModal({ assetId, onClose }) {
                         value={bytes(data.memory_bytes)}
                       />
                       <DetailItem label="호스트명" value={data.hostname} />
+                      <DetailItem
+                        label="CPU 코어 / 논리 프로세서"
+                        value={
+                          data.cpu_cores || data.cpu_logical_processors
+                            ? `${show(data.cpu_cores)} / ${show(data.cpu_logical_processors)}`
+                            : "-"
+                        }
+                      />
+                      <DetailItem
+                        label="도메인 / 워크그룹"
+                        value={`${show(data.domain_name)} (${data.domain_joined === true ? "도메인 가입" : data.domain_joined === false ? "워크그룹" : "확인 불가"})`}
+                      />
+                      <DetailItem
+                        label="OS 빌드 / 아키텍처"
+                        value={`${show(data.os_build)} / ${show(data.os_architecture)}`}
+                      />
+                      <DetailItem
+                        label="OS 설치일"
+                        value={date(data.os_installed_at)}
+                      />
+                      <DetailItem
+                        label="최근 부팅"
+                        value={date(data.last_boot_at)}
+                      />
                     </div>
                   </article>
                   <article className="detail-card">
@@ -627,6 +807,7 @@ function AssetDetailModal({ assetId, onClose }) {
                             <th>프로그램</th>
                             <th>버전</th>
                             <th>게시자</th>
+                            <th>설치일</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -638,11 +819,12 @@ function AssetDetailModal({ assetId, onClose }) {
                                 </td>
                                 <td>{show(s.version)}</td>
                                 <td>{show(s.publisher)}</td>
+                                <td>{show(s.install_date)}</td>
                               </tr>
                             ))
                           ) : (
                             <tr>
-                              <td colSpan="3" className="none">
+                              <td colSpan="4" className="none">
                                 일치하는 소프트웨어가 없습니다.
                               </td>
                             </tr>
@@ -671,6 +853,17 @@ function AssetDetailModal({ assetId, onClose }) {
                       value={data.antivirus_status}
                       antivirus
                     />
+                    <SecurityItem label="TPM 활성화" value={data.tpm_enabled} />
+                    <SecurityItem
+                      label="Secure Boot"
+                      value={data.secure_boot_enabled}
+                    />
+                    <div className="security-meta">
+                      TPM{" "}
+                      {data.tpm_present === false
+                        ? "미탑재"
+                        : show(data.tpm_version)}
+                    </div>
                   </article>
                   <article className="detail-card">
                     <h3>네트워크</h3>
@@ -869,7 +1062,7 @@ function App() {
             <small>IT ASSET MANAGEMENT</small>
             <h1>{active}</h1>
           </div>
-          {active !== "Agent 운영" && (
+          {["대시보드", "자산 관리"].includes(active) && (
             <input
               value={q}
               onChange={(e) => setQ(e.target.value)}
@@ -877,8 +1070,14 @@ function App() {
             />
           )}
         </header>
-        {active === "Agent 운영" ? (
-          <AgentOps />
+        {active === "Agent 배포" ? (
+          <AgentOps view="release" />
+        ) : active === "업데이트 이력" ? (
+          <AgentOps view="history" />
+        ) : active === "시스템 가이드" ? (
+          <AgentOps view="guide" />
+        ) : active === "점검 일지" ? (
+          <InspectionLog />
         ) : active === "자산 관리" ? (
           <section>
             <div className="intro">
@@ -927,10 +1126,35 @@ function Dashboard({ stats, rows, loading, load, all, onDetail }) {
           <button onClick={load}>↻ 새로고침</button>
         </div>
         <div className="stats">
-          <Stat label="전체 PC" value={stats.total} />
-          <Stat label="온라인" value={stats.online} />
-          <Stat label="오프라인" value={stats.offline} />
-          <Stat label="장기 미접속" value={stats.stale} />
+          <Stat label="전체 PC" value={stats.total} icon="▣" tone="blue" />
+          <Stat label="온라인" value={stats.online} icon="✓" tone="green" />
+          <Stat label="오프라인" value={stats.offline} icon="–" tone="gray" />
+          <Stat
+            label="장기 미접속"
+            value={stats.stale}
+            icon="!"
+            tone="orange"
+          />
+        </div>
+        <div className="dashboard-insights">
+          <div>
+            <span>BitLocker 조치 필요</span>
+            <b>{stats.security.bitlocker}</b>
+            <small>암호화 미적용 장비</small>
+          </div>
+          <div>
+            <span>백신 상태 확인</span>
+            <b>{stats.security.antivirus}</b>
+            <small>정상 상태가 아닌 장비</small>
+          </div>
+          <div className="coverage">
+            <span>Agent 연결률</span>
+            <b>
+              {stats.total ? Math.round((stats.online / stats.total) * 100) : 0}
+              %
+            </b>
+            <small>최근 15분 보고 기준</small>
+          </div>
         </div>
       </section>
       <section className="panel table">
@@ -946,9 +1170,10 @@ function Dashboard({ stats, rows, loading, load, all, onDetail }) {
     </>
   );
 }
-function Stat({ label, value }) {
+function Stat({ label, value, icon, tone }) {
   return (
     <article>
+      <i className={tone}>{icon}</i>
       <span>{label}</span>
       <strong>{value}</strong>
       <small>Agent 보고 기준</small>

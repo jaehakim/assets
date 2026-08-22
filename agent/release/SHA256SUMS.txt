@@ -1,1 +1,1 @@
-05b66e679653029fdea0e5849cf48a718fd35d83ec7c9ffda1edb60e13a54fc5  agent/release/AssetFlow.Agent.exe
+6937705a274c31901d2391caf1e2a2ec76e8038a5d2f2aa6335f61e152719e39  agent/release/AssetFlow.Agent.exe

@@ -49,7 +49,7 @@ public class AssetController {
     if (rows.isEmpty()) return ResponseEntity.notFound().build();
     var out = new LinkedHashMap<>(rows.getFirst());
     out.put("disks", db.queryForList("SELECT name,filesystem,total_bytes,free_bytes FROM asset_disk WHERE asset_id=?", id));
-    out.put("software", db.queryForList("SELECT name,version,publisher FROM asset_software WHERE asset_id=? ORDER BY name", id));
+    out.put("software", db.queryForList("SELECT name,version,publisher,install_date FROM asset_software WHERE asset_id=? ORDER BY name", id));
     return ResponseEntity.ok(out);
   }
 

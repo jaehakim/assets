@@ -1,7 +1,21 @@
 CREATE TABLE IF NOT EXISTS agent(id UUID PRIMARY KEY,agent_key VARCHAR(100) UNIQUE NOT NULL,hostname VARCHAR(255) NOT NULL,version VARCHAR(30) NOT NULL,token_hash VARCHAR(64) NOT NULL,registered_at TIMESTAMPTZ NOT NULL DEFAULT now(),last_seen_at TIMESTAMPTZ NOT NULL DEFAULT now(),last_ip VARCHAR(64));
 CREATE TABLE IF NOT EXISTS asset(id UUID PRIMARY KEY,agent_id UUID UNIQUE NOT NULL REFERENCES agent(id),hostname VARCHAR(255) NOT NULL,serial_no VARCHAR(255),manufacturer VARCHAR(255),model VARCHAR(255),username VARCHAR(255),department VARCHAR(255),os_name VARCHAR(255),os_version VARCHAR(100),cpu_name VARCHAR(255),memory_bytes BIGINT,bios_version VARCHAR(255),ip_address VARCHAR(64),mac_address VARCHAR(64),bitlocker_enabled BOOLEAN,firewall_enabled BOOLEAN,antivirus_status VARCHAR(50),last_seen_at TIMESTAMPTZ NOT NULL DEFAULT now(),updated_at TIMESTAMPTZ NOT NULL DEFAULT now());
+ALTER TABLE asset ADD COLUMN IF NOT EXISTS device_uuid VARCHAR(100);
+ALTER TABLE asset ADD COLUMN IF NOT EXISTS domain_name VARCHAR(255);
+ALTER TABLE asset ADD COLUMN IF NOT EXISTS domain_joined BOOLEAN;
+ALTER TABLE asset ADD COLUMN IF NOT EXISTS os_build VARCHAR(100);
+ALTER TABLE asset ADD COLUMN IF NOT EXISTS os_architecture VARCHAR(50);
+ALTER TABLE asset ADD COLUMN IF NOT EXISTS os_installed_at TIMESTAMPTZ;
+ALTER TABLE asset ADD COLUMN IF NOT EXISTS last_boot_at TIMESTAMPTZ;
+ALTER TABLE asset ADD COLUMN IF NOT EXISTS cpu_cores INTEGER;
+ALTER TABLE asset ADD COLUMN IF NOT EXISTS cpu_logical_processors INTEGER;
+ALTER TABLE asset ADD COLUMN IF NOT EXISTS tpm_present BOOLEAN;
+ALTER TABLE asset ADD COLUMN IF NOT EXISTS tpm_enabled BOOLEAN;
+ALTER TABLE asset ADD COLUMN IF NOT EXISTS tpm_version VARCHAR(50);
+ALTER TABLE asset ADD COLUMN IF NOT EXISTS secure_boot_enabled BOOLEAN;
 CREATE TABLE IF NOT EXISTS asset_disk(id BIGSERIAL PRIMARY KEY,asset_id UUID NOT NULL REFERENCES asset(id) ON DELETE CASCADE,name VARCHAR(100),filesystem VARCHAR(50),total_bytes BIGINT,free_bytes BIGINT);
 CREATE TABLE IF NOT EXISTS asset_software(id BIGSERIAL PRIMARY KEY,asset_id UUID NOT NULL REFERENCES asset(id) ON DELETE CASCADE,name VARCHAR(500) NOT NULL,version VARCHAR(100),publisher VARCHAR(255));
+ALTER TABLE asset_software ADD COLUMN IF NOT EXISTS install_date VARCHAR(20);
 CREATE TABLE IF NOT EXISTS agent_release(version VARCHAR(30) PRIMARY KEY,filename VARCHAR(255) NOT NULL,sha256 VARCHAR(64) NOT NULL,size_bytes BIGINT NOT NULL,created_at TIMESTAMPTZ NOT NULL DEFAULT now());
 ALTER TABLE agent_release ADD COLUMN IF NOT EXISTS release_notes TEXT NOT NULL DEFAULT '';
 UPDATE agent_release SET release_notes='보안 장치 인증 기반 자동 업데이트, SHA-256 무결성 검증 및 관리자 배포 기능 추가' WHERE version='0.2.0' AND release_notes='';
@@ -13,3 +27,5 @@ UPDATE agent_release SET release_notes='시스템 트레이 기능 도입을 위
 UPDATE agent_release SET release_notes='시스템 트레이에서 PC 요약·관리 페이지 열기 제공, 등록·하트비트 기반 버전 변경 이력 추가' WHERE version='0.2.6' AND release_notes='';
 CREATE TABLE IF NOT EXISTS agent_update_history(id BIGSERIAL PRIMARY KEY,agent_id UUID NOT NULL REFERENCES agent(id) ON DELETE CASCADE,from_version VARCHAR(30),to_version VARCHAR(30) NOT NULL,event_type VARCHAR(30) NOT NULL,created_at TIMESTAMPTZ NOT NULL DEFAULT now());
 CREATE INDEX IF NOT EXISTS idx_agent_update_history_created_at ON agent_update_history(created_at DESC);
+CREATE TABLE IF NOT EXISTS system_inspection_log(id BIGSERIAL PRIMARY KEY,period_start TIMESTAMPTZ UNIQUE NOT NULL,status VARCHAR(20) NOT NULL,db_status VARCHAR(20) NOT NULL,total_assets INTEGER NOT NULL,online_assets INTEGER NOT NULL,stale_assets INTEGER NOT NULL,security_alerts INTEGER NOT NULL,notes VARCHAR(1000),created_at TIMESTAMPTZ NOT NULL DEFAULT now());
+CREATE INDEX IF NOT EXISTS idx_system_inspection_created_at ON system_inspection_log(created_at DESC);

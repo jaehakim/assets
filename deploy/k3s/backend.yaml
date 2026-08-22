@@ -1,0 +1,69 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: agent-releases
+  namespace: assetflow
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: local-path
+  resources: {requests: {storage: 2Gi}}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  namespace: assetflow
+spec:
+  selector: {app: assetflow-backend}
+  ports: [{port: 8080, targetPort: 8080}]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: assetflow
+spec:
+  replicas: 2
+  minReadySeconds: 10
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: {maxUnavailable: 0, maxSurge: 1}
+  selector:
+    matchLabels: {app: assetflow-backend}
+  template:
+    metadata:
+      labels: {app: assetflow-backend}
+    spec:
+      imagePullSecrets: [{name: ghcr-pull}]
+      initContainers:
+        - name: wait-for-postgres
+          image: postgres:16-alpine
+          command: [sh, -c, "until pg_isready -h postgres -U $DB_USER; do sleep 2; done"]
+          envFrom:
+            - configMapRef: {name: assetflow-config}
+            - secretRef: {name: assetflow-secrets}
+      containers:
+        - name: backend
+          image: ghcr.io/jaehakim/assets-backend:latest
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef: {name: assetflow-config}
+            - secretRef: {name: assetflow-secrets}
+          ports: [{containerPort: 8080}]
+          readinessProbe:
+            httpGet: {path: /api/v1/health, port: 8080}
+            initialDelaySeconds: 12
+            periodSeconds: 5
+            failureThreshold: 6
+          livenessProbe:
+            httpGet: {path: /api/v1/health, port: 8080}
+            initialDelaySeconds: 35
+            periodSeconds: 15
+          lifecycle:
+            preStop: {exec: {command: [sh, -c, "sleep 8"]}}
+          resources:
+            requests: {cpu: 100m, memory: 256Mi}
+            limits: {cpu: "1", memory: 768Mi}
+          volumeMounts: [{name: releases, mountPath: /app/releases}]
+      terminationGracePeriodSeconds: 30
+      volumes: [{name: releases, persistentVolumeClaim: {claimName: agent-releases}}]

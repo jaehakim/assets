@@ -4,6 +4,10 @@ spring:
     username: ${DB_USER:assetflow}
     password: ${DB_PASSWORD:assetflow}
   sql.init.mode: always
+  session:
+    store-type: jdbc
+    jdbc:
+      initialize-schema: always
 server.port: 8080
 assetflow.registration-token: ${AGENT_REGISTRATION_TOKEN:change-me}
 assetflow.update-token: ${AGENT_UPDATE_TOKEN:change-me-too}

@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: assetflow-config
+  namespace: assetflow
+data:
+  DB_URL: jdbc:postgresql://postgres:5432/assetflow
+  DB_USER: assetflow
+  AGENT_RELEASE_DIRECTORY: /app/releases
+  SESSION_COOKIE_SECURE: "true"
+  POSTGRES_DB: assetflow
+  POSTGRES_USER: assetflow
