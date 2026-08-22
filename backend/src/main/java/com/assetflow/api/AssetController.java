@@ -39,7 +39,7 @@ public class AssetController {
     return db.queryForList("""
         SELECT s.id,s.hostname,s.serial_no,s.manufacturer,s.model,s.username,s.department,s.asset_tag,
                s.lifecycle_status,s.category,s.location,s.assigned_to,s.warranty_expires_at,s.next_audit_at,
-               s.os_name,s.os_version,s.ip_address,s.last_seen_at,a.version agent_version,
+               s.os_name,s.os_version,s.ip_address,a.last_ip server_observed_ip,s.last_seen_at,a.version agent_version,
                (s.last_seen_at>now()-interval '15 minutes') online
         FROM asset s JOIN agent a ON a.id=s.agent_id
         WHERE s.hostname ILIKE ? OR coalesce(s.username,'') ILIKE ? OR coalesce(s.asset_tag,'') ILIKE ?

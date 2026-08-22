@@ -1036,7 +1036,7 @@ function AssetTable({ rows, loading, onDetail }) {
             <th>사용자 / 부서</th>
             <th>운영체제</th>
             <th>Agent 버전</th>
-            <th>IP 주소</th>
+            <th>네트워크 / 위치</th>
             <th>마지막 접속</th>
             <th>상태</th>
           </tr>
@@ -1092,7 +1092,7 @@ function AssetTable({ rows, loading, onDetail }) {
                 <td>
                   <b>v{a.agent_version || "-"}</b>
                 </td>
-                <td>{a.ip_address || "-"}</td>
+                <td><div className="network-cell"><b>Local {a.ip_address || "-"}</b><small>Server {a.server_observed_ip || "-"}</small><small>위치 {a.location || "미지정"}</small></div></td>
                 <td>{date(a.last_seen_at)}</td>
                 <td>
                   <em className={a.online ? "online" : "offline"}>
