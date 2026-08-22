@@ -1,0 +1,4 @@
+using Microsoft.Extensions.Logging;
+namespace AssetFlow.Agent;
+public sealed class DailyFileLoggerProvider(string directory):ILoggerProvider{private readonly object gate=new();public ILogger CreateLogger(string category)=>new DailyFileLogger(directory,category,gate);public void Dispose(){}}
+internal sealed class DailyFileLogger(string directory,string category,object gate):ILogger{public IDisposable? BeginScope<TState>(TState state)where TState:notnull=>null;public bool IsEnabled(LogLevel level)=>level>=LogLevel.Information;public void Log<TState>(LogLevel level,EventId eventId,TState state,Exception? error,Func<TState,Exception?,string> formatter){if(!IsEnabled(level))return;Directory.CreateDirectory(directory);var line=$"{DateTimeOffset.Now:O} [{level}] {category}: {formatter(state,error)}{(error is null?"":Environment.NewLine+error)}{Environment.NewLine}";lock(gate)File.AppendAllText(Path.Combine(directory,$"agent-{DateTime.Now:yyyyMMdd}.log"),line);}}

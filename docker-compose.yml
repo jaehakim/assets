@@ -20,6 +20,12 @@ services:
       DB_USER: ${POSTGRES_USER:-assetflow}
       DB_PASSWORD: ${POSTGRES_PASSWORD:-assetflow-local-only}
       AGENT_REGISTRATION_TOKEN: ${AGENT_REGISTRATION_TOKEN:-change-me}
+      AGENT_UPDATE_TOKEN: ${AGENT_UPDATE_TOKEN:-change-me-too}
+      AGENT_RELEASE_DIRECTORY: /app/releases
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-change-me-now}
+      SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-false}
+    volumes: ["./deploy/agent-releases:/app/releases"]
     depends_on:
       postgres: {condition: service_healthy}
   frontend:

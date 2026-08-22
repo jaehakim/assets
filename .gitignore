@@ -6,4 +6,5 @@ agent/publish/
 frontend/node_modules/
 frontend/dist/
 deploy/postgres-data/
+deploy/agent-releases/
 *.log

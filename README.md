@@ -38,6 +38,9 @@ Windows PC                    Docker Server
 - 자산 검색, 최근 접속 장비 및 보안 경고 대시보드
 - PostgreSQL 영속 볼륨 및 Docker health check
 - Windows Service 설치·제거 PowerShell 스크립트
+- 설치 폴더 `logs`의 날짜별 Agent 실행 로그
+- 5분 주기 신규 버전 확인, SHA-256 검증 및 서비스 자동 교체
+- 관리자 로그인 세션과 Agent 운영 Mermaid 다이어그램
 
 ## 실행
 
@@ -64,6 +67,7 @@ dotnet publish -c Release -r win-x64 --self-contained true -o publish
 ```
 
 장치 설정과 발급 토큰은 `%ProgramData%\AssetFlow\agent.json`에 저장됩니다. 서비스 제거는 `scripts\uninstall-service.ps1`을 사용합니다.
+실행 로그는 `%ProgramFiles%\AssetFlow\Agent\logs\agent-YYYYMMDD.log`에 저장됩니다. `CollectionMinutes`의 기본값은 60분, `UpdateCheckMinutes`의 기본값은 5분이며 최소 실행 주기는 각각 5분입니다.
 
 빌드된 단일 실행 파일은 `agent/release/AssetFlow.Agent.exe`에 포함됩니다. 배포 전 `agent/release/SHA256SUMS.txt`로 무결성을 확인하십시오.
 
@@ -74,9 +78,12 @@ dotnet publish -c Release -r win-x64 --self-contained true -o publish
 | POST | `/api/v1/agents/register` | `X-Registration-Token` | Agent 최초 등록 및 장치 토큰 발급 |
 | POST | `/api/v1/agents/inventory` | `Bearer DEVICE_TOKEN` | 전체 인벤토리 갱신 |
 | POST | `/api/v1/agents/heartbeat` | `Bearer DEVICE_TOKEN` | Agent 상태 보고 |
-| GET | `/api/v1/dashboard` | MVP 공개 | 현황 집계 |
-| GET | `/api/v1/assets` | MVP 공개 | 자산 검색·목록 |
-| GET | `/api/v1/assets/{id}` | MVP 공개 | 디스크·SW 포함 상세 |
+| GET | `/api/v1/dashboard` | 관리자 세션 | 현황 집계 |
+| GET | `/api/v1/assets` | 관리자 세션 | 자산 검색·목록 |
+| GET | `/api/v1/assets/{id}` | 관리자 세션 | 디스크·SW 포함 상세 |
+| POST | `/api/v1/auth/login` | 계정 | 관리자 로그인 |
+| POST | `/api/v1/admin/agent-releases` | X-Update-Token | 신규 Agent EXE 등록 |
+| GET | `/api/v1/agents/updates/latest` | 장치 Bearer | 최신 Agent 버전 조회 |
 
 ## 개발 계획
 
