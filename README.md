@@ -39,6 +39,7 @@ Windows PC                    Docker Server
 - PostgreSQL 영속 볼륨 및 Docker health check
 - Windows Service 설치·제거 PowerShell 스크립트
 - 설치 폴더 `logs`의 날짜별 Agent 실행 로그
+- Windows 시스템 트레이에서 Agent 버전과 PC 요약 정보 확인 및 관리 페이지 열기
 - 5분 주기 신규 버전 확인, SHA-256 검증 및 서비스 자동 교체
 - 관리자 로그인 세션과 Agent 운영 Mermaid 다이어그램
 
@@ -84,6 +85,7 @@ dotnet publish -c Release -r win-x64 --self-contained true -o publish
 | POST | `/api/v1/auth/login` | 계정 | 관리자 로그인 |
 | POST | `/api/v1/admin/agent-releases` | X-Update-Token | 신규 Agent EXE 등록 |
 | GET | `/api/v1/agents/updates/latest` | 장치 Bearer | 최신 Agent 버전 조회 |
+| GET | `/api/v1/admin/agent-update-history` | 관리자 세션 | 장비별 Agent 버전 변경 이력 조회 |
 
 ## 개발 계획
 
@@ -104,6 +106,13 @@ dotnet publish -c Release -r win-x64 --self-contained true -o publish
 - Agent ID만으로 인증하지 않고 등록 토큰과 장치별 Bearer 토큰을 분리합니다.
 
 ## 변경 이력
+
+### 2026-08-22 — 0.2.6
+
+- Agent 등록 및 하트비트에서 버전 변경을 감지해 업데이트 이력으로 저장
+- Agent 운영 화면에 장비명, 이전/현재 버전, 변경 시각 표시
+- 사용자 로그인 시 시스템 트레이 아이콘 실행, Agent 버전·PC 정보·관리 페이지 메뉴 제공
+- Agent 운영 Mermaid에 서비스, 트레이, 자동 업데이트, 이력 저장 흐름 반영
 
 ### 2026-08-22 — 0.2.2
 

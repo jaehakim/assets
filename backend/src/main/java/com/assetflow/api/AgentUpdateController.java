@@ -36,6 +36,15 @@ public class AgentUpdateController {
     return db.queryForList("SELECT version,filename,sha256,size_bytes,created_at FROM agent_release ORDER BY string_to_array(version,'.')::int[] DESC,created_at DESC");
   }
 
+  @GetMapping("/api/v1/admin/agent-update-history")
+  public List<Map<String,Object>> history() {
+    return db.queryForList("""
+        SELECT h.id,a.hostname,h.from_version,h.to_version,h.event_type,h.created_at
+        FROM agent_update_history h JOIN agent a ON a.id=h.agent_id
+        ORDER BY h.created_at DESC,h.id DESC LIMIT 500
+        """);
+  }
+
   @PostMapping(value="/api/v1/admin/agent-releases", consumes=MediaType.MULTIPART_FORM_DATA_VALUE)
   public ResponseEntity<?> upload(@RequestHeader(value="X-Update-Token", required=false) String token,
       @RequestParam String version, @RequestPart MultipartFile file) throws Exception {

@@ -61,16 +61,18 @@ if errorlevel 1 goto :failed
 set "REGISTRATION_TOKEN="
 set "ASSETFLOW_SETUP_TOKEN="
 
-echo [5/5] Creating and starting the new service...
+echo [5/5] Creating and starting the new service and tray app...
 sc.exe create "%SERVICE_NAME%" binPath= "\"%INSTALL_DIR%\AssetFlow.Agent.exe\"" start= auto DisplayName= "%DISPLAY_NAME%" >nul
 if errorlevel 1 goto :failed
 sc.exe description "%SERVICE_NAME%" "Collects PC inventory and checks verified release metadata for AssetFlow." >nul
 sc.exe failure "%SERVICE_NAME%" reset= 86400 actions= restart/60000/restart/60000/restart/60000 >nul
 sc.exe start "%SERVICE_NAME%" >nul
 if errorlevel 1 goto :failed
+reg.exe add "HKLM\Software\Microsoft\Windows\CurrentVersion\Run" /v "AssetFlowAgentTray" /t REG_SZ /d "\"%INSTALL_DIR%\AssetFlow.Agent.exe\" --tray" /f >nul
+start "" "%INSTALL_DIR%\AssetFlow.Agent.exe" --tray
 
 echo.
-echo [OK] A clean Agent was installed and started.
+echo [OK] A clean Agent service and system tray app were installed and started.
 echo The device will register automatically on its first connection.
 echo Logs: %INSTALL_DIR%\logs
 pause
