@@ -3,6 +3,7 @@ kind: Kustomization
 resources:
   - namespace.yaml
   - config.yaml
+  - rbac.yaml
   - postgres.yaml
   - backend.yaml
   - frontend.yaml

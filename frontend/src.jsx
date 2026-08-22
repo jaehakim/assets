@@ -5,13 +5,28 @@ import "./style.css";
 import "./operations.css";
 import "./asset-detail.css";
 import "./admin-kit.css";
-const menus = [
-  "대시보드",
-  "자산 관리",
-  "Agent 배포",
-  "업데이트 이력",
-  "시스템 가이드",
-  "점검 일지",
+const menuGroups = [
+  {
+    label: "OVERVIEW",
+    items: [
+      { name: "대시보드", icon: "⌂" },
+      { name: "자산 관리", icon: "▣" },
+    ],
+  },
+  {
+    label: "AGENT MANAGEMENT",
+    items: [
+      { name: "Agent 배포", icon: "⇧" },
+      { name: "업데이트 이력", icon: "↻" },
+    ],
+  },
+  {
+    label: "OPERATIONS",
+    items: [
+      { name: "시스템 가이드", icon: "◇" },
+      { name: "점검 일지", icon: "✓" },
+    ],
+  },
 ];
 async function api(url, options = {}) {
   const r = await fetch(url, {
@@ -300,6 +315,56 @@ function InspectionLog() {
             {rows[0]?.status === "NORMAL" ? "정상" : "확인 필요"}
           </em>
         </div>
+        {rows[0] && (
+          <div className="infra-summary">
+            <div>
+              <span>k3s Node</span>
+              <b>{rows[0].node_name || "-"}</b>
+              <small>
+                {rows[0].node_ready
+                  ? `Ready · ${rows[0].k3s_version}`
+                  : "Not Ready"}
+              </small>
+            </div>
+            <div>
+              <span>CPU 사용량</span>
+              <b>{show(rows[0].cpu_usage)}</b>
+              <small>Metrics API 기준</small>
+            </div>
+            <div>
+              <span>RAM 사용 / 용량</span>
+              <b>{show(rows[0].memory_usage)}</b>
+              <small>{show(rows[0].memory_capacity)}</small>
+            </div>
+            <div>
+              <span>HDD 할당 가능</span>
+              <b>{show(rows[0].storage_allocatable)}</b>
+              <small>
+                전체 {show(rows[0].storage_capacity)}
+                {rows[0].disk_pressure ? " · 압박 감지" : ""}
+              </small>
+            </div>
+            <div>
+              <span>Pod 운영</span>
+              <b>
+                {rows[0].pod_ready ?? 0} / {rows[0].pod_total ?? 0}
+              </b>
+              <small>누적 재시작 {rows[0].pod_restarts ?? 0}</small>
+            </div>
+            <div>
+              <span>Git 배포 버전</span>
+              <b className="git-sha">
+                {rows[0].git_sha === "local"
+                  ? "로컬 이미지"
+                  : rows[0].git_sha?.slice(0, 12) || "-"}
+              </b>
+              <small>
+                Backend {rows[0].backend_ready ?? 0} · Frontend{" "}
+                {rows[0].frontend_ready ?? 0}
+              </small>
+            </div>
+          </div>
+        )}
         {error ? (
           <p className="result">점검 일지 조회 실패: {error}</p>
         ) : (
@@ -313,6 +378,11 @@ function InspectionLog() {
                   <th>온라인 / 전체</th>
                   <th>장기 미접속</th>
                   <th>보안 확인</th>
+                  <th>Node</th>
+                  <th>Pod</th>
+                  <th>CPU / RAM</th>
+                  <th>HDD</th>
+                  <th>Git SHA</th>
                   <th>점검 내용</th>
                 </tr>
               </thead>
@@ -336,12 +406,26 @@ function InspectionLog() {
                       </td>
                       <td>{r.stale_assets}</td>
                       <td>{r.security_alerts}</td>
+                      <td>{r.node_ready ? "Ready" : "Not Ready"}</td>
+                      <td>
+                        {r.pod_ready ?? 0}/{r.pod_total ?? 0} · R
+                        {r.pod_restarts ?? 0}
+                      </td>
+                      <td>
+                        {show(r.cpu_usage)} / {show(r.memory_usage)}
+                      </td>
+                      <td>{show(r.storage_allocatable)}</td>
+                      <td className="git-sha">
+                        {r.git_sha === "local"
+                          ? "local"
+                          : r.git_sha?.slice(0, 8) || "-"}
+                      </td>
                       <td className="inspection-notes">{r.notes}</td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="7" className="none">
+                    <td colSpan="12" className="none">
                       점검 기록을 생성하고 있습니다.
                     </td>
                   </tr>
@@ -1036,15 +1120,21 @@ function App() {
           <b>A</b> AssetFlow
         </div>
         <nav>
-          {menus.map((n) => (
-            <button
-              key={n}
-              className={active === n ? "on" : ""}
-              onClick={() => setActive(n)}
-            >
-              <span>{n === "대시보드" ? "⌂" : "▣"}</span>
-              {n}
-            </button>
+          {menuGroups.map((group) => (
+            <div className="nav-group" key={group.label}>
+              <small>{group.label}</small>
+              {group.items.map((item) => (
+                <button
+                  key={item.name}
+                  className={active === item.name ? "on" : ""}
+                  onClick={() => setActive(item.name)}
+                >
+                  <span>{item.icon}</span>
+                  {item.name}
+                  {active === item.name && <i />}
+                </button>
+              ))}
+            </div>
           ))}
         </nav>
         <div className="profile">
@@ -1083,7 +1173,19 @@ function App() {
             <div className="intro">
               <div>
                 <h2>자산 목록</h2>
-                <p>장비를 검색하고 상태를 확인하세요.</p>
+                <p>Agent가 보고한 장비의 운영·보안 상태를 관리합니다.</p>
+              </div>
+              <div className="list-metrics">
+                <span>
+                  검색 결과 <b>{filtered.length}</b>
+                </span>
+                <span>
+                  온라인{" "}
+                  <b className="ok-text">
+                    {filtered.filter((a) => a.online).length}
+                  </b>
+                </span>
+                <button onClick={load}>↻ 새로고침</button>
               </div>
             </div>
             <article className="panel table">
@@ -1115,6 +1217,14 @@ function App() {
   );
 }
 function Dashboard({ stats, rows, loading, load, all, onDetail }) {
+  const securityChecks = stats.total * 2;
+  const securityIssues = stats.security.bitlocker + stats.security.antivirus;
+  const compliance = securityChecks
+    ? Math.max(
+        0,
+        Math.round(((securityChecks - securityIssues) / securityChecks) * 100),
+      )
+    : 100;
   return (
     <>
       <section>
@@ -1155,6 +1265,76 @@ function Dashboard({ stats, rows, loading, load, all, onDetail }) {
             </b>
             <small>최근 15분 보고 기준</small>
           </div>
+        </div>
+        <div className="operations-grid">
+          <article className="panel compliance-panel">
+            <div className="panel-heading">
+              <div>
+                <h3>보안 준수 현황</h3>
+                <p>필수 보안 통제 적용률</p>
+              </div>
+              <span>LIVE</span>
+            </div>
+            <div className="compliance-content">
+              <div className="donut" style={{ "--p": compliance }}>
+                <b>{compliance}%</b>
+              </div>
+              <div className="compliance-legend">
+                <p>
+                  <span>
+                    <i className="legend-dot good" />
+                    정상 보안 항목
+                  </span>
+                  <b>{Math.max(0, securityChecks - securityIssues)}</b>
+                </p>
+                <p>
+                  <span>
+                    <i className="legend-dot warn" />
+                    조치 필요 항목
+                  </span>
+                  <b>{securityIssues}</b>
+                </p>
+                <small>
+                  BitLocker 및 실시간 백신 상태를 기준으로 산정합니다.
+                </small>
+              </div>
+            </div>
+          </article>
+          <article className="panel action-panel">
+            <div className="panel-heading">
+              <div>
+                <h3>운영 조치 센터</h3>
+                <p>우선 확인이 필요한 항목</p>
+              </div>
+              <button onClick={all}>자산 관리 →</button>
+            </div>
+            <div className="action-list">
+              <div>
+                <i className="shield-action">!</i>
+                <span>
+                  <b>디스크 암호화</b>
+                  <small>BitLocker 미적용 또는 확인 불가</small>
+                </span>
+                <strong>{stats.security.bitlocker}</strong>
+              </div>
+              <div>
+                <i className="virus-action">+</i>
+                <span>
+                  <b>Endpoint 보안</b>
+                  <small>백신 상태가 Healthy가 아닌 장비</small>
+                </span>
+                <strong>{stats.security.antivirus}</strong>
+              </div>
+              <div>
+                <i className="stale-action">⌁</i>
+                <span>
+                  <b>장기 미접속</b>
+                  <small>7일 이상 Agent 보고가 없는 장비</small>
+                </span>
+                <strong>{stats.stale}</strong>
+              </div>
+            </div>
+          </article>
         </div>
       </section>
       <section className="panel table">

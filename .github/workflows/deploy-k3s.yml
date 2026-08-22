@@ -65,5 +65,7 @@ jobs:
           kubectl apply -k deploy/k3s
           kubectl -n assetflow set image deployment/backend backend=ghcr.io/${{ github.repository_owner }}/assets-backend:sha-${GITHUB_SHA::7}
           kubectl -n assetflow set image deployment/frontend frontend=ghcr.io/${{ github.repository_owner }}/assets-frontend:sha-${GITHUB_SHA::7}
+          kubectl -n assetflow set env deployment/backend DEPLOY_GIT_SHA="$GITHUB_SHA"
+          kubectl -n assetflow set env deployment/frontend DEPLOY_GIT_SHA="$GITHUB_SHA"
           kubectl -n assetflow rollout status deployment/backend --timeout=5m
           kubectl -n assetflow rollout status deployment/frontend --timeout=5m

@@ -34,6 +34,7 @@ spec:
     metadata:
       labels: {app: assetflow-backend}
     spec:
+      serviceAccountName: assetflow-monitor
       imagePullSecrets: [{name: ghcr-pull}]
       initContainers:
         - name: wait-for-postgres
@@ -49,6 +50,9 @@ spec:
           envFrom:
             - configMapRef: {name: assetflow-config}
             - secretRef: {name: assetflow-secrets}
+          env:
+            - name: KUBERNETES_NAMESPACE
+              valueFrom: {fieldRef: {fieldPath: metadata.namespace}}
           ports: [{containerPort: 8080}]
           readinessProbe:
             httpGet: {path: /api/v1/health, port: 8080}
