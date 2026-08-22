@@ -7,6 +7,7 @@ import "./asset-detail.css";
 import "./admin-kit.css";
 import "./lifecycle.css";
 import "./login-pro.css";
+import "./control-room.css";
 const menuGroups = [
   {
     label: "OVERVIEW",
@@ -1197,6 +1198,10 @@ function App() {
             </div>
           ))}
         </nav>
+        <div className="nav-health">
+          <div><span><i /> CONTROL PLANE</span><b>NORMAL</b></div>
+          <small>NODE OSAKA · K3S</small>
+        </div>
         <div className="profile">
           <i>{user.username[0].toUpperCase()}</i>
           <div>
@@ -1212,6 +1217,7 @@ function App() {
             <small>IT ASSET MANAGEMENT</small>
             <h1>{active}</h1>
           </div>
+          <div className="header-environment"><span>ENVIRONMENT</span><b><i /> PRODUCTION</b></div>
           {["대시보드", "자산 관리"].includes(active) && (
             <input
               value={q}
