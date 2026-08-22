@@ -8,6 +8,7 @@ import "./admin-kit.css";
 import "./lifecycle.css";
 import "./login-pro.css";
 import "./control-room.css";
+import "./monitoring.css";
 const menuGroups = [
   {
     label: "OVERVIEW",
@@ -27,6 +28,7 @@ const menuGroups = [
     label: "OPERATIONS",
     items: [
       { name: "시스템 가이드", icon: "◇" },
+      { name: "서버 모니터링", icon: "▥" },
       { name: "점검 일지", icon: "✓" },
     ],
   },
@@ -455,6 +457,25 @@ function InspectionLog() {
     </section>
   );
 }
+function monitorPercent(value) {
+  const n = Number(String(value || "").match(/[\d.]+/)?.[0]);
+  return Number.isFinite(n) ? Math.min(100, n) : 0;
+}
+function ServerMonitoring() {
+  const [data, setData] = useState(null), [error, setError] = useState(""), [loading, setLoading] = useState(true);
+  async function load() { try { setData(await api("/api/v1/admin/system-inspections/live")); setError(""); } catch (e) { setError(e.message); } finally { setLoading(false); } }
+  useEffect(() => { load(); const timer = setInterval(load, 20000); return () => clearInterval(timer); }, []);
+  const healthy = data?.nodeReady && !data?.diskPressure && data?.podReady === data?.podTotal && !data?.error;
+  const memoryPct = monitorPercent(String(data?.memoryUsage).match(/\(([^)]+)/)?.[1]);
+  return <section className="monitor-page"><div className="intro"><div><h2>서버 상태 모니터링</h2><p>k3s Control Plane과 AssetFlow 워크로드를 20초 간격으로 관제합니다.</p></div><div className="monitor-actions"><span><i className={healthy ? "pulse" : "pulse warn"} />{loading ? "CONNECTING" : healthy ? "ALL SYSTEMS NORMAL" : "ATTENTION REQUIRED"}</span><button onClick={load}>↻ 즉시 갱신</button></div></div>
+    {error && <div className="monitor-alert">모니터링 API 연결 실패 · {error}</div>}
+    {data && <><div className="monitor-strip"><div><span>CONTROL PLANE</span><b>{data.nodeReady ? "ONLINE" : "OFFLINE"}</b><small>{data.nodeName} · {data.k3sVersion}</small></div><div><span>DATABASE</span><b>{data.database}</b><small>PostgreSQL connection</small></div><div><span>DEPLOY REVISION</span><b>{data.gitSha?.slice(0, 12) || "LOCAL"}</b><small>Immutable image release</small></div><div><span>LAST POLL</span><b>{new Date(data.checkedAt).toLocaleTimeString("ko-KR")}</b><small>Auto refresh · 20 sec</small></div></div>
+      <div className="resource-grid"><MonitorResource label="CPU UTILIZATION" value={data.cpuUsage} percent={monitorPercent(data.cpuUsage)} note="Node compute consumption"/><MonitorResource label="MEMORY UTILIZATION" value={data.memoryUsage} percent={memoryPct} note={`Capacity ${data.memoryCapacity}`}/><article className="panel resource-panel"><div className="resource-head"><span>EPHEMERAL STORAGE</span><b>{data.storageAllocatable}</b></div><div className={`storage-state ${data.diskPressure ? "danger" : ""}`}>{data.diskPressure ? "DISK PRESSURE" : "CAPACITY NORMAL"}</div><small>Total capacity {data.storageCapacity}</small></article></div>
+      <div className="workload-grid"><article className="panel workload-panel"><div className="panel-heading"><div><h3>WORKLOAD STATUS</h3><p>AssetFlow namespace deployments</p></div><span>LIVE</span></div><div className="workload-list"><Workload name="Backend API" detail="Spring Boot · inventory/admin API" ready={data.backendReady} total={2}/><Workload name="Frontend Web" detail="Nginx · React admin console" ready={data.frontendReady} total={2}/><Workload name="Namespace Pods" detail={`Restart count ${data.podRestarts}`} ready={data.podReady} total={data.podTotal}/></div></article><article className="panel node-panel"><div className="panel-heading"><div><h3>NODE TELEMETRY</h3><p>Single-node k3s operating state</p></div><span>{data.platform?.toUpperCase()}</span></div><dl><div><dt>Node name</dt><dd>{data.nodeName}</dd></div><div><dt>Kubernetes</dt><dd>{data.k3sVersion}</dd></div><div><dt>Registered assets</dt><dd>{data.onlineAssets} online / {data.totalAssets}</dd></div><div><dt>Disk pressure</dt><dd className={data.diskPressure ? "bad-text" : "good-text"}>{data.diskPressure ? "DETECTED" : "FALSE"}</dd></div></dl></article></div></>}
+  </section>;
+}
+function MonitorResource({ label, value, percent, note }) { return <article className="panel resource-panel"><div className="resource-head"><span>{label}</span><b>{value}</b></div><div className="meter"><i style={{ width: `${percent}%` }} /></div><small>{note}</small></article>; }
+function Workload({ name, detail, ready, total }) { return <div><i className={ready >= total ? "ok" : "bad"}/><span><b>{name}</b><small>{detail}</small></span><strong>{ready} / {total}</strong></div>; }
 function AgentOps({ view }) {
   const [token, setToken] = useState(""),
     [version, setVersion] = useState(""),
@@ -1234,6 +1255,8 @@ function App() {
           <AgentOps view="guide" />
         ) : active === "점검 일지" ? (
           <InspectionLog />
+        ) : active === "서버 모니터링" ? (
+          <ServerMonitoring />
         ) : active === "자산 관리" ? (
           <section>
             <div className="intro">

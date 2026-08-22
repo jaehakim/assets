@@ -24,6 +24,12 @@ public class SystemInspectionController {
     return db.queryForList("SELECT id,period_start,status,db_status,total_assets,online_assets,stale_assets,security_alerts,platform,node_name,node_ready,k3s_version,cpu_usage,memory_usage,memory_capacity,storage_capacity,storage_allocatable,disk_pressure,pod_total,pod_ready,pod_restarts,backend_ready,frontend_ready,git_sha,notes,created_at FROM system_inspection_log ORDER BY created_at DESC LIMIT 500");
   }
 
+  @GetMapping("/live")
+  public Map<String,Object> live(){
+    var infra=infrastructure.inspect();var out=new LinkedHashMap<String,Object>();
+    out.put("checkedAt",java.time.OffsetDateTime.now());out.put("platform",infra.platform());out.put("nodeName",infra.nodeName());out.put("nodeReady",infra.nodeReady());out.put("k3sVersion",infra.k3sVersion());out.put("cpuUsage",infra.cpuUsage());out.put("memoryUsage",infra.memoryUsage());out.put("memoryCapacity",infra.memoryCapacity());out.put("storageCapacity",infra.storageCapacity());out.put("storageAllocatable",infra.storageAllocatable());out.put("diskPressure",infra.diskPressure());out.put("podTotal",infra.podTotal());out.put("podReady",infra.podReady());out.put("podRestarts",infra.podRestarts());out.put("backendReady",infra.backendReady());out.put("frontendReady",infra.frontendReady());out.put("gitSha",infra.gitSha());out.put("error",infra.error());out.put("database","NORMAL");out.put("totalAssets",count("SELECT count(*) FROM asset"));out.put("onlineAssets",count("SELECT count(*) FROM asset WHERE last_seen_at>now()-interval '15 minutes'"));return out;
+  }
+
   private void inspect(boolean manual){
     int total=count("SELECT count(*) FROM asset");
     int online=count("SELECT count(*) FROM asset WHERE last_seen_at>now()-interval '15 minutes'");
