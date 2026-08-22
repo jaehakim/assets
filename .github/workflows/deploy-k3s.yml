@@ -61,11 +61,30 @@ jobs:
           kubectl -n assetflow create secret docker-registry ghcr-pull --docker-server=ghcr.io --docker-username="$GHCR_USERNAME" --docker-password="$GHCR_TOKEN" --dry-run=client -o yaml | kubectl apply -f -
           kubectl -n assetflow create secret generic assetflow-secrets --from-literal=DB_PASSWORD="$DB_PASSWORD" --from-literal=POSTGRES_PASSWORD="$DB_PASSWORD" --from-literal=AGENT_REGISTRATION_TOKEN="$REGISTRATION_TOKEN" --from-literal=AGENT_UPDATE_TOKEN="$UPDATE_TOKEN" --from-literal=ADMIN_USERNAME="$ADMIN_USERNAME" --from-literal=ADMIN_PASSWORD="$ADMIN_PASSWORD" --dry-run=client -o yaml | kubectl apply -f -
       - name: Rolling deploy immutable images
+        env:
+          GHCR_USERNAME: ${{ github.repository_owner }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           kubectl apply -k deploy/k3s
+          sudo k3s ctr images pull --user "$GHCR_USERNAME:$GHCR_TOKEN" ghcr.io/${{ github.repository_owner }}/assets-backend:sha-${GITHUB_SHA::7}
+          sudo k3s ctr images pull --user "$GHCR_USERNAME:$GHCR_TOKEN" ghcr.io/${{ github.repository_owner }}/assets-frontend:sha-${GITHUB_SHA::7}
           kubectl -n assetflow set image deployment/backend backend=ghcr.io/${{ github.repository_owner }}/assets-backend:sha-${GITHUB_SHA::7}
           kubectl -n assetflow set image deployment/frontend frontend=ghcr.io/${{ github.repository_owner }}/assets-frontend:sha-${GITHUB_SHA::7}
           kubectl -n assetflow set env deployment/backend DEPLOY_GIT_SHA="$GITHUB_SHA"
           kubectl -n assetflow set env deployment/frontend DEPLOY_GIT_SHA="$GITHUB_SHA"
           kubectl -n assetflow rollout status deployment/backend --timeout=5m
           kubectl -n assetflow rollout status deployment/frontend --timeout=5m
+  cleanup-ghcr:
+    needs: deploy
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        package: [assets-backend, assets-frontend]
+    steps:
+      - name: Keep the five most recent container versions
+        uses: actions/delete-package-versions@v5
+        with:
+          package-name: ${{ matrix.package }}
+          package-type: container
+          min-versions-to-keep: 5
+          delete-only-untagged-versions: false

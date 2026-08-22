@@ -5,6 +5,7 @@ import "./style.css";
 import "./operations.css";
 import "./asset-detail.css";
 import "./admin-kit.css";
+import "./lifecycle.css";
 const menuGroups = [
   {
     label: "OVERVIEW",
@@ -550,6 +551,21 @@ API --> DB[(PostgreSQL)]`}</Diagram>
               </table>
             </article>
           </div>
+          <article className="panel roadmap-panel">
+            <div className="panel-heading"><div><h3>IT 자산관리 고도화 계획</h3><p>Snipe-IT·GLPI·Lansweeper 운영 기능을 기준으로 한 단계별 확장 계획</p></div><span>ROADMAP</span></div>
+            <div className="roadmap-grid">
+              <div className="done"><b>1단계 · 운영 기반</b><em>적용</em><p>Agent 자동 인벤토리, 보안 상태, 자산 태그, 담당자·위치, 생애주기, 구매·보증·EOL, 실사 일정과 변경 이력</p></div>
+              <div><b>2단계 · 통제 자동화</b><em>계획</em><p>QR·바코드, 반출·반납 승인, 정기 실사 알림, 계약·공급업체·라이선스·비용 관리, 네트워크 탐색</p></div>
+              <div><b>3단계 · 지능형 운영</b><em>계획</em><p>소프트웨어 정규화, EOL/EOS·취약점 인텔리전스, 라이선스 최적화, ITSM·CMDB·SSO·Webhook 연계</p></div>
+            </div>
+            <table className="settings guide-matrix"><tbody>
+              <tr><th>책임성</th><td>고유 자산 태그, 할당 담당자, 위치, 변경 감사 이력</td><td>현재 적용</td></tr>
+              <tr><th>생애주기</th><td>재고·사용·수리·분실·폐기 상태, 구매·보증·EOL 날짜</td><td>현재 적용</td></tr>
+              <tr><th>물리 실사</th><td>최근·다음 실사일과 지연 자산 대시보드 경고</td><td>현재 적용</td></tr>
+              <tr><th>확장 수집</th><td>모니터·프린터·네트워크·클라우드 자산과 관계 정보</td><td>2단계</td></tr>
+              <tr><th>컴플라이언스</th><td>취약점, 라이선스 사용량, EOS 정책 및 감사 보고서</td><td>3단계</td></tr>
+            </tbody></table>
+          </article>
         </>
       )}
       {view === "release" && (
@@ -675,10 +691,35 @@ function SecurityItem({ label, value, antivirus = false }) {
     </div>
   );
 }
+const lifecycleLabels = {IN_STOCK:"재고",IN_USE:"사용 중",REPAIR:"수리",LOST:"분실",RETIRED:"퇴역",DISPOSED:"폐기"};
+function ManagementForm({ data, onSaved }) {
+  const keys = ["asset_tag","lifecycle_status","category","location","assigned_to","vendor","purchase_date","purchase_cost","warranty_expires_at","eol_at","last_audit_at","next_audit_at","management_notes"];
+  const [form,setForm] = useState(() => Object.fromEntries(keys.map(k => [k,data[k] ?? ""]))), [message,setMessage] = useState(""), [busy,setBusy] = useState(false);
+  const set = (key,value) => setForm(x => ({...x,[key]:value}));
+  async function save(e) {
+    e.preventDefault(); setBusy(true); setMessage("");
+    try {
+      const body = Object.fromEntries(Object.entries(form).map(([k,v]) => [k.replace(/_([a-z])/g,(_,c)=>c.toUpperCase()),v === "" ? null : v]));
+      await api(`/api/v1/assets/${data.id}/management`,{method:"PATCH",body:JSON.stringify(body)});
+      setMessage("관리 정보가 저장되었습니다."); await onSaved();
+    } catch (err) { setMessage(`저장 실패: ${err.message}`); } finally { setBusy(false); }
+  }
+  return <article className="detail-card management-card"><h3>자산 생애주기 <small>{lifecycleLabels[form.lifecycle_status] || form.lifecycle_status}</small></h3><form onSubmit={save} className="management-form">
+    <label>자산 태그<input value={form.asset_tag} onChange={e=>set("asset_tag",e.target.value)} placeholder="예: PC-2026-001" /></label>
+    <label>운영 상태<select value={form.lifecycle_status} onChange={e=>set("lifecycle_status",e.target.value)}>{Object.entries(lifecycleLabels).map(([v,l])=><option key={v} value={v}>{l}</option>)}</select></label>
+    <label>자산 분류<input value={form.category} onChange={e=>set("category",e.target.value)} /></label><label>담당자<input value={form.assigned_to} onChange={e=>set("assigned_to",e.target.value)} /></label>
+    <label>위치<input value={form.location} onChange={e=>set("location",e.target.value)} /></label><label>공급업체<input value={form.vendor} onChange={e=>set("vendor",e.target.value)} /></label>
+    <label>구매일<input type="date" value={form.purchase_date} onChange={e=>set("purchase_date",e.target.value)} /></label><label>구매금액<input type="number" min="0" value={form.purchase_cost} onChange={e=>set("purchase_cost",e.target.value)} /></label>
+    <label>보증 만료일<input type="date" value={form.warranty_expires_at} onChange={e=>set("warranty_expires_at",e.target.value)} /></label><label>EOL 예정일<input type="date" value={form.eol_at} onChange={e=>set("eol_at",e.target.value)} /></label>
+    <label>최근 실사일<input type="date" value={form.last_audit_at} onChange={e=>set("last_audit_at",e.target.value)} /></label><label>다음 실사일<input type="date" value={form.next_audit_at} onChange={e=>set("next_audit_at",e.target.value)} /></label>
+    <label className="wide">관리 메모<textarea value={form.management_notes} onChange={e=>set("management_notes",e.target.value)} /></label><div className="management-actions"><small>{message}</small><button disabled={busy}>{busy?"저장 중…":"관리 정보 저장"}</button></div>
+  </form>{data.managementHistory?.length > 0 && <div className="audit-history"><b>최근 변경 이력</b>{data.managementHistory.slice(0,5).map(h=><p key={h.id}><span>{date(h.created_at)} · {h.changed_by}</span>{h.details}</p>)}</div>}</article>;
+}
 function AssetDetailModal({ assetId, onClose }) {
   const [data, setData] = useState(null),
     [error, setError] = useState(""),
     [softwareQ, setSoftwareQ] = useState("");
+  const loadDetail = () => api(`/api/v1/assets/${assetId}`).then(setData);
   useEffect(() => {
     let live = true;
     api(`/api/v1/assets/${assetId}`)
@@ -788,6 +829,7 @@ function AssetDetailModal({ assetId, onClose }) {
               </div>
               <div className="detail-layout">
                 <div className="detail-main">
+                  <ManagementForm data={data} onSaved={loadDetail} />
                   <article className="detail-card">
                     <h3>
                       <Icon name="device" />
@@ -990,6 +1032,7 @@ function AssetTable({ rows, loading, onDetail }) {
         <thead>
           <tr>
             <th>장비명 / 상세정보</th>
+            <th>자산 태그 / 생애주기</th>
             <th>사용자 / 부서</th>
             <th>운영체제</th>
             <th>Agent 버전</th>
@@ -1001,11 +1044,11 @@ function AssetTable({ rows, loading, onDetail }) {
         <tbody>
           {loading ? (
             <tr>
-              <td colSpan="7">불러오는 중…</td>
+              <td colSpan="8">불러오는 중…</td>
             </tr>
           ) : !rows.length ? (
             <tr>
-              <td colSpan="7" className="none">
+              <td colSpan="8" className="none">
                 등록된 자산이 없습니다.
               </td>
             </tr>
@@ -1039,6 +1082,7 @@ function AssetTable({ rows, loading, onDetail }) {
                     </button>
                   </div>
                 </td>
+                <td><b>{a.asset_tag || "미지정"}</b><br/><small>{lifecycleLabels[a.lifecycle_status] || a.lifecycle_status}</small></td>
                 <td>
                   {a.username || "-"} / {a.department || "미지정"}
                 </td>
@@ -1076,6 +1120,7 @@ function App() {
       offline: 0,
       stale: 0,
       security: { bitlocker: 0, antivirus: 0 },
+      management: { warrantyExpiring: 0, overdueAudit: 0, assigned: 0 },
     });
   useEffect(() => {
     api("/api/v1/auth/me")
@@ -1186,6 +1231,7 @@ function App() {
                   </b>
                 </span>
                 <button onClick={load}>↻ 새로고침</button>
+                <a className="export-button" href="/api/v1/assets-export.csv">CSV 내보내기</a>
               </div>
             </div>
             <article className="panel table">
@@ -1265,6 +1311,8 @@ function Dashboard({ stats, rows, loading, load, all, onDetail }) {
             </b>
             <small>최근 15분 보고 기준</small>
           </div>
+          <div><span>보증 만료 예정</span><b>{stats.management?.warrantyExpiring || 0}</b><small>90일 이내 만료</small></div>
+          <div><span>실사 지연</span><b>{stats.management?.overdueAudit || 0}</b><small>다음 실사일 경과</small></div>
         </div>
         <div className="operations-grid">
           <article className="panel compliance-panel">

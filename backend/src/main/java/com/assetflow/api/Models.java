@@ -1,5 +1,15 @@
 package com.assetflow.api;
 import jakarta.validation.constraints.NotBlank;
-import java.time.OffsetDateTime;
+import java.time.*;
+import java.math.BigDecimal;
 import java.util.*;
-public final class Models{private Models(){} public record Register(@NotBlank String agentKey,@NotBlank String hostname,@NotBlank String version){} public record Registered(UUID agentId,String deviceToken){} public record Heartbeat(@NotBlank String version){} public record Disk(String name,String filesystem,long totalBytes,long freeBytes){} public record Software(String name,String version,String publisher,String installDate){} public record Inventory(@NotBlank String hostname,String serialNo,String manufacturer,String model,String deviceUuid,String domainName,Boolean domainJoined,String username,String department,String osName,String osVersion,String osBuild,String osArchitecture,OffsetDateTime osInstalledAt,OffsetDateTime lastBootAt,String cpuName,Integer cpuCores,Integer cpuLogicalProcessors,long memoryBytes,String biosVersion,String ipAddress,String macAddress,Boolean bitlockerEnabled,Boolean firewallEnabled,String antivirusStatus,Boolean tpmPresent,Boolean tpmEnabled,String tpmVersion,Boolean secureBootEnabled,List<Disk> disks,List<Software> software){}}
+public final class Models{
+  private Models(){}
+  public record Register(@NotBlank String agentKey,@NotBlank String hostname,@NotBlank String version){}
+  public record Registered(UUID agentId,String deviceToken){}
+  public record Heartbeat(@NotBlank String version){}
+  public record Disk(String name,String filesystem,long totalBytes,long freeBytes){}
+  public record Software(String name,String version,String publisher,String installDate){}
+  public record Inventory(@NotBlank String hostname,String serialNo,String manufacturer,String model,String deviceUuid,String domainName,Boolean domainJoined,String username,String department,String osName,String osVersion,String osBuild,String osArchitecture,OffsetDateTime osInstalledAt,OffsetDateTime lastBootAt,String cpuName,Integer cpuCores,Integer cpuLogicalProcessors,long memoryBytes,String biosVersion,String ipAddress,String macAddress,Boolean bitlockerEnabled,Boolean firewallEnabled,String antivirusStatus,Boolean tpmPresent,Boolean tpmEnabled,String tpmVersion,Boolean secureBootEnabled,List<Disk> disks,List<Software> software){}
+  public record AssetManagement(String assetTag,String lifecycleStatus,String category,String location,String assignedTo,String vendor,LocalDate purchaseDate,BigDecimal purchaseCost,LocalDate warrantyExpiresAt,LocalDate eolAt,LocalDate lastAuditAt,LocalDate nextAuditAt,String managementNotes){}
+}
