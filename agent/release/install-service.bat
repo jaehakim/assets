@@ -31,11 +31,16 @@ if not defined REGISTRATION_TOKEN (
 echo [1/5] Stopping and deleting the existing service...
 sc.exe query "%SERVICE_NAME%" >nul 2>&1
 if not errorlevel 1 (
-  powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "$s=Get-Service -Name '%SERVICE_NAME%' -ErrorAction SilentlyContinue;if($s -and $s.Status -ne 'Stopped'){Stop-Service -Name '%SERVICE_NAME%' -Force;$s.WaitForStatus('Stopped',[TimeSpan]::FromSeconds(30))}"
+  powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "$ErrorActionPreference='Stop';$s=Get-Service -Name '%SERVICE_NAME%' -ErrorAction SilentlyContinue;if($s -and $s.Status -ne 'Stopped'){Stop-Service -Name '%SERVICE_NAME%' -Force;$s.WaitForStatus('Stopped',[TimeSpan]::FromSeconds(30))};$s=Get-Service -Name '%SERVICE_NAME%' -ErrorAction SilentlyContinue;if($s -and $s.Status -ne 'Stopped'){exit 1}"
   if errorlevel 1 goto :failed
   sc.exe delete "%SERVICE_NAME%" >nul 2>&1
-  timeout /t 2 /nobreak >nul
+  if errorlevel 1 goto :failed
+  powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "$limit=(Get-Date).AddSeconds(30);do{$s=Get-Service -Name '%SERVICE_NAME%' -ErrorAction SilentlyContinue;if(-not $s){exit 0};Start-Sleep -Milliseconds 500}while((Get-Date) -lt $limit);exit 1"
+  if errorlevel 1 goto :failed
 )
+
+rem Stop a manually started or orphaned Agent process that may still lock the files.
+taskkill.exe /F /IM "AssetFlow.Agent.exe" >nul 2>&1
 
 echo [2/5] Removing the old executable, logs, and device identity...
 if exist "%INSTALL_DIR%" rmdir /s /q "%INSTALL_DIR%"
