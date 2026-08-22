@@ -105,6 +105,12 @@ dotnet publish -c Release -r win-x64 --self-contained true -o publish
 
 ## 변경 이력
 
+### 2026-08-22 — 0.2.2
+
+- 등록 토큰 앞뒤 공백 정규화 및 기본 토큰 설치 차단
+- 저장된 설정보다 `ASSETFLOW_API_URL`, `ASSETFLOW_REGISTRATION_TOKEN` 환경변수를 우선 적용
+- HTTP 401 등록 실패 시 설정 파일 위치와 복구 방법을 로그에 명시
+
 ### 2026-08-22 — 0.1.0
 
 - 초기 모노레포와 Docker Compose 구축
