@@ -115,6 +115,7 @@ function Login({ onLogin }) {
         <small>© 2026 AssetFlow · Enterprise Asset Intelligence</small>
       </section>
       <form onSubmit={submit}>
+        <div className="access-terminal-bar"><span><i /> SECURE ACCESS NODE</span><b>AF-OPS / 01</b></div>
         <div className="brand">
           <b>A</b> AssetFlow
         </div>
@@ -139,6 +140,7 @@ function Login({ onLogin }) {
         </label>
         {error && <div className="loginerror" role="alert"><b>!</b>{error}</div>}
         <button className="login-submit" disabled={busy}>{busy ? <><i className="login-spinner" /> 인증 확인 중…</> : <>관리자 로그인 <span>→</span></>}</button>
+        <div className="access-meta"><span><small>PROTOCOL</small><b>TLS / HTTPS</b></span><span><small>AUTH SCOPE</small><b>ADMINISTRATOR</b></span><span><small>SESSION</small><b>AUDIT ENABLED</b></span></div>
         <div className="login-help"><span>로그인에 문제가 있나요?</span><small>시스템 담당자에게 계정 상태를 문의하세요.</small></div>
       </form>
     </div>

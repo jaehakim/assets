@@ -42,3 +42,10 @@ table tbody tr:last-child>th,table tbody tr:last-child>td{border-bottom:0}
 .settings td{background:#fff}
 .settings tr:nth-child(even)>td{background:#f7f8fa}
 .panel.table{border-color:#cbd2dc}
+
+/* Operations inspection typography hierarchy. */
+h1,h2,h3,.brand,.nav-label,.workspace-tabs button,.panel-heading h3,.title h3{font-family:'IBM Plex Sans Condensed','IBM Plex Sans KR',sans-serif}
+h1,h2,h3{font-weight:700;letter-spacing:-.25px}
+.intro h2{font-size:17px}.intro p,.panel-heading p,.title p{line-height:1.45}
+.stats article span,.detail-item span,.asset-summary span,.resource-head span{font-family:'IBM Plex Mono','IBM Plex Sans KR',monospace;letter-spacing:.15px}
+table tbody td,.detail-item b,.asset-summary b{font-feature-settings:'tnum' 1,'zero' 1}
