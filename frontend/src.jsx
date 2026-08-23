@@ -9,6 +9,7 @@ import "./lifecycle.css";
 import "./login-pro.css";
 import "./control-room.css";
 import "./monitoring.css";
+import "./console-kit.css";
 const menuGroups = [
   {
     label: "OVERVIEW",
@@ -523,6 +524,22 @@ function AgentOps({ view }) {
       </div>
       {view === "guide" && (
         <>
+          <article className="panel console-kit">
+            <div className="panel-heading">
+              <div><h3>운영 콘솔 디자인 키트</h3><p>관리자가 많은 상태 정보를 빠르게 읽고 판단하기 위한 공통 화면 규칙</p></div>
+              <span>DESIGN SYSTEM · ACTIVE</span>
+            </div>
+            <div className="kit-principles">
+              <div><small>01 · DENSITY</small><b>중복 여백 제거</b><p>콘텐츠 영역 20px, 카드 간격 8~10px을 기준으로 한 화면에 더 많은 운영 정보를 표시합니다.</p></div>
+              <div><small>02 · READABILITY</small><b>본문 11px 이상</b><p>축약 가능한 레이블만 9~10px로 사용하고 주요 값과 제목은 12~23px로 명확히 구분합니다.</p></div>
+              <div><small>03 · STATUS FIRST</small><b>상태 우선 표현</b><p>정상·주의·오류 상태는 색상과 텍스트를 함께 사용해 색상만으로 의미를 전달하지 않습니다.</p></div>
+              <div><small>04 · CONSISTENCY</small><b>3px 운영 컴포넌트</b><p>패널, 버튼, 입력창과 배지는 작은 모서리와 얇은 경계선을 공통으로 적용합니다.</p></div>
+            </div>
+            <div className="kit-reference">
+              <section><h4>COLOR TOKENS</h4><div className="kit-colors"><span><i className="navy" />Console</span><span><i className="blue" />Action</span><span><i className="green" />Normal</span><span><i className="amber" />Attention</span><span><i className="line" />Divider</span></div></section>
+              <section><h4>COMPONENT RULES</h4><dl><div><dt>사이드바</dt><dd>228px 고정 · 35px 메뉴</dd></div><div><dt>상단 헤더</dt><dd>62px 고정 · 환경 상태 표시</dd></div><div><dt>데이터 테이블</dt><dd>34px 헤더 · 47px 자산 행</dd></div><div><dt>반응형</dt><dd>650px 이하 단일 열 전환</dd></div></dl></section>
+            </div>
+          </article>
           <article className="panel ops">
             <h3>자동 업데이트 흐름</h3>
             <Diagram>{`flowchart LR
