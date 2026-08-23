@@ -543,6 +543,31 @@ function AgentOps({ view }) {
             </div>
           </article>
           <article className="panel ops">
+            <div className="panel-heading">
+              <div><h3>운영 화면 적용 기준</h3><p>현재 관리자 화면과 로그인 게이트웨이에 적용된 공통 UI 및 운용 규칙</p></div>
+              <span>UI BASELINE · 2026</span>
+            </div>
+            <table className="settings guide-matrix"><tbody>
+              <tr><th>운영 타이포그래피</th><td>제목·메뉴는 IBM Plex Sans Condensed, 본문은 IBM Plex Sans KR, 상태·수치·레이블은 IBM Plex Mono를 사용합니다.</td><td>전체 화면</td></tr>
+              <tr><th>탭 워크스페이스</th><td>좌측 메뉴에서 연 화면을 상단 탭으로 유지하며, 검색과 화면별 도구는 활성 탭의 콘텐츠 영역에 배치합니다.</td><td>다중 화면 전환</td></tr>
+              <tr><th>좌측 내비게이션</th><td>기본 228px, 접힘 58px 아이콘 레일로 동작하며 페이징 영역도 내비게이션 폭에 맞춰 자동 정렬됩니다.</td><td>접기·펴기</td></tr>
+              <tr><th>데이터 그리드</th><td>회색 헤더와 흰색·교차 회색 데이터 행, 셀 경계선과 호버 강조를 모든 목록에 공통 적용합니다.</td><td>가독성 통일</td></tr>
+              <tr><th>목록 탐색</th><td>헤더 정렬을 지원하고 페이지네이션은 화면 하단에 고정하여 긴 목록에서도 탐색 수단을 유지합니다.</td><td>정렬·고정 페이징</td></tr>
+              <tr><th>로그인 게이트웨이</th><td>보안 접속 노드, TLS 프로토콜, 관리자 권한과 감사 세션 정보를 표시하는 IT 운영 콘솔 형태입니다.</td><td>보안 컨텍스트</td></tr>
+            </tbody></table>
+          </article>
+          <article className="panel ops">
+            <div className="panel-heading">
+              <div><h3>Windows Agent 설치 및 제거</h3><p>배치 파일은 관리자 권한을 자동 요청하며 서비스와 트레이 프로세스를 함께 관리합니다.</p></div>
+              <span>WINDOWS · ADMIN</span>
+            </div>
+            <table className="settings guide-matrix"><tbody>
+              <tr><th>install-service.bat</th><td>등록 토큰 입력 후 최신 Agent를 내려받아 크기와 SHA-256을 검증하고 서비스·트레이 앱을 설치합니다.</td><td>신규 설치</td></tr>
+              <tr><th>uninstall-service.bat</th><td>서비스, 트레이 자동 시작, 실행 프로세스와 설치 파일을 제거하며 재설치를 위해 장비 식별 정보는 보존합니다.</td><td>기본 제거</td></tr>
+              <tr><th>uninstall-service.bat /purge</th><td>기본 제거에 더해 ProgramData의 설정, 장비 토큰과 로컬 로그까지 영구 삭제합니다.</td><td>완전 제거</td></tr>
+            </tbody></table>
+          </article>
+          <article className="panel ops">
             <h3>자동 업데이트 흐름</h3>
             <Diagram>{`flowchart LR
 A[관리자 EXE 등록] --> B[서버 SHA-256 계산·보관]
