@@ -1189,6 +1189,7 @@ function App() {
   const [user, setUser] = useState(undefined),
     [active, setActive] = useState("대시보드"),
     [openTabs, setOpenTabs] = useState(["대시보드"]),
+    [sidebarCollapsed, setSidebarCollapsed] = useState(false),
     [q, setQ] = useState(""),
     [loading, setLoading] = useState(false),
     [assets, setAssets] = useState([]),
@@ -1251,9 +1252,9 @@ function App() {
   }
   return (
     <>
-      <aside>
+      <aside className={sidebarCollapsed ? "sidebar-collapsed" : ""}>
         <div className="brand">
-          <b>A</b> AssetFlow
+          <b>A</b><span>AssetFlow</span><button className="sidebar-toggle" onClick={() => setSidebarCollapsed((value) => !value)} aria-label={sidebarCollapsed ? "메뉴 펼치기" : "메뉴 접기"} title={sidebarCollapsed ? "메뉴 펼치기" : "메뉴 접기"}>{sidebarCollapsed ? "»" : "«"}</button>
         </div>
         <nav>
           {menuGroups.map((group) => (
@@ -1266,7 +1267,7 @@ function App() {
                   onClick={() => openWorkspace(item.name)}
                 >
                   <span>{item.icon}</span>
-                  {item.name}
+                  <b className="nav-label">{item.name}</b>
                   {active === item.name && <i />}
                 </button>
               ))}
@@ -1279,28 +1280,14 @@ function App() {
         </div>
         <div className="profile">
           <i>{user.username[0].toUpperCase()}</i>
-          <div>
+          <div className="profile-label">
             <b>{user.username}</b>
             <small>시스템 관리자</small>
           </div>
           <button onClick={logout}>로그아웃</button>
         </div>
       </aside>
-      <main>
-        <header>
-          <div>
-            <small>IT ASSET MANAGEMENT</small>
-            <h1>{active}</h1>
-          </div>
-          <div className="header-environment"><span>ENVIRONMENT</span><b><i /> PRODUCTION</b></div>
-          {["대시보드", "자산 관리"].includes(active) && (
-            <input
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder="자산, 사용자 검색"
-            />
-          )}
-        </header>
+      <main className={sidebarCollapsed ? "main-collapsed" : ""}>
         <nav className="workspace-tabs" aria-label="열린 관리자 화면">
           <div>
             {openTabs.map((tab) => <button key={tab} className={active === tab ? "on" : ""} onClick={() => setActive(tab)}><span>{menuGroups.flatMap((group) => group.items).find((item) => item.name === tab)?.icon}</span>{tab}{openTabs.length > 1 && <i role="button" tabIndex="0" aria-label={`${tab} 탭 닫기`} onClick={(event) => closeWorkspace(event, tab)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") closeWorkspace(event, tab); }}>×</i>}</button>)}
@@ -1325,6 +1312,7 @@ function App() {
                 <p>Agent가 보고한 장비의 운영·보안 상태를 관리합니다.</p>
               </div>
               <div className="list-metrics">
+                <input className="asset-search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="자산, 사용자 검색" aria-label="자산 검색" />
                 <span>
                   검색 결과 <b>{filtered.length}</b>
                 </span>
@@ -1353,7 +1341,7 @@ function App() {
             rows={filtered.slice(0, 6)}
             loading={loading}
             load={load}
-            all={() => setActive("자산 관리")}
+            all={() => openWorkspace("자산 관리")}
             onDetail={setDetailId}
           />
         )}
