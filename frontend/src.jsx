@@ -1079,20 +1079,40 @@ function AssetDetailModal({ assetId, onClose }) {
     </div>
   );
 }
-function AssetTable({ rows, loading, onDetail }) {
+const assetColumns = [
+  { key: "hostname", label: "장비명 / 상세정보", value: (a) => `${a.hostname || ""} ${a.serial_no || ""}` },
+  { key: "asset_tag", label: "자산 태그 / 생애주기", value: (a) => `${a.asset_tag || ""} ${a.lifecycle_status || ""}` },
+  { key: "username", label: "사용자 / 부서", value: (a) => `${a.username || ""} ${a.department || ""}` },
+  { key: "os_name", label: "운영체제", value: (a) => `${a.os_name || ""} ${a.os_version || ""}` },
+  { key: "agent_version", label: "Agent 버전", value: (a) => a.agent_version || "" },
+  { key: "ip_address", label: "네트워크 / 위치", value: (a) => `${a.ip_address || ""} ${a.location || ""}` },
+  { key: "last_seen_at", label: "마지막 접속", value: (a) => a.last_seen_at ? new Date(a.last_seen_at).getTime() : 0 },
+  { key: "online", label: "상태", value: (a) => Number(Boolean(a.online)) },
+];
+function AssetTable({ rows, loading, onDetail, paginate = false }) {
+  const [sort, setSort] = useState({ key: "last_seen_at", direction: "desc" });
+  const [page, setPage] = useState(1);
+  const pageSize = 20;
+  const column = assetColumns.find((item) => item.key === sort.key);
+  const sortedRows = useMemo(() => [...rows].sort((a, b) => {
+    const left = column.value(a), right = column.value(b);
+    const compared = typeof left === "number"
+      ? left - right
+      : String(left).localeCompare(String(right), "ko", { numeric: true, sensitivity: "base" });
+    return sort.direction === "asc" ? compared : -compared;
+  }), [rows, column, sort.direction]);
+  const pageCount = Math.max(1, Math.ceil(sortedRows.length / pageSize));
+  const visibleRows = paginate ? sortedRows.slice((page - 1) * pageSize, page * pageSize) : sortedRows;
+  useEffect(() => setPage(1), [rows, sort.key, sort.direction]);
+  function changeSort(key) {
+    setSort((current) => ({ key, direction: current.key === key && current.direction === "asc" ? "desc" : "asc" }));
+  }
   return (
     <div className="tablewrap">
       <table>
         <thead>
           <tr>
-            <th>장비명 / 상세정보</th>
-            <th>자산 태그 / 생애주기</th>
-            <th>사용자 / 부서</th>
-            <th>운영체제</th>
-            <th>Agent 버전</th>
-            <th>네트워크 / 위치</th>
-            <th>마지막 접속</th>
-            <th>상태</th>
+            {assetColumns.map((item) => <th key={item.key} aria-sort={sort.key === item.key ? (sort.direction === "asc" ? "ascending" : "descending") : "none"}><button className={sort.key === item.key ? "sort-button active" : "sort-button"} onClick={() => changeSort(item.key)}>{item.label}<i>{sort.key === item.key ? (sort.direction === "asc" ? "▲" : "▼") : "↕"}</i></button></th>)}
           </tr>
         </thead>
         <tbody>
@@ -1107,7 +1127,7 @@ function AssetTable({ rows, loading, onDetail }) {
               </td>
             </tr>
           ) : (
-            rows.map((a) => (
+            visibleRows.map((a) => (
               <tr
                 key={a.id}
                 className="asset-row"
@@ -1158,6 +1178,10 @@ function AssetTable({ rows, loading, onDetail }) {
           )}
         </tbody>
       </table>
+      {paginate && !loading && rows.length > 0 && <nav className="asset-pagination" aria-label="자산 목록 페이지">
+        <span>전체 <b>{rows.length}</b>건 · {page}/{pageCount} 페이지</span>
+        <div><button onClick={() => setPage(1)} disabled={page === 1} aria-label="첫 페이지">«</button><button onClick={() => setPage((value) => Math.max(1, value - 1))} disabled={page === 1} aria-label="이전 페이지">‹</button>{Array.from({ length: pageCount }, (_, index) => index + 1).filter((number) => number === 1 || number === pageCount || Math.abs(number - page) <= 2).map((number, index, pages) => <React.Fragment key={number}>{index > 0 && number - pages[index - 1] > 1 && <i>…</i>}<button className={number === page ? "on" : ""} onClick={() => setPage(number)} aria-current={number === page ? "page" : undefined}>{number}</button></React.Fragment>)}<button onClick={() => setPage((value) => Math.min(pageCount, value + 1))} disabled={page === pageCount} aria-label="다음 페이지">›</button><button onClick={() => setPage(pageCount)} disabled={page === pageCount} aria-label="마지막 페이지">»</button></div>
+      </nav>}
     </div>
   );
 }
@@ -1295,11 +1319,12 @@ function App() {
                 <a className="export-button" href="/api/v1/assets-export.csv">CSV 내보내기</a>
               </div>
             </div>
-            <article className="panel table">
+            <article className="panel table asset-list-panel">
               <AssetTable
                 rows={filtered}
                 loading={loading}
                 onDetail={setDetailId}
+                paginate
               />
             </article>
           </section>
