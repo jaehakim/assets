@@ -1188,6 +1188,7 @@ function AssetTable({ rows, loading, onDetail, paginate = false }) {
 function App() {
   const [user, setUser] = useState(undefined),
     [active, setActive] = useState("대시보드"),
+    [openTabs, setOpenTabs] = useState(["대시보드"]),
     [q, setQ] = useState(""),
     [loading, setLoading] = useState(false),
     [assets, setAssets] = useState([]),
@@ -1236,6 +1237,18 @@ function App() {
     await api("/api/v1/auth/logout", { method: "POST" });
     setUser(null);
   }
+  function openWorkspace(name) {
+    setOpenTabs((tabs) => tabs.includes(name) ? tabs : [...tabs, name]);
+    setActive(name);
+  }
+  function closeWorkspace(event, name) {
+    event.stopPropagation();
+    if (openTabs.length === 1) return;
+    const index = openTabs.indexOf(name);
+    const next = openTabs.filter((tab) => tab !== name);
+    setOpenTabs(next);
+    if (active === name) setActive(next[Math.max(0, index - 1)]);
+  }
   return (
     <>
       <aside>
@@ -1250,7 +1263,7 @@ function App() {
                 <button
                   key={item.name}
                   className={active === item.name ? "on" : ""}
-                  onClick={() => setActive(item.name)}
+                  onClick={() => openWorkspace(item.name)}
                 >
                   <span>{item.icon}</span>
                   {item.name}
@@ -1288,6 +1301,12 @@ function App() {
             />
           )}
         </header>
+        <nav className="workspace-tabs" aria-label="열린 관리자 화면">
+          <div>
+            {openTabs.map((tab) => <button key={tab} className={active === tab ? "on" : ""} onClick={() => setActive(tab)}><span>{menuGroups.flatMap((group) => group.items).find((item) => item.name === tab)?.icon}</span>{tab}{openTabs.length > 1 && <i role="button" tabIndex="0" aria-label={`${tab} 탭 닫기`} onClick={(event) => closeWorkspace(event, tab)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") closeWorkspace(event, tab); }}>×</i>}</button>)}
+          </div>
+          <small>{openTabs.length} OPEN VIEWS</small>
+        </nav>
         {active === "Agent 배포" ? (
           <AgentOps view="release" />
         ) : active === "업데이트 이력" ? (
