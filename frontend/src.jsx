@@ -479,6 +479,202 @@ function ServerMonitoring() {
 }
 function MonitorResource({ label, value, percent, note }) { return <article className="panel resource-panel"><div className="resource-head"><span>{label}</span><b>{value}</b></div><div className="meter"><i style={{ width: `${percent}%` }} /></div><small>{note}</small></article>; }
 function Workload({ name, detail, ready, total }) { return <div><i className={ready >= total ? "ok" : "bad"}/><span><b>{name}</b><small>{detail}</small></span><strong>{ready} / {total}</strong></div>; }
+const k3sManualSteps = [
+  {
+    id: "01", title: "Linux 서버 사전 점검", badge: "PRECHECK", tone: "info",
+    summary: "Ubuntu/Debian 또는 RHEL 계열 서버에서 권한, 자원, 네트워크와 필수 포트를 먼저 확인합니다.",
+    command: `sudo -v
+uname -a
+cat /etc/os-release
+nproc && free -h && df -h /
+ip -br addr
+sudo ss -lntup | grep -E ':(6443|10250|30080)\\b' || true`,
+    check: "권장 기준: 2 vCPU 이상, RAM 4 GiB 이상, 디스크 여유 20 GiB 이상. 6443·10250·30080 포트에 기존 LISTEN 프로세스가 없어야 합니다.",
+    note: "방화벽 사용 시 관리망에서 TCP 6443, 노드 내부 TCP 10250, 외부 프록시에서 TCP 30080 접근을 허용합니다. 기존 Nginx Proxy Manager가 80/443을 사용하므로 k3s의 Traefik과 ServiceLB는 설치 시 제외합니다."
+  },
+  {
+    id: "02", title: "필수 패키지와 커널 설정", badge: "HOST", tone: "info",
+    summary: "설치 스크립트와 컨테이너 네트워크에 필요한 도구 및 커널 모듈을 준비합니다.",
+    command: `sudo apt-get update
+sudo apt-get install -y curl ca-certificates
+sudo modprobe overlay
+sudo modprobe br_netfilter
+printf 'overlay\\nbr_netfilter\\n' | sudo tee /etc/modules-load.d/k3s.conf
+printf 'net.ipv4.ip_forward=1\\nnet.bridge.bridge-nf-call-iptables=1\\nnet.bridge.bridge-nf-call-ip6tables=1\\n' | sudo tee /etc/sysctl.d/99-k3s.conf
+sudo sysctl --system`,
+    check: "sysctl net.ipv4.ip_forward 결과가 1이고, lsmod | grep -E 'overlay|br_netfilter'에서 두 모듈이 확인되면 정상입니다.",
+    note: "RHEL/Rocky 계열은 apt 대신 dnf로 curl과 ca-certificates를 설치합니다. NetworkManager 사용 환경은 CNI 인터페이스를 관리 대상에서 제외해야 할 수 있습니다."
+  },
+  {
+    id: "03", title: "k3s 서버 설치", badge: "INSTALL", tone: "action",
+    summary: "공식 설치 스크립트로 단일 서버를 설치하고 호스트 리버스 프록시와 충돌하는 구성요소를 비활성화합니다.",
+    command: `curl -sfL https://get.k3s.io | \\
+  INSTALL_K3S_EXEC='server --disable traefik --disable servicelb --write-kubeconfig-mode 644' sh -
+sudo systemctl enable --now k3s
+sudo systemctl status k3s --no-pager`,
+    check: "systemctl 상태가 active (running)이어야 합니다. 실패하면 sudo journalctl -u k3s -n 200 --no-pager로 원인을 확인합니다.",
+    note: "운영 환경에서는 변경 통제를 위해 INSTALL_K3S_VERSION 환경변수로 검증한 버전을 고정하는 것을 권장합니다. 재실행하면 같은 설정으로 서비스 구성이 갱신됩니다."
+  },
+  {
+    id: "04", title: "클러스터 준비 상태 확인", badge: "VERIFY", tone: "success",
+    summary: "kubectl 연결, 노드 Ready 상태, 시스템 Pod와 스토리지 클래스를 확인합니다.",
+    command: `kubectl version --client
+kubectl get nodes -o wide
+kubectl get pods -n kube-system
+kubectl get storageclass
+kubectl cluster-info`,
+    check: "노드 STATUS가 Ready, kube-system 핵심 Pod가 Running, local-path StorageClass가 (default)로 표시되어야 합니다.",
+    note: "일반 사용자에서 kubeconfig 오류가 나면 export KUBECONFIG=/etc/rancher/k3s/k3s.yaml을 적용합니다. 이 파일은 클러스터 관리자 권한이므로 외부 공유하거나 저장소에 커밋하지 않습니다."
+  },
+  {
+    id: "05", title: "저장소 준비와 Secret 생성", badge: "SECRETS", tone: "warning",
+    summary: "배포 디렉터리에서 네임스페이스를 만들고 애플리케이션 및 GHCR 인증정보를 안전하게 등록합니다.",
+    command: `cd /opt/assetflow
+kubectl apply -f deploy/k3s/namespace.yaml
+
+read -rsp 'DB password: ' DB_PASSWORD; echo
+read -rsp 'Agent registration token: ' REG_TOKEN; echo
+read -rsp 'Agent update token: ' UPDATE_TOKEN; echo
+read -rp 'Admin username: ' ADMIN_USER
+read -rsp 'Admin password: ' ADMIN_PASSWORD; echo
+
+kubectl -n assetflow create secret generic assetflow-secrets \\
+  --from-literal=DB_PASSWORD="$DB_PASSWORD" \\
+  --from-literal=POSTGRES_PASSWORD="$DB_PASSWORD" \\
+  --from-literal=AGENT_REGISTRATION_TOKEN="$REG_TOKEN" \\
+  --from-literal=AGENT_UPDATE_TOKEN="$UPDATE_TOKEN" \\
+  --from-literal=ADMIN_USERNAME="$ADMIN_USER" \\
+  --from-literal=ADMIN_PASSWORD="$ADMIN_PASSWORD"
+
+read -rp 'GHCR username: ' GHCR_USER
+read -rsp 'GHCR token: ' GHCR_TOKEN; echo
+kubectl -n assetflow create secret docker-registry ghcr-pull \\
+  --docker-server=ghcr.io --docker-username="$GHCR_USER" \\
+  --docker-password="$GHCR_TOKEN"
+unset DB_PASSWORD REG_TOKEN UPDATE_TOKEN ADMIN_PASSWORD GHCR_TOKEN`,
+    check: "kubectl -n assetflow get secret assetflow-secrets ghcr-pull 실행 시 두 Secret이 표시되어야 합니다. 값 자체는 출력하거나 디코딩하지 않습니다.",
+    note: "경로 /opt/assetflow는 실제 저장소 위치로 바꿉니다. secret.example.yaml은 키 설명용이므로 그대로 apply하지 않습니다. GHCR 토큰에는 private package read 권한이 필요합니다."
+  },
+  {
+    id: "06", title: "AssetFlow 전체 배포", badge: "DEPLOY", tone: "action",
+    summary: "Kustomize로 ConfigMap, PostgreSQL, Backend, Frontend, RBAC와 PDB를 한 번에 적용합니다.",
+    command: `kubectl kustomize deploy/k3s | kubectl apply -f -
+kubectl -n assetflow get all
+kubectl -n assetflow get pvc,pdb,configmap
+kubectl -n assetflow get events --sort-by=.lastTimestamp`,
+    check: "postgres-0은 1/1 Running, backend와 frontend Deployment는 각각 READY 2/2, PVC는 Bound, 두 PDB의 ALLOWED DISRUPTIONS는 정상 배포 후 1이어야 합니다.",
+    note: "최초 이미지가 private이면 ImagePullBackOff가 발생할 수 있습니다. 이 경우 ghcr-pull의 사용자·토큰 권한과 Pod 이벤트를 확인합니다. PostgreSQL PVC는 단일 노드 local-path에 저장됩니다."
+  },
+  {
+    id: "07", title: "배포 완료 단계별 검증", badge: "HEALTH", tone: "success",
+    summary: "DB → Backend → Frontend 순서로 rollout과 내부·노드 접근을 검증해 실패 구간을 분리합니다.",
+    command: `kubectl -n assetflow rollout status statefulset/postgres --timeout=5m
+kubectl -n assetflow rollout status deployment/backend --timeout=5m
+kubectl -n assetflow rollout status deployment/frontend --timeout=5m
+
+kubectl -n assetflow exec postgres-0 -- pg_isready -U assetflow -d assetflow
+kubectl -n assetflow run curl-check --rm -i --restart=Never \\
+  --image=curlimages/curl -- curl -fsS http://backend:8080/api/v1/health
+curl -fsSI http://127.0.0.1:30080/`,
+    check: "세 rollout 명령이 successfully rolled out, pg_isready가 accepting connections, API가 성공 응답, NodePort가 HTTP 200 계열을 반환하면 정상입니다.",
+    note: "curl-check가 종료되며 삭제되는 것은 정상입니다. 문제가 있으면 kubectl -n assetflow describe pod <POD명>과 logs 명령으로 이벤트·애플리케이션 로그를 함께 확인합니다."
+  },
+  {
+    id: "08", title: "외부 프록시와 HTTPS 연결", badge: "NETWORK", tone: "info",
+    summary: "Nginx Proxy Manager에서 도메인을 k3s Frontend NodePort로 전달하고 최종 공개 URL을 점검합니다.",
+    command: `ip -4 route get 1.1.1.1
+curl -fsSI http://<K3S_NODE_IP>:30080/
+curl -fsS https://assets.2734.store/api/v1/health
+curl -fsSI https://assets.2734.store/`,
+    check: "Proxy Host의 Forward Hostname/IP는 k3s 노드 IP(현재 구성 예: 172.17.0.1), Forward Port는 30080입니다. 외부 health와 웹 요청이 모두 성공해야 합니다.",
+    note: "SSL 인증서를 연결하고 Force SSL을 활성화합니다. 프록시가 Docker 컨테이너라면 127.0.0.1이 아닌 컨테이너에서 접근 가능한 호스트 주소를 사용합니다."
+  },
+  {
+    id: "09", title: "이미지 갱신과 무중단 배포", badge: "UPDATE", tone: "action",
+    summary: "검증된 불변 sha 태그를 지정하고 Backend와 Frontend를 순차 롤링 업데이트합니다.",
+    command: `export RELEASE_SHA=abcdef1
+kubectl -n assetflow set image deployment/backend \\
+  backend=ghcr.io/jaehakim/assets-backend:sha-$RELEASE_SHA
+kubectl -n assetflow rollout status deployment/backend --timeout=5m
+
+kubectl -n assetflow set image deployment/frontend \\
+  frontend=ghcr.io/jaehakim/assets-frontend:sha-$RELEASE_SHA
+kubectl -n assetflow rollout status deployment/frontend --timeout=5m
+
+kubectl -n assetflow get pods -o wide
+kubectl -n assetflow get deploy -o custom-columns=NAME:.metadata.name,IMAGE:.spec.template.spec.containers[*].image`,
+    check: "새 Pod가 Ready 된 뒤 기존 Pod가 종료되고 각 Deployment가 2/2를 유지해야 합니다. 실제 7자리 Git SHA로 RELEASE_SHA를 바꿉니다.",
+    note: "현재 Deployment는 maxUnavailable 0, maxSurge 1과 readiness probe를 사용합니다. GitHub Actions 운영 배포는 같은 절차를 자동 수행합니다."
+  },
+  {
+    id: "10", title: "롤백과 긴급 복구", badge: "ROLLBACK", tone: "warning",
+    summary: "신규 버전에 이상이 있으면 Deployment 이력을 확인하고 직전 ReplicaSet으로 즉시 복귀합니다.",
+    command: `kubectl -n assetflow rollout history deployment/backend
+kubectl -n assetflow rollout history deployment/frontend
+kubectl -n assetflow rollout undo deployment/backend
+kubectl -n assetflow rollout undo deployment/frontend
+kubectl -n assetflow rollout status deployment/backend --timeout=5m
+kubectl -n assetflow rollout status deployment/frontend --timeout=5m
+curl -fsS https://assets.2734.store/api/v1/health`,
+    check: "두 rollout이 완료되고 health endpoint가 정상 응답하면 복구 완료입니다. 특정 버전은 --to-revision=<번호>로 지정할 수 있습니다.",
+    note: "Deployment 롤백은 애플리케이션 이미지만 되돌립니다. DB 스키마가 하위 호환되지 않는 릴리스는 별도 DB 복구 계획이 반드시 필요합니다."
+  },
+  {
+    id: "11", title: "로그 확인과 장애 진단", badge: "TROUBLESHOOT", tone: "danger",
+    summary: "서비스, 이벤트, Pod 상태와 컨테이너 로그 순서로 확인해 원인을 빠르게 좁힙니다.",
+    command: `sudo systemctl status k3s --no-pager
+sudo journalctl -u k3s --since '30 min ago' --no-pager
+kubectl -n assetflow get pods -o wide
+kubectl -n assetflow get events --sort-by=.lastTimestamp | tail -40
+kubectl -n assetflow logs deployment/backend --all-pods=true --tail=200
+kubectl -n assetflow logs deployment/frontend --all-pods=true --tail=200
+kubectl -n assetflow logs postgres-0 --tail=200
+kubectl -n assetflow describe pod <POD_NAME>`,
+    check: "Pending은 PVC·자원, ImagePullBackOff는 registry 인증/태그, CrashLoopBackOff는 앱 설정·Secret·DB 연결, NotReady는 probe와 포트부터 확인합니다.",
+    note: "재시작 전 반드시 events와 --previous 로그를 보존합니다: kubectl -n assetflow logs <POD_NAME> --previous. Secret 값은 장애 티켓이나 채팅에 붙여 넣지 않습니다."
+  },
+  {
+    id: "12", title: "백업·재시작·제거", badge: "MAINTENANCE", tone: "warning",
+    summary: "운영 전 DB 백업을 수행하고, 필요한 범위만 재시작하거나 k3s를 안전하게 중지·제거합니다.",
+    command: `mkdir -p ./backup
+kubectl -n assetflow exec postgres-0 -- \\
+  pg_dump -U assetflow -d assetflow -Fc > ./backup/assetflow-$(date +%F).dump
+test -s ./backup/assetflow-$(date +%F).dump && echo 'backup OK'
+
+# 애플리케이션만 순차 재시작
+kubectl -n assetflow rollout restart deployment/backend deployment/frontend
+
+# 노드 유지보수 시
+sudo systemctl stop k3s
+sudo systemctl start k3s
+
+# 완전 제거가 승인된 경우에만 실행
+sudo /usr/local/bin/k3s-uninstall.sh`,
+    check: "백업 파일 크기가 0보다 크고 별도 서버/스토리지로 복사되었는지 확인합니다. 재시작 후 07단계의 전체 검증을 반복합니다.",
+    note: "k3s-uninstall.sh는 클러스터 데이터와 local-path 볼륨을 제거할 수 있는 파괴적 명령입니다. 백업·변경 승인·중단 공지를 완료한 경우에만 실행합니다."
+  }
+];
+function CommandBlock({ children }) {
+  const [copied, setCopied] = useState(false);
+  async function copy() {
+    try { await navigator.clipboard.writeText(children); setCopied(true); setTimeout(() => setCopied(false), 1400); } catch (_) { setCopied(false); }
+  }
+  return <div className="manual-command"><div><span>TERMINAL · BASH</span><button type="button" onClick={copy}>{copied ? "복사됨 ✓" : "명령 복사"}</button></div><pre><code>{children}</code></pre></div>;
+}
+function K3sOperationsManual() {
+  const [openStep, setOpenStep] = useState("01");
+  return <article className="panel k3s-manual">
+    <div className="panel-heading manual-heading"><div><small>OPERATIONS MANUAL / LINUX</small><h3>k3s 설치 및 AssetFlow 배포 전체 과정</h3><p>단일 Linux 서버 기준 설치부터 검증, 업데이트, 롤백과 장애 대응까지 순서대로 수행합니다.</p></div><span>LINUX · K3S</span></div>
+    <div className="manual-cautions"><div><b>적용 환경</b><span>단일 k3s Server · host NPM · NodePort 30080</span></div><div><b>실행 권한</b><span>sudo 가능 계정 · GHCR package read 권한</span></div><div><b>완료 기준</b><span>Node Ready · App 2/2 · DB 1/1 · HTTPS health 정상</span></div></div>
+    <div className="manual-warning"><b>!</b><p><strong>운영 전 확인</strong> 명령의 도메인, IP, 저장소 경로, 이미지 소유자와 SHA를 실제 환경 값으로 교체하십시오. 비밀번호와 토큰은 셸 기록·문서·Git에 저장하지 않습니다.</p></div>
+    <nav className="manual-index" aria-label="k3s 운영 매뉴얼 단계">{k3sManualSteps.map(step => <button key={step.id} className={openStep === step.id ? "on" : ""} onClick={() => { setOpenStep(step.id); document.getElementById(`k3s-step-${step.id}`)?.scrollIntoView({ behavior: "smooth", block: "start" }); }}><i>{step.id}</i><span>{step.title}</span></button>)}</nav>
+    <div className="manual-steps">{k3sManualSteps.map(step => <section id={`k3s-step-${step.id}`} className={`manual-step ${openStep === step.id ? "open" : ""}`} key={step.id}>
+      <button className="manual-step-head" type="button" onClick={() => setOpenStep(openStep === step.id ? "" : step.id)} aria-expanded={openStep === step.id}><i>{step.id}</i><span><b>{step.title}</b><small>{step.summary}</small></span><em className={step.tone}>{step.badge}</em><strong>{openStep === step.id ? "−" : "+"}</strong></button>
+      {openStep === step.id && <div className="manual-step-body"><CommandBlock>{step.command}</CommandBlock><div className="manual-result"><span><b>✓ 실행 후 확인</b>{step.check}</span><span><b>운영 참고</b>{step.note}</span></div></div>}
+    </section>)}</div>
+    <div className="manual-done"><span>최종 점검 명령</span><code>kubectl -n assetflow get deploy,sts,pod,svc,pvc,pdb &amp;&amp; curl -fsS https://assets.2734.store/api/v1/health</code></div>
+  </article>;
+}
 function AgentOps({ view }) {
   const [token, setToken] = useState(""),
     [version, setVersion] = useState(""),
@@ -517,7 +713,7 @@ function AgentOps({ view }) {
           </h2>
           <p>
             {view === "guide"
-              ? "자료 수집과 자동 업데이트 구조를 독립된 운영 문서로 확인합니다."
+              ? "Linux·k3s 설치 배포와 자료 수집, 자동 업데이트 운영 절차를 단계별로 확인합니다."
               : view === "history"
                 ? "장비별 Agent 등록과 버전 변경 결과를 확인합니다."
                 : "신규 Agent 실행파일과 주요 변경내역을 안전하게 배포합니다."}
@@ -526,6 +722,7 @@ function AgentOps({ view }) {
       </div>
       {view === "guide" && (
         <>
+          <K3sOperationsManual />
           <article className="panel console-kit">
             <div className="panel-heading">
               <div><h3>운영 콘솔 디자인 키트</h3><p>관리자가 많은 상태 정보를 빠르게 읽고 판단하기 위한 공통 화면 규칙</p></div>
