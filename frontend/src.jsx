@@ -537,7 +537,7 @@ function AgentOps({ view }) {
             </div>
             <div className="kit-reference">
               <section><h4>COLOR TOKENS</h4><div className="kit-colors"><span><i className="navy" />Console</span><span><i className="blue" />Action</span><span><i className="green" />Normal</span><span><i className="amber" />Attention</span><span><i className="line" />Divider</span></div></section>
-              <section><h4>COMPONENT RULES</h4><dl><div><dt>사이드바</dt><dd>228px 고정 · 35px 메뉴</dd></div><div><dt>상단 헤더</dt><dd>62px 고정 · 환경 상태 표시</dd></div><div><dt>데이터 테이블</dt><dd>34px 헤더 · 47px 자산 행</dd></div><div><dt>반응형</dt><dd>650px 이하 단일 열 전환</dd></div></dl></section>
+              <section><h4>COMPONENT RULES</h4><dl><div><dt>사이드바</dt><dd>228px · 58px 접힘</dd></div><div><dt>워크스페이스</dt><dd>상단 탭 · 화면별 도구 하단 배치</dd></div><div><dt>데이터 그리드</dt><dd>회색 헤더 · 흰색/교차 데이터 행</dd></div><div><dt>반응형</dt><dd>650px 이하 단일 열 전환</dd></div></dl></section>
             </div>
           </article>
           <article className="panel ops">

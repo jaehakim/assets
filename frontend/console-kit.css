@@ -25,3 +25,20 @@ body,#root,button,input,select,textarea{font-family:'IBM Plex Sans KR','IBM Plex
 /* Collapsible navigation rail. */
 #root>aside,#root>main{transition:width .18s ease,margin-left .18s ease}.brand>span{white-space:nowrap}.sidebar-toggle{width:25px;height:25px;display:grid;place-items:center;margin-left:auto;border:1px solid #344055;background:#182337;color:#9da8b9;border-radius:2px;cursor:pointer}.sidebar-toggle:hover{color:#fff;border-color:#53678b}.sidebar-collapsed{width:58px!important}.sidebar-collapsed+.main-collapsed{margin-left:58px}.sidebar-collapsed .brand{justify-content:center;padding-inline:0}.sidebar-collapsed .brand>span,.sidebar-collapsed .nav-group>small,.sidebar-collapsed .nav-label,.sidebar-collapsed .nav-health,.sidebar-collapsed .profile-label,.sidebar-collapsed .profile>button{display:none}.sidebar-collapsed .brand>b{display:none}.sidebar-collapsed .sidebar-toggle{margin:0}.sidebar-collapsed nav{padding-inline:8px!important}.sidebar-collapsed .nav-group{margin-bottom:7px}.sidebar-collapsed .nav-group button{width:42px;justify-content:center;padding:0}.sidebar-collapsed .nav-group button>span{width:auto}.sidebar-collapsed .nav-group button>i{right:3px}.sidebar-collapsed .profile{margin-inline:8px!important;padding-inline:0!important;justify-content:center}.sidebar-collapsed .profile>i{width:30px;height:30px}
 @media(max-width:650px){.asset-search{width:150px}.asset-pagination,.main-collapsed .asset-pagination{left:0;padding-inline:10px}.asset-pagination span{display:none}.asset-list-panel .tablewrap{max-height:calc(100vh - 148px)}}
+
+/* Unified operations data grid: every tab uses the same header, row and cell rhythm. */
+.tablewrap,.software-table{border:1px solid #cbd2dc;border-radius:0;background:#fff}
+table{width:100%;border-collapse:separate;border-spacing:0;background:#fff}
+table thead th{height:34px;background:#dfe4ea;color:#263247;border-bottom:1px solid #b9c2ce;font:700 10px 'IBM Plex Mono','IBM Plex Sans KR',monospace;letter-spacing:.15px}
+table th,table td{border-right:1px solid #d9dee5}
+table tr>*:last-child{border-right:0}
+table tbody th{background:#eef1f4;color:#3f4c5f;font-weight:700}
+table tbody td{background:#fff;color:#253148}
+table tbody tr:nth-child(even)>td{background:#f7f8fa}
+table tbody tr:hover>td{background:#edf3fb}
+table tbody tr>th,table tbody tr>td{border-bottom:1px solid #dfe3e8}
+table tbody tr:last-child>th,table tbody tr:last-child>td{border-bottom:0}
+.settings th{background:#e8ecf0;color:#3f4c5f}
+.settings td{background:#fff}
+.settings tr:nth-child(even)>td{background:#f7f8fa}
+.panel.table{border-color:#cbd2dc}
