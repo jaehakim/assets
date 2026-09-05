@@ -53,27 +53,30 @@ const menuGroups = [
   {
     label: "OVERVIEW",
     items: [
-      { name: "대시보드", icon: "⌂" },
-      { name: "자산 관리", icon: "▣" },
-      { name: "SW 컴플라이언스", icon: "⚑" },
+      { name: "대시보드", icon: "dashboard" },
+      { name: "자산 관리", icon: "table" },
+      { name: "SW 컴플라이언스", icon: "shield" },
     ],
   },
   {
     label: "AGENT MANAGEMENT",
     items: [
-      { name: "Agent 배포", icon: "⇧" },
-      { name: "업데이트 이력", icon: "↻" },
+      { name: "Agent 배포", icon: "upload" },
+      { name: "업데이트 이력", icon: "history" },
     ],
   },
   {
     label: "OPERATIONS",
     items: [
-      { name: "시스템 가이드", icon: "◇" },
-      { name: "서버 모니터링", icon: "▥" },
-      { name: "점검 일지", icon: "✓" },
+      { name: "시스템 가이드", icon: "book" },
+      { name: "서버 모니터링", icon: "chart-line" },
+      { name: "점검 일지", icon: "checklist" },
     ],
   },
 ];
+const OPL_CORE16="https://cdn.statically.io/gh/openplatform-labs/icons@main/icons/core-16";
+const OPL_PICTOGRAMS="https://cdn.statically.io/gh/openplatform-labs/pictograms@main/pictograms";
+function Core16Icon({name}){return <img className="core16-icon" src={`${OPL_CORE16}/${name}.svg`} alt="" width="16" height="16"/>}
 async function api(url, options = {}) {
   const r = await fetch(url, {
     ...options,
@@ -327,8 +330,8 @@ function InspectionLog() {
         <div>
           <h2>시스템 점검 일지</h2>
           <p>
-            10분 주기로 자산 연결, 보안 기준과 데이터베이스 상태를 자동
-            기록합니다.
+            매일 06:10에 자산 연결, 보안 기준과 데이터베이스 상태를 1회
+            기록합니다. 수동 점검은 오늘 기록을 갱신합니다.
           </p>
         </div>
         <button onClick={run} disabled={busy}>
@@ -1416,6 +1419,7 @@ function App() {
         <div className="brand">
           <b>A</b><span>AssetFlow</span><button className="sidebar-toggle" onClick={() => setSidebarCollapsed((value) => !value)} aria-label={sidebarCollapsed ? "메뉴 펼치기" : "메뉴 접기"} title={sidebarCollapsed ? "메뉴 펼치기" : "메뉴 접기"}>{sidebarCollapsed ? "»" : "«"}</button>
         </div>
+        <div className="nav-pictogram" aria-hidden="true"><img src={`${OPL_PICTOGRAMS}/asset-management.svg`} alt=""/><span><b>IT ASSET CONTROL</b><small>Inventory operations</small></span></div>
         <nav>
           {menuGroups.map((group) => (
             <div className="nav-group" key={group.label}>
@@ -1426,7 +1430,7 @@ function App() {
                   className={active === item.name ? "on" : ""}
                   onClick={() => openWorkspace(item.name)}
                 >
-                  <span>{item.icon}</span>
+                  <span><Core16Icon name={item.icon}/></span>
                   <b className="nav-label">{item.name}</b>
                   {active === item.name && <i />}
                 </button>
@@ -1450,7 +1454,7 @@ function App() {
       <main className={sidebarCollapsed ? "main-collapsed" : ""}>
         <nav className="workspace-tabs" aria-label="열린 관리자 화면">
           <div>
-            {openTabs.map((tab) => <button key={tab} className={active === tab ? "on" : ""} onClick={() => setActive(tab)}><span>{menuGroups.flatMap((group) => group.items).find((item) => item.name === tab)?.icon}</span>{tab}{openTabs.length > 1 && <i role="button" tabIndex="0" aria-label={`${tab} 탭 닫기`} onClick={(event) => closeWorkspace(event, tab)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") closeWorkspace(event, tab); }}>×</i>}</button>)}
+            {openTabs.map((tab) => {const item=menuGroups.flatMap((group) => group.items).find((entry) => entry.name === tab);return <button key={tab} className={active === tab ? "on" : ""} onClick={() => setActive(tab)}><span><Core16Icon name={item?.icon||"app"}/></span>{tab}{openTabs.length > 1 && <i role="button" tabIndex="0" aria-label={`${tab} 탭 닫기`} onClick={(event) => closeWorkspace(event, tab)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") closeWorkspace(event, tab); }}>×</i>}</button>})}
           </div>
           <small>{openTabs.length} OPEN VIEWS</small>
         </nav>

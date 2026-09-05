@@ -18,6 +18,7 @@ assetflow.software-policy-source-url: ${SOFTWARE_POLICY_SOURCE_URL:}
 assetflow.software-policy-source-name: ${SOFTWARE_POLICY_SOURCE_NAME:공공기관 기초자료}
 assetflow.software-policy-api-key: ${SOFTWARE_POLICY_API_KEY:}
 assetflow.software-policy-sync-cron: ${SOFTWARE_POLICY_SYNC_CRON:0 20 3 * * *}
+assetflow.system-inspection-cron: ${SYSTEM_INSPECTION_CRON:0 10 6 * * *}
 spring.servlet.multipart.max-file-size: 200MB
 spring.servlet.multipart.max-request-size: 200MB
 server.servlet.session.cookie.http-only: true
