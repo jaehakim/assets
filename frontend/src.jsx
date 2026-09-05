@@ -36,18 +36,14 @@ function ExtColumnHeader({ displayName, column, enableSorting, enableMenu, progr
   useEffect(() => {
     const update = () => refresh((value) => value + 1);
     column.addEventListener("sortChanged", update);
-    column.addEventListener("filterActiveChanged", update);
     return () => {
       column.removeEventListener("sortChanged", update);
-      column.removeEventListener("filterActiveChanged", update);
     };
   }, [column]);
   const sort = column.getSort();
-  return <div className="x-column-header">
+  return <div className={`x-column-header${sort ? ` is-sorted is-${sort}` : ""}`}>
     <button className="x-column-title" type="button" onClick={(event) => enableSorting && progressSort(event.shiftKey)} title={enableSorting ? `${displayName} 정렬` : displayName}>
       <span>{displayName}</span>
-      {column.isFilterActive() && <i className="x-filter-active" aria-label="필터 적용됨"/>}
-      {sort && <i className={`x-sort x-sort-${sort}`} aria-label={sort === "asc" ? "오름차순" : "내림차순"}/>}
     </button>
     {enableMenu && <button ref={triggerRef} className={`x-column-trigger${menuOpen ? " is-open" : ""}`} type="button" aria-label={`${displayName} 열 메뉴`} aria-expanded={menuOpen} onClick={(event) => {
       event.stopPropagation();
@@ -99,8 +95,8 @@ function DataGrid({ rows = [], columns, loading = false, empty = "조회된 데�
         onFilterChanged={({api})=>setDisplayed(api.getDisplayedRowCount())}
         onSelectionChanged={({api})=>setSelected(api.getSelectedRows().length)}
         rowSelection={{mode:"singleRow",checkboxes:false,enableClickSelection:true}}
-        rowHeight={compact?34:42}
-        headerHeight={34}
+        rowHeight={compact?30:36}
+        headerHeight={28}
         animateRows={false}
       />
     </div>

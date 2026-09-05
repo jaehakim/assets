@@ -14,30 +14,29 @@ main{min-height:100vh;background:#eef1f5;padding-bottom:18px}
 .x-grid-panel.compact-grid{height:342px}
 .x-grid-panel.inspection-grid{height:calc(100vh - 390px);min-height:360px}
 .enterprise-grid{flex:1;min-height:0;width:100%;background:#fff}
-.x-grid-toolbar{display:flex;align-items:center;gap:7px;min-height:34px;padding:3px 5px;background:linear-gradient(#f7f9fc 0,#dbe3ed 100%);border-bottom:1px solid #9fadbC;box-shadow:inset 0 1px #fff;color:#47566a;font:500 11px 'Pretendard Variable',Pretendard,sans-serif}
-.x-grid-toolbar label{display:flex;align-items:center;gap:6px;width:min(280px,32vw);height:25px;padding:0 6px;background:#fff;border:1px solid #9daaba;box-shadow:inset 0 1px 2px #23354d1c}
+.x-grid-toolbar{display:flex;align-items:center;gap:7px;min-height:30px;padding:2px 4px;background:linear-gradient(#f7f9fc 0,#dbe3ed 100%);border-bottom:1px solid #9fadbc;box-shadow:inset 0 1px #fff;color:#47566a;font:500 10px 'Pretendard Variable',Pretendard,sans-serif}
+.x-grid-toolbar label{display:flex;align-items:center;gap:5px;width:min(260px,32vw);height:23px;padding:0 5px;background:#fff;border:1px solid #9daaba;box-shadow:inset 0 1px 2px #23354d1c}
 .x-grid-toolbar input{width:100%;border:0;outline:0;background:transparent;font-size:10px;color:#26344b}
 .x-grid-toolbar>span{padding:4px 8px;border-left:1px solid #c5ccd6;white-space:nowrap}.x-grid-toolbar>span b{color:#294c94}
 .x-grid-toolbar-actions{display:flex;gap:4px;margin-left:auto}
-.x-grid-toolbar button{display:flex;align-items:center;gap:5px;height:25px;border:1px solid transparent;border-radius:2px;background:transparent;color:#35455b;padding:0 7px;font-size:11px;cursor:pointer}
+.x-grid-toolbar button{display:flex;align-items:center;gap:4px;height:23px;border:1px solid transparent;border-radius:2px;background:transparent;color:#35455b;padding:0 6px;font-size:10px;cursor:pointer}
 .x-grid-toolbar button:hover{border-color:#7e9abd;background:linear-gradient(#fff,#cdddf0);box-shadow:inset 0 1px #fff;color:#173f76}
 .enterprise-grid .ag-root-wrapper{border:0;border-radius:0;background:#fff}
 .enterprise-grid .ag-header{border-bottom:1px solid #8496aa;background:linear-gradient(#edf3f9 0,#ccd9e7 100%);box-shadow:inset 0 1px #fff}
 .enterprise-grid .ag-header-cell{padding:0;border-right:1px solid #9fADbc;box-shadow:inset -1px 0 #edf3f8}
 .enterprise-grid .ag-header-cell-comp-wrapper{width:100%}
 .x-column-header{display:flex;width:100%;height:100%;min-width:0;align-items:stretch}
-.x-column-title{display:flex;align-items:center;gap:5px;min-width:0;flex:1;padding:0 7px;border:0;background:transparent;color:#293a50;font-size:11px;font-weight:600;text-align:left;cursor:pointer;text-shadow:0 1px #fff}
+.x-column-title{display:flex;align-items:center;gap:4px;min-width:0;flex:1;padding:0 5px;border:0;background:transparent;color:#293a50;font-size:10px;font-weight:600;text-align:left;cursor:pointer;text-shadow:0 1px #fff}
 .x-column-title span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.x-column-trigger{display:flex;flex:0 0 22px;align-items:center;justify-content:center;margin:2px 2px 2px 0;padding:0;border:1px solid transparent;border-radius:2px;background:transparent;opacity:0;cursor:pointer}
-.x-column-trigger span{width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-top:5px solid #41546b}
+.x-column-trigger{display:flex;flex:0 0 18px;align-items:center;justify-content:center;margin:1px 1px 1px 0;padding:0;border:1px solid transparent;border-radius:1px;background:transparent;opacity:0;cursor:pointer}
+.x-column-trigger span{width:0;height:0;border-left:3px solid transparent;border-right:3px solid transparent;border-top:4px solid #41546b}
 .enterprise-grid .ag-header-cell:hover .x-column-trigger,.x-column-trigger:focus-visible,.x-column-trigger.is-open{opacity:1;border-color:#7892b1;background:linear-gradient(#fff,#bed0e4);box-shadow:inset 0 1px #fff}
 .x-column-trigger:hover{border-color:#577ba6!important;background:linear-gradient(#f8fbff,#abc4df)!important}
-.x-filter-active{width:8px;height:8px;margin-left:auto;background:#2f659f;clip-path:polygon(0 0,100% 0,62% 43%,62% 100%,38% 82%,38% 43%)}
-.x-sort{width:0;height:0;margin-left:auto}.x-sort-asc{border-left:4px solid transparent;border-right:4px solid transparent;border-bottom:5px solid #35679e}.x-sort-desc{border-left:4px solid transparent;border-right:4px solid transparent;border-top:5px solid #35679e}
+.x-column-header.is-sorted{background:#c5d5e6}.x-column-header.is-sorted .x-column-title span:after{content:"";display:inline-block;margin-left:5px;vertical-align:middle;border-left:3px solid transparent;border-right:3px solid transparent}.x-column-header.is-asc .x-column-title span:after{border-bottom:4px solid #315f91}.x-column-header.is-desc .x-column-title span:after{border-top:4px solid #315f91}
 .enterprise-grid .ag-cell{padding-left:7px;padding-right:7px;border-right:1px solid #d6dde6;display:flex;align-items:center}
 .enterprise-grid .ag-row{border-bottom:1px solid #d9e0e8;cursor:default}.enterprise-grid .ag-row-even{background:#f7f9fc}.enterprise-grid .ag-row-hover{background:#dfeaf7!important}.enterprise-grid .ag-row-selected{background:#c8ddf3!important}
 .asset-grid .enterprise-grid .ag-row{cursor:pointer}
-.enterprise-grid .ag-paging-panel{position:sticky;bottom:0;z-index:4;min-height:34px;padding:0 7px;background:linear-gradient(#f4f7fa,#d8e0ea);border-top:1px solid #9ba9b9;box-shadow:inset 0 1px #fff;color:#45556a;font-size:11px}
+.enterprise-grid .ag-paging-panel{position:sticky;bottom:0;z-index:4;min-height:30px;padding:0 5px;background:linear-gradient(#f4f7fa,#d8e0ea);border-top:1px solid #9ba9b9;box-shadow:inset 0 1px #fff;color:#45556a;font-size:10px}
 .enterprise-grid .ag-paging-button{width:24px;height:24px;border:1px solid transparent;background:transparent;border-radius:2px;margin:0 1px}.enterprise-grid .ag-paging-button:not(.ag-disabled):hover{border-color:#7892b1;background:linear-gradient(#fff,#c8d9ec)}
 .enterprise-grid .ag-menu,.ag-popup .ag-menu{border:1px solid #8395aa;border-radius:1px;background:#f5f7fa;box-shadow:2px 3px 7px #22344d45}
 .enterprise-grid .ag-menu-list,.ag-popup .ag-menu-list{padding:2px}.ag-popup .ag-menu-option{min-height:28px;border:1px solid transparent}.ag-popup .ag-menu-option:hover{border-color:#9bb7d7;background:#dceafa}
