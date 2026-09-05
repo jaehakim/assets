@@ -1,4 +1,5 @@
 /* ExtJS-inspired application chrome and AG Grid workspace layout. */
+:root{--ui-button-height:32px;--ui-button-padding:0 12px;--ui-button-radius:2px;--ui-button-font-size:11px}
 main{min-height:100vh;background:#eef1f5;padding-bottom:18px}
 .workspace-tabs{background:linear-gradient(#f9fafc,#e4e8ef);border:1px solid #c6ccd7;border-top:0;box-shadow:inset 0 1px #fff}
 .intro{background:#fff;border:1px solid #cbd1db;border-radius:2px;padding:12px 14px;margin-bottom:10px;box-shadow:0 1px 2px #1f29370d}
@@ -44,15 +45,16 @@ main{min-height:100vh;background:#eef1f5;padding-bottom:18px}
 .grid-primary b,.grid-primary small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .grid-primary small{margin-top:3px;color:#7a8495;font-size:10px}
 .grid-empty{color:#7d8796;padding:24px}
-.grid-action{padding:4px 10px!important;margin-top:3px}
+.grid-action{height:24px!important;min-height:24px!important;padding:0 9px!important;margin:0;font-size:10px!important}
 .asset-list-panel{overflow:hidden}
-.intro button,.panel-heading button,.title button,.list-metrics button,.export-button,.compliance-form button,.login-help+button{min-height:30px;border:1px solid #aab4c3;border-radius:2px;background:linear-gradient(#fff,#e7ebf1);color:#2f3d55;padding:6px 13px;font-weight:600;box-shadow:inset 0 1px #fff,0 1px 1px #1f29371a;cursor:pointer;transition:border-color .15s,background .15s,box-shadow .15s}
+.intro button,.panel-heading button,.title button,.list-metrics button,.export-button,.compliance-form button,.monitor-actions button,.management-actions button,.manual-command button,.release button,.modal-state button,.login-help+button{height:var(--ui-button-height);min-height:var(--ui-button-height);border:1px solid #aab4c3;border-radius:var(--ui-button-radius);background:linear-gradient(#fff,#e7ebf1);color:#2f3d55;padding:var(--ui-button-padding);font-size:var(--ui-button-font-size);font-weight:600;line-height:1;display:inline-flex;align-items:center;justify-content:center;gap:6px;box-sizing:border-box;box-shadow:inset 0 1px #fff,0 1px 1px #1f29371a;cursor:pointer;transition:border-color .15s,background .15s,box-shadow .15s}
 .intro button:hover,.panel-heading button:hover,.title button:hover,.list-metrics button:hover,.export-button:hover,.compliance-form button:hover{border-color:#526caa;background:linear-gradient(#fff,#dfe8fa);color:#284b91}
 .intro button:active,.panel-heading button:active,.title button:active,.list-metrics button:active,.compliance-form button:active{background:#d9e1ef;box-shadow:inset 0 1px 3px #27364d33}
 .intro button:disabled,.panel button:disabled{opacity:.55;cursor:not-allowed}
 .compliance-form button,.login-submit{background:linear-gradient(#5973c8,#3854aa);border-color:#304a98;color:#fff;text-shadow:0 1px #1f326e}
 .danger-button{border:1px solid #bd6b72!important;border-radius:2px!important;background:linear-gradient(#fff7f7,#f4dfe1)!important;color:#a22f3a!important;font-weight:600}
 .info-button{border:1px solid #aab4c3!important;border-radius:2px!important;background:linear-gradient(#fff,#e8ecf2)!important;color:#405b91!important}
+.info-button,.modal-close{width:var(--ui-button-height)!important;height:var(--ui-button-height)!important;min-height:var(--ui-button-height)!important;padding:0!important;display:inline-grid!important;place-items:center!important}
 .core16-icon{display:block;width:16px;height:16px;object-fit:contain}
 .nav-pictogram{display:flex;align-items:center;gap:10px;margin:0 4px 14px;padding:10px;background:linear-gradient(135deg,#eef3ff,#fff);border:1px solid #c7d0e0;border-radius:2px;overflow:hidden}
 .nav-pictogram>img{width:42px;height:42px;object-fit:contain;opacity:.88}
