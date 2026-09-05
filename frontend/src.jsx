@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { createRoot } from "react-dom/client";
 import { AgGridReact } from "ag-grid-react";
 import { AllCommunityModule, ModuleRegistry, themeBalham } from "ag-grid-community";
@@ -29,27 +30,74 @@ const assetGridTheme = themeBalham.withParams({
   spacing: 4,
 });
 
-function ExtColumnHeader({ displayName, column, enableSorting, enableMenu, progressSort, showColumnMenu }) {
+function ExtColumnHeader({ displayName, column, api, enableSorting, progressSort, setSort }) {
   const triggerRef = useRef(null);
   const [, refresh] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
   useEffect(() => {
     const update = () => refresh((value) => value + 1);
     column.addEventListener("sortChanged", update);
+    api.addEventListener("columnPinned", update);
+    api.addEventListener("columnVisible", update);
     return () => {
       column.removeEventListener("sortChanged", update);
+      api.removeEventListener("columnPinned", update);
+      api.removeEventListener("columnVisible", update);
     };
-  }, [column]);
+  }, [api, column]);
+  useEffect(() => {
+    if (!menuOpen) return undefined;
+    const close = (event) => {
+      if (event.type === "keydown" && event.key !== "Escape") return;
+      if (event.type === "pointerdown" && event.target.closest?.(".x-header-menu")) return;
+      setMenuOpen(false);
+    };
+    window.addEventListener("pointerdown", close);
+    window.addEventListener("keydown", close);
+    window.addEventListener("resize", close);
+    window.addEventListener("scroll", close, true);
+    return () => {
+      window.removeEventListener("pointerdown", close);
+      window.removeEventListener("keydown", close);
+      window.removeEventListener("resize", close);
+      window.removeEventListener("scroll", close, true);
+    };
+  }, [menuOpen]);
   const sort = column.getSort();
+  const allColumns = api.getAllGridColumns();
+  const visibleCount = allColumns.filter((item) => item.isVisible()).length;
+  const run = (action) => { action(); setMenuOpen(false); };
   return <div className={`x-column-header${sort ? ` is-sorted is-${sort}` : ""}`}>
     <button className="x-column-title" type="button" onClick={(event) => enableSorting && progressSort(event.shiftKey)} title={enableSorting ? `${displayName} 정렬` : displayName}>
       <span>{displayName}</span>
     </button>
-    {enableMenu && <button ref={triggerRef} className={`x-column-trigger${menuOpen ? " is-open" : ""}`} type="button" aria-label={`${displayName} 열 메뉴`} aria-expanded={menuOpen} onClick={(event) => {
+    <button ref={triggerRef} className={`x-column-trigger${menuOpen ? " is-open" : ""}`} type="button" aria-label={`${displayName} 열 메뉴`} aria-expanded={menuOpen} onClick={(event) => {
       event.stopPropagation();
-      setMenuOpen(true);
-      showColumnMenu(triggerRef.current, () => setMenuOpen(false));
-    }}><span/></button>}
+      const rect = triggerRef.current.getBoundingClientRect();
+      setMenuPosition({ top: rect.bottom + 2, left: Math.max(4, Math.min(rect.right - 218, window.innerWidth - 224)) });
+      setMenuOpen((value) => !value);
+    }}><span/></button>
+    {menuOpen && createPortal(<div className="x-header-menu" style={menuPosition} role="menu" aria-label={`${displayName} 컬럼 메뉴`} onPointerDown={(event) => event.stopPropagation()}>
+      <button role="menuitem" disabled={!enableSorting || sort === "asc"} onClick={() => run(() => setSort("asc"))}><i>↑</i>오름차순 정렬</button>
+      <button role="menuitem" disabled={!enableSorting || sort === "desc"} onClick={() => run(() => setSort("desc"))}><i>↓</i>내림차순 정렬</button>
+      <button role="menuitem" disabled={!sort} onClick={() => run(() => setSort(null))}><i>×</i>정렬 해제</button>
+      <hr/>
+      <button role="menuitem" onClick={() => run(() => api.setColumnsPinned([column], "left"))}><i>◧</i>왼쪽에 고정</button>
+      <button role="menuitem" onClick={() => run(() => api.setColumnsPinned([column], "right"))}><i>◨</i>오른쪽에 고정</button>
+      <button role="menuitem" disabled={!column.isPinned()} onClick={() => run(() => api.setColumnsPinned([column], null))}><i>◇</i>고정 해제</button>
+      <hr/>
+      <button role="menuitem" onClick={() => run(() => api.autoSizeColumns([column]))}><i>↔</i>현재 컬럼 자동 맞춤</button>
+      <button role="menuitem" onClick={() => run(() => api.autoSizeAllColumns())}><i>⇔</i>전체 컬럼 자동 맞춤</button>
+      <hr/>
+      <div className="x-header-menu-label">표시할 컬럼</div>
+      <div className="x-header-columns">{allColumns.map((item) => {
+        const definition = item.getColDef();
+        const name = definition.headerName || definition.field || "컬럼";
+        const visible = item.isVisible();
+        return <label key={item.getColId()}><input type="checkbox" checked={visible} disabled={visible && visibleCount === 1} onChange={(event) => api.setColumnsVisible([item], event.target.checked)}/><span>{name}</span></label>;
+      })}</div>
+    </div>, document.body)}
   </div>;
 }
 
