@@ -19,7 +19,7 @@ const assetGridTheme = themeQuartz.withParams({
   backgroundColor: "#ffffff",
   borderColor: "#d8dde8",
   borderRadius: 0,
-  fontFamily: "'DM Sans','Noto Sans KR',sans-serif",
+  fontFamily: "'Pretendard Variable',Pretendard,sans-serif",
   fontSize: 12,
   foregroundColor: "#243047",
   headerBackgroundColor: "#edf1f7",
@@ -30,24 +30,54 @@ const assetGridTheme = themeQuartz.withParams({
 });
 
 function DataGrid({ rows = [], columns, loading = false, empty = "조회된 데이터가 없습니다.", pageSize = 20, onRowClicked, className = "" }) {
-  const defaultColDef = useMemo(() => ({ sortable: true, filter: true, resizable: true, minWidth: 90 }), []);
-  return <div className={`enterprise-grid ${className}`}>
-    <AgGridReact
-      theme={assetGridTheme}
-      rowData={rows}
-      columnDefs={columns}
-      defaultColDef={defaultColDef}
-      loading={loading}
-      pagination
-      paginationPageSize={pageSize}
-      paginationPageSizeSelector={[10, 20, 50, 100]}
-      overlayNoRowsTemplate={`<span class="grid-empty">${empty}</span>`}
-      onRowClicked={onRowClicked}
-      rowHeight={40}
-      headerHeight={36}
-      animateRows={false}
-    />
-  </div>;
+  const defaultColDef = useMemo(() => ({ sortable: true, filter: true, resizable: true, minWidth: 90, suppressHeaderMenuButton: false }), []);
+  const gridRef = useRef();
+  const [quickFilter, setQuickFilter] = useState("");
+  const [displayed, setDisplayed] = useState(rows.length);
+  const [selected, setSelected] = useState(0);
+  const [compact, setCompact] = useState(true);
+  useEffect(() => setDisplayed(rows.length), [rows]);
+  const localeText = useMemo(() => ({
+    page: "페이지", to: "–", of: "/", more: "더보기", next: "다음", last: "마지막",
+    first: "처음", previous: "이전", loadingOoo: "데이터를 불러오는 중…", noRowsToShow: empty,
+    searchOoo: "검색…", selectAll: "전체 선택", blanks: "빈 값", filterOoo: "필터…",
+  }), [empty]);
+  function clearGrid(){setQuickFilter("");gridRef.current?.api.setFilterModel(null);}
+  return <section className={`x-grid-panel ${className}`}>
+    <div className="x-grid-toolbar">
+      <label><Core16Icon name="search"/><input value={quickFilter} onChange={(e)=>setQuickFilter(e.target.value)} placeholder="현재 목록 빠른 검색" aria-label="현재 목록 빠른 검색"/></label>
+      <span><b>{displayed}</b> / {rows.length}건</span>
+      {selected>0&&<span>선택 <b>{selected}</b>건</span>}
+      <div className="x-grid-toolbar-actions">
+        <button type="button" onClick={()=>setCompact((value)=>!value)} title="행 높이 전환"><Core16Icon name="table"/>{compact?"보통":"조밀"}</button>
+        <button type="button" onClick={clearGrid}><Core16Icon name="refresh"/>필터 초기화</button>
+      </div>
+    </div>
+    <div className="enterprise-grid">
+      <AgGridReact
+        ref={gridRef}
+        theme={assetGridTheme}
+        rowData={rows}
+        columnDefs={columns}
+        defaultColDef={defaultColDef}
+        loading={loading}
+        quickFilterText={quickFilter}
+        pagination
+        paginationPageSize={pageSize}
+        paginationPageSizeSelector={[10, 20, 50, 100]}
+        localeText={localeText}
+        columnMenu="new"
+        overlayNoRowsTemplate={`<span class="grid-empty">${empty}</span>`}
+        onRowClicked={onRowClicked}
+        onFilterChanged={({api})=>setDisplayed(api.getDisplayedRowCount())}
+        onSelectionChanged={({api})=>setSelected(api.getSelectedRows().length)}
+        rowSelection={{mode:"singleRow",checkboxes:false,enableClickSelection:true}}
+        rowHeight={compact?34:42}
+        headerHeight={34}
+        animateRows={false}
+      />
+    </div>
+  </section>;
 }
 const menuGroups = [
   {
