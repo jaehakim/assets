@@ -14,6 +14,10 @@ assetflow.update-token: ${AGENT_UPDATE_TOKEN:change-me-too}
 assetflow.release-directory: ${AGENT_RELEASE_DIRECTORY:/app/releases}
 assetflow.admin-username: ${ADMIN_USERNAME:admin}
 assetflow.admin-password: ${ADMIN_PASSWORD:change-me-now}
+assetflow.software-policy-source-url: ${SOFTWARE_POLICY_SOURCE_URL:}
+assetflow.software-policy-source-name: ${SOFTWARE_POLICY_SOURCE_NAME:공공기관 기초자료}
+assetflow.software-policy-api-key: ${SOFTWARE_POLICY_API_KEY:}
+assetflow.software-policy-sync-cron: ${SOFTWARE_POLICY_SYNC_CRON:0 20 3 * * *}
 spring.servlet.multipart.max-file-size: 200MB
 spring.servlet.multipart.max-request-size: 200MB
 server.servlet.session.cookie.http-only: true

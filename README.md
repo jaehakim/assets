@@ -36,6 +36,8 @@ Windows PC                    Docker Server
 - BitLocker, Firewall, Defender 상태 수집
 - 15분 기준 온라인/오프라인, 7일 기준 장기 미접속 집계
 - 자산 검색, 최근 접속 장비 및 보안 경고 대시보드
+- 기관 판정목록과 설치 프로그램 자동 대조, 탐지 장비 표시
+- 승인된 공공기관 CSV/JSON 자료 URL의 매일 자동 동기화 및 이력 관리
 - PostgreSQL 영속 볼륨 및 Docker health check
 - Windows Service 설치·제거 PowerShell 스크립트
 - 설치 폴더 `logs`의 날짜별 Agent 실행 로그
@@ -69,6 +71,8 @@ dotnet publish -c Release -r win-x64 --self-contained true -o publish
 
 장치 설정과 발급 토큰은 `%ProgramData%\AssetFlow\agent.json`에 저장됩니다. 서비스 제거는 `scripts\uninstall-service.ps1`을 사용합니다.
 실행 로그는 `%ProgramFiles%\AssetFlow\Agent\logs\agent-YYYYMMDD.log`에 저장됩니다. `CollectionMinutes`의 기본값은 60분, `UpdateCheckMinutes`의 기본값은 5분이며 최소 실행 주기는 각각 5분입니다.
+Windows 서비스는 활성 사용자 세션의 트레이 앱을 주기적으로 확인합니다. 트레이 앱이 종료되거나 Agent 자동 업데이트로 교체된 경우에도 로그인된 사용자 세션에서 자동으로 다시 실행됩니다.
+하트비트는 인벤토리 수집과 독립적으로 5분마다 전송되므로 WMI 또는 인벤토리 오류가 발생해도 Agent 온라인 상태와 실행 버전을 보고합니다.
 
 빌드된 단일 실행 파일은 `agent/release/AssetFlow.Agent.exe`에 포함됩니다. 배포 전 `agent/release/SHA256SUMS.txt`로 무결성을 확인하십시오.
 
@@ -86,6 +90,11 @@ dotnet publish -c Release -r win-x64 --self-contained true -o publish
 | POST | `/api/v1/admin/agent-releases` | X-Update-Token | 신규 Agent EXE 등록 |
 | GET | `/api/v1/agents/updates/latest` | 장치 Bearer | 최신 Agent 버전 조회 |
 | GET | `/api/v1/admin/agent-update-history` | 관리자 세션 | 장비별 Agent 버전 변경 이력 조회 |
+| GET | `/api/v1/admin/software-compliance` | 관리자 세션 | 판정 목록·탐지 장비·동기화 이력 |
+| POST | `/api/v1/admin/software-compliance/policies` | 관리자 세션 | 기관 자체 판정 기준 등록 |
+| POST | `/api/v1/admin/software-compliance/sync` | 관리자 세션 | 공공기관 기초자료 즉시 동기화 |
+
+외부 기초자료 연동은 `SOFTWARE_POLICY_SOURCE_URL`에 승인받은 HTTP(S) CSV/JSON 주소를 지정합니다. CSV 헤더는 `id,name,publisher,match_type,classification,source_ref,notes`, JSON은 동일 필드의 배열 또는 `{ "items": [...] }` 형식입니다. 기본 동기화 시각은 매일 03:20(KST)이며 `SOFTWARE_POLICY_SYNC_CRON`으로 변경할 수 있습니다. 한국저작권보호원 점검 DB처럼 공개 API가 아닌 자료는 이용 승인과 제공 URL을 확보한 뒤 연결해야 합니다.
 
 ## 개발 계획
 

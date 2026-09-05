@@ -9,4 +9,5 @@ builder.Services.AddSingleton<AgentState>();
 builder.Services.AddSingleton<InventoryCollector>();
 builder.Services.AddSingleton<UpdateService>();
 builder.Services.AddHostedService<Worker>();
+builder.Services.AddHostedService<TraySessionService>();
 await builder.Build().RunAsync();

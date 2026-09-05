@@ -1,0 +1,29 @@
+/* ExtJS-inspired application chrome and AG Grid workspace layout. */
+main{min-height:100vh;background:#eef1f5;padding-bottom:18px}
+.workspace-tabs{background:linear-gradient(#f9fafc,#e4e8ef);border:1px solid #c6ccd7;border-top:0;box-shadow:inset 0 1px #fff}
+.intro{background:#fff;border:1px solid #cbd1db;border-radius:2px;padding:12px 14px;margin-bottom:10px;box-shadow:0 1px 2px #1f29370d}
+.panel,.stats article{border-color:#c5ccd7;border-radius:2px;box-shadow:0 1px 2px #1f29370d}
+.panel-heading,.title{min-height:46px;padding:10px 13px;background:linear-gradient(#fafbfc,#e8ebf1);border-bottom:1px solid #c7ced9}
+.panel-heading h3,.title h3{margin:0 0 2px;color:#27354d}
+.releaselist{border:1px solid #c5ccd7;border-radius:2px;background:#fff;padding:0;overflow:hidden}
+.releaselist>h3{margin:0;padding:11px 13px;background:linear-gradient(#fafbfc,#e7ebf1);border-bottom:1px solid #c5ccd7}
+.releaselist>p{margin:0;padding:8px 13px;background:#f7f9fc;border-bottom:1px solid #d7dce5;color:#657087}
+.enterprise-grid{height:430px;width:100%;min-height:260px;background:#fff}
+.enterprise-grid.full-grid{height:calc(100vh - 235px);min-height:430px}
+.enterprise-grid.compact-grid{height:342px}
+.enterprise-grid.inspection-grid{height:calc(100vh - 390px);min-height:360px}
+.enterprise-grid .ag-root-wrapper{border:0;border-radius:0}
+.enterprise-grid .ag-header{border-bottom:1px solid #aeb7c6;box-shadow:inset 0 1px #fff}
+.enterprise-grid .ag-header-cell{border-right:1px solid #d5dae3}
+.enterprise-grid .ag-cell{border-right:1px solid #edf0f4;display:flex;align-items:center}
+.enterprise-grid .ag-row{border-bottom-color:#e2e6ec;cursor:default}
+.enterprise-grid.asset-grid .ag-row{cursor:pointer}
+.enterprise-grid .ag-paging-panel{position:sticky;bottom:0;z-index:4;min-height:38px;background:linear-gradient(#f8f9fb,#e5e9ef);border-top:1px solid #b9c1ce;box-shadow:0 -1px 3px #1f293712}
+.enterprise-grid .ag-paging-button{border:1px solid #b8c0cc;background:#fff;border-radius:2px;margin:0 2px}
+.grid-primary{line-height:1.2;overflow:hidden}
+.grid-primary b,.grid-primary small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.grid-primary small{margin-top:3px;color:#7a8495;font-size:10px}
+.grid-empty{color:#7d8796;padding:24px}
+.grid-action{padding:4px 10px!important;margin-top:3px}
+.asset-list-panel{overflow:hidden}
+@media(max-width:900px){.enterprise-grid.full-grid{height:calc(100vh - 285px)}.enterprise-grid.inspection-grid{height:420px}}

@@ -25,6 +25,10 @@ services:
       ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-change-me-now}
       SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-false}
+      SOFTWARE_POLICY_SOURCE_URL: ${SOFTWARE_POLICY_SOURCE_URL:-}
+      SOFTWARE_POLICY_SOURCE_NAME: ${SOFTWARE_POLICY_SOURCE_NAME:-공공기관 기초자료}
+      SOFTWARE_POLICY_API_KEY: ${SOFTWARE_POLICY_API_KEY:-}
+      SOFTWARE_POLICY_SYNC_CRON: ${SOFTWARE_POLICY_SYNC_CRON:-0 20 3 * * *}
     volumes: ["./deploy/agent-releases:/app/releases"]
     depends_on:
       postgres: {condition: service_healthy}

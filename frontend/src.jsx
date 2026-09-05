@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
+import { AgGridReact } from "ag-grid-react";
+import { AllCommunityModule, ModuleRegistry, themeQuartz } from "ag-grid-community";
 import mermaid from "mermaid";
 import "./style.css";
 import "./operations.css";
@@ -10,12 +12,50 @@ import "./login-pro.css";
 import "./control-room.css";
 import "./monitoring.css";
 import "./console-kit.css";
+import "./ag-grid-ext.css";
+ModuleRegistry.registerModules([AllCommunityModule]);
+const assetGridTheme = themeQuartz.withParams({
+  accentColor: "#4059c7",
+  backgroundColor: "#ffffff",
+  borderColor: "#d8dde8",
+  borderRadius: 0,
+  fontFamily: "'DM Sans','Noto Sans KR',sans-serif",
+  fontSize: 12,
+  foregroundColor: "#243047",
+  headerBackgroundColor: "#edf1f7",
+  headerFontWeight: 700,
+  rowHoverColor: "#eef3ff",
+  selectedRowBackgroundColor: "#e5edff",
+  spacing: 6,
+});
+
+function DataGrid({ rows = [], columns, loading = false, empty = "조회된 데이터가 없습니다.", pageSize = 20, onRowClicked, className = "" }) {
+  const defaultColDef = useMemo(() => ({ sortable: true, filter: true, resizable: true, minWidth: 90 }), []);
+  return <div className={`enterprise-grid ${className}`}>
+    <AgGridReact
+      theme={assetGridTheme}
+      rowData={rows}
+      columnDefs={columns}
+      defaultColDef={defaultColDef}
+      loading={loading}
+      pagination
+      paginationPageSize={pageSize}
+      paginationPageSizeSelector={[10, 20, 50, 100]}
+      overlayNoRowsTemplate={`<span class="grid-empty">${empty}</span>`}
+      onRowClicked={onRowClicked}
+      rowHeight={40}
+      headerHeight={36}
+      animateRows={false}
+    />
+  </div>;
+}
 const menuGroups = [
   {
     label: "OVERVIEW",
     items: [
       { name: "대시보드", icon: "⌂" },
       { name: "자산 관리", icon: "▣" },
+      { name: "SW 컴플라이언스", icon: "⚑" },
     ],
   },
   {
@@ -173,6 +213,13 @@ function Diagram({ children }) {
 function ReleaseList() {
   const [rows, setRows] = useState([]),
     [error, setError] = useState("");
+  const columns = useMemo(() => [
+    { field: "version", headerName: "버전", width: 105, pinned: "left", valueFormatter: ({ value }) => `v${value}` },
+    { field: "filename", headerName: "파일", minWidth: 220 },
+    { field: "size_bytes", headerName: "크기", width: 110, valueFormatter: ({ value }) => `${(Number(value) / 1024 / 1024).toFixed(1)} MB` },
+    { field: "release_notes", headerName: "주요 변경내역", minWidth: 360, flex: 1 },
+    { field: "created_at", headerName: "등록 시각", minWidth: 180, valueFormatter: ({ value }) => date(value) },
+  ], []);
   async function load() {
     try {
       setRows(await api("/api/v1/admin/agent-releases"));
@@ -192,36 +239,7 @@ function ReleaseList() {
       {error ? (
         <p className="result">목록 조회 실패: {error}</p>
       ) : (
-        <table className="settings">
-          <thead>
-            <tr>
-              <th>버전</th>
-              <th>파일</th>
-              <th>크기</th>
-              <th>주요 변경내역</th>
-              <th>등록 시각</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.length ? (
-              rows.map((r) => (
-                <tr key={r.version}>
-                  <td>
-                    <b>v{r.version}</b>
-                  </td>
-                  <td>{r.filename}</td>
-                  <td>{(Number(r.size_bytes) / 1024 / 1024).toFixed(1)} MB</td>
-                  <td className="release-notes">{r.release_notes || "-"}</td>
-                  <td>{new Date(r.created_at).toLocaleString("ko-KR")}</td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan="5">등록된 버전이 없습니다.</td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+        <DataGrid rows={rows} columns={columns} empty="등록된 버전이 없습니다." className="menu-grid" />
       )}
     </div>
   );
@@ -229,6 +247,13 @@ function ReleaseList() {
 function UpdateHistory() {
   const [rows, setRows] = useState([]),
     [error, setError] = useState("");
+  const columns = useMemo(() => [
+    { field: "hostname", headerName: "장비명", minWidth: 170, pinned: "left" },
+    { field: "from_version", headerName: "이전 버전", width: 120, valueFormatter: ({ value }) => value ? `v${value}` : "-" },
+    { field: "to_version", headerName: "현재 버전", width: 120, valueFormatter: ({ value }) => `v${value}` },
+    { field: "event_type", headerName: "구분", width: 120, valueFormatter: ({ value }) => value === "REGISTERED" ? "최초 등록" : "업데이트" },
+    { field: "created_at", headerName: "확인 시각", minWidth: 180, flex: 1, sort: "desc", valueFormatter: ({ value }) => date(value) },
+  ], []);
   async function load() {
     try {
       setRows(await api("/api/v1/admin/agent-update-history"));
@@ -249,40 +274,7 @@ function UpdateHistory() {
       {error ? (
         <p className="result">이력 조회 실패: {error}</p>
       ) : (
-        <table className="settings">
-          <thead>
-            <tr>
-              <th>장비명</th>
-              <th>이전 버전</th>
-              <th>현재 버전</th>
-              <th>구분</th>
-              <th>확인 시각</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.length ? (
-              rows.map((r) => (
-                <tr key={r.id}>
-                  <td>
-                    <b>{r.hostname}</b>
-                  </td>
-                  <td>{r.from_version ? `v${r.from_version}` : "-"}</td>
-                  <td>
-                    <b>v{r.to_version}</b>
-                  </td>
-                  <td>
-                    {r.event_type === "REGISTERED" ? "최초 등록" : "업데이트"}
-                  </td>
-                  <td>{new Date(r.created_at).toLocaleString("ko-KR")}</td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan="5">확인된 업데이트 이력이 없습니다.</td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+        <DataGrid rows={rows} columns={columns} empty="확인된 업데이트 이력이 없습니다." className="menu-grid" />
       )}
     </div>
   );
@@ -291,6 +283,20 @@ function InspectionLog() {
   const [rows, setRows] = useState([]),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false);
+  const columns = useMemo(() => [
+    { field: "created_at", headerName: "점검 시각", minWidth: 165, pinned: "left", sort: "desc", valueFormatter: ({ value }) => date(value) },
+    { field: "status", headerName: "구분", width: 115, cellRenderer: ({ value }) => <em className={value === "NORMAL" ? "online" : "inspection-warn"}>{value === "NORMAL" ? "정상" : "확인 필요"}</em> },
+    { field: "db_status", headerName: "DB", width: 100 },
+    { headerName: "온라인 / 전체", width: 130, valueGetter: ({ data }) => `${data.online_assets} / ${data.total_assets}` },
+    { field: "stale_assets", headerName: "장기 미접속", width: 120 },
+    { field: "security_alerts", headerName: "보안 확인", width: 110 },
+    { field: "node_ready", headerName: "Node", width: 110, valueFormatter: ({ value }) => value ? "Ready" : "Not Ready" },
+    { headerName: "Pod", width: 130, valueGetter: ({ data }) => `${data.pod_ready ?? 0}/${data.pod_total ?? 0} · R${data.pod_restarts ?? 0}` },
+    { headerName: "CPU / RAM", minWidth: 170, valueGetter: ({ data }) => `${show(data.cpu_usage)} / ${show(data.memory_usage)}` },
+    { field: "storage_allocatable", headerName: "HDD", width: 120, valueFormatter: ({ value }) => show(value) },
+    { field: "git_sha", headerName: "Git SHA", width: 110, valueFormatter: ({ value }) => value === "local" ? "local" : value?.slice(0, 8) || "-" },
+    { field: "notes", headerName: "점검 내용", minWidth: 320, flex: 1 },
+  ], []);
   async function load() {
     try {
       setRows(await api("/api/v1/admin/system-inspections"));
@@ -390,71 +396,7 @@ function InspectionLog() {
         {error ? (
           <p className="result">점검 일지 조회 실패: {error}</p>
         ) : (
-          <div className="tablewrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>점검 시각</th>
-                  <th>구분</th>
-                  <th>DB</th>
-                  <th>온라인 / 전체</th>
-                  <th>장기 미접속</th>
-                  <th>보안 확인</th>
-                  <th>Node</th>
-                  <th>Pod</th>
-                  <th>CPU / RAM</th>
-                  <th>HDD</th>
-                  <th>Git SHA</th>
-                  <th>점검 내용</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.length ? (
-                  rows.map((r) => (
-                    <tr key={r.id}>
-                      <td>{date(r.created_at)}</td>
-                      <td>
-                        <em
-                          className={
-                            r.status === "NORMAL" ? "online" : "inspection-warn"
-                          }
-                        >
-                          {r.status === "NORMAL" ? "정상" : "확인 필요"}
-                        </em>
-                      </td>
-                      <td>{r.db_status}</td>
-                      <td>
-                        {r.online_assets} / {r.total_assets}
-                      </td>
-                      <td>{r.stale_assets}</td>
-                      <td>{r.security_alerts}</td>
-                      <td>{r.node_ready ? "Ready" : "Not Ready"}</td>
-                      <td>
-                        {r.pod_ready ?? 0}/{r.pod_total ?? 0} · R
-                        {r.pod_restarts ?? 0}
-                      </td>
-                      <td>
-                        {show(r.cpu_usage)} / {show(r.memory_usage)}
-                      </td>
-                      <td>{show(r.storage_allocatable)}</td>
-                      <td className="git-sha">
-                        {r.git_sha === "local"
-                          ? "local"
-                          : r.git_sha?.slice(0, 8) || "-"}
-                      </td>
-                      <td className="inspection-notes">{r.notes}</td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan="12" className="none">
-                      점검 기록을 생성하고 있습니다.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+          <DataGrid rows={rows} columns={columns} empty="점검 기록을 생성하고 있습니다." className="inspection-grid" pageSize={20} />
         )}
       </article>
     </section>
@@ -1073,8 +1015,9 @@ function AssetDetailModal({ assetId, onClose }) {
       ) || [],
     [data, softwareQ],
   );
+  const lastContact = data?.effective_last_seen_at || data?.last_seen_at;
   const online =
-    data && Date.now() - new Date(data.last_seen_at).getTime() < 900000;
+    data && Date.now() - new Date(lastContact).getTime() < 900000;
   const secure =
     data &&
     data.bitlocker_enabled === true &&
@@ -1122,7 +1065,7 @@ function AssetDetailModal({ assetId, onClose }) {
                 <em className={online ? "online" : "offline"}>
                   ● {online ? "온라인" : "오프라인"}
                 </em>
-                <small>최근 보고 {date(data.last_seen_at)}</small>
+                <small>최근 통신 {date(lastContact)}</small>
               </div>
               <button
                 className="modal-close"
@@ -1355,111 +1298,52 @@ function AssetDetailModal({ assetId, onClose }) {
     </div>
   );
 }
-const assetColumns = [
-  { key: "hostname", label: "장비명 / 상세정보", value: (a) => `${a.hostname || ""} ${a.serial_no || ""}` },
-  { key: "asset_tag", label: "자산 태그 / 생애주기", value: (a) => `${a.asset_tag || ""} ${a.lifecycle_status || ""}` },
-  { key: "username", label: "사용자 / 부서", value: (a) => `${a.username || ""} ${a.department || ""}` },
-  { key: "os_name", label: "운영체제", value: (a) => `${a.os_name || ""} ${a.os_version || ""}` },
-  { key: "agent_version", label: "Agent 버전", value: (a) => a.agent_version || "" },
-  { key: "ip_address", label: "네트워크 / 위치", value: (a) => `${a.ip_address || ""} ${a.location || ""}` },
-  { key: "last_seen_at", label: "마지막 접속", value: (a) => a.last_seen_at ? new Date(a.last_seen_at).getTime() : 0 },
-  { key: "online", label: "상태", value: (a) => Number(Boolean(a.online)) },
-];
 function AssetTable({ rows, loading, onDetail, paginate = false }) {
-  const [sort, setSort] = useState({ key: "last_seen_at", direction: "desc" });
-  const [page, setPage] = useState(1);
-  const pageSize = 20;
-  const column = assetColumns.find((item) => item.key === sort.key);
-  const sortedRows = useMemo(() => [...rows].sort((a, b) => {
-    const left = column.value(a), right = column.value(b);
-    const compared = typeof left === "number"
-      ? left - right
-      : String(left).localeCompare(String(right), "ko", { numeric: true, sensitivity: "base" });
-    return sort.direction === "asc" ? compared : -compared;
-  }), [rows, column, sort.direction]);
-  const pageCount = Math.max(1, Math.ceil(sortedRows.length / pageSize));
-  const visibleRows = paginate ? sortedRows.slice((page - 1) * pageSize, page * pageSize) : sortedRows;
-  useEffect(() => setPage(1), [rows, sort.key, sort.direction]);
-  function changeSort(key) {
-    setSort((current) => ({ key, direction: current.key === key && current.direction === "asc" ? "desc" : "asc" }));
-  }
-  return (
-    <div className="tablewrap">
-      <table>
-        <thead>
-          <tr>
-            {assetColumns.map((item) => <th key={item.key} aria-sort={sort.key === item.key ? (sort.direction === "asc" ? "ascending" : "descending") : "none"}><button className={sort.key === item.key ? "sort-button active" : "sort-button"} onClick={() => changeSort(item.key)}>{item.label}<i>{sort.key === item.key ? (sort.direction === "asc" ? "▲" : "▼") : "↕"}</i></button></th>)}
-          </tr>
-        </thead>
-        <tbody>
-          {loading ? (
-            <tr>
-              <td colSpan="8">불러오는 중…</td>
-            </tr>
-          ) : !rows.length ? (
-            <tr>
-              <td colSpan="8" className="none">
-                등록된 자산이 없습니다.
-              </td>
-            </tr>
-          ) : (
-            visibleRows.map((a) => (
-              <tr
-                key={a.id}
-                className="asset-row"
-                onClick={() => onDetail(a.id)}
-                tabIndex="0"
-                onKeyDown={(e) =>
-                  (e.key === "Enter" || e.key === " ") && onDetail(a.id)
-                }
-              >
-                <td>
-                  <div className="asset-name">
-                    <div>
-                      <b>{a.hostname}</b>
-                      <small>{a.serial_no || "-"}</small>
-                    </div>
-                    <button
-                      className="info-button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onDetail(a.id);
-                      }}
-                      aria-label={`${a.hostname} 상세정보 보기`}
-                      title="Agent 수집 상세정보 보기"
-                    >
-                      <Icon name="info" />
-                    </button>
-                  </div>
-                </td>
-                <td><b>{a.asset_tag || "미지정"}</b><br/><small>{lifecycleLabels[a.lifecycle_status] || a.lifecycle_status}</small></td>
-                <td>
-                  {a.username || "-"} / {a.department || "미지정"}
-                </td>
-                <td>
-                  {a.os_name || "-"} {a.os_version || ""}
-                </td>
-                <td>
-                  <b>v{a.agent_version || "-"}</b>
-                </td>
-                <td><div className="network-cell"><b>Local {a.ip_address || "-"}</b><small>Server {a.server_observed_ip || "-"}</small><small>위치 {a.location || "미지정"}</small></div></td>
-                <td>{date(a.last_seen_at)}</td>
-                <td>
-                  <em className={a.online ? "online" : "offline"}>
-                    ● {a.online ? "온라인" : "오프라인"}
-                  </em>
-                </td>
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
-      {paginate && !loading && rows.length > 0 && <nav className="asset-pagination" aria-label="자산 목록 페이지">
-        <span>전체 <b>{rows.length}</b>건 · {page}/{pageCount} 페이지</span>
-        <div><button onClick={() => setPage(1)} disabled={page === 1} aria-label="첫 페이지">«</button><button onClick={() => setPage((value) => Math.max(1, value - 1))} disabled={page === 1} aria-label="이전 페이지">‹</button>{Array.from({ length: pageCount }, (_, index) => index + 1).filter((number) => number === 1 || number === pageCount || Math.abs(number - page) <= 2).map((number, index, pages) => <React.Fragment key={number}>{index > 0 && number - pages[index - 1] > 1 && <i>…</i>}<button className={number === page ? "on" : ""} onClick={() => setPage(number)} aria-current={number === page ? "page" : undefined}>{number}</button></React.Fragment>)}<button onClick={() => setPage((value) => Math.min(pageCount, value + 1))} disabled={page === pageCount} aria-label="다음 페이지">›</button><button onClick={() => setPage(pageCount)} disabled={page === pageCount} aria-label="마지막 페이지">»</button></div>
-      </nav>}
-    </div>
-  );
+  const columns = useMemo(() => [
+    { field: "hostname", headerName: "장비명", pinned: "left", minWidth: 170, cellRenderer: ({ data }) => <div className="grid-primary"><b>{data.hostname}</b><small>{data.serial_no || "-"}</small></div> },
+    { field: "asset_tag", headerName: "자산 태그 / 생애주기", minWidth: 160, cellRenderer: ({ data }) => <div className="grid-primary"><b>{data.asset_tag || "미지정"}</b><small>{lifecycleLabels[data.lifecycle_status] || data.lifecycle_status}</small></div> },
+    { field: "username", headerName: "사용자 / 부서", minWidth: 150, valueGetter: ({ data }) => `${data.username || "-"} / ${data.department || "미지정"}` },
+    { field: "os_name", headerName: "운영체제", minWidth: 190, valueGetter: ({ data }) => `${data.os_name || "-"} ${data.os_version || ""}` },
+    { field: "agent_version", headerName: "Agent", width: 105, valueFormatter: ({ value }) => `v${value || "-"}` },
+    { field: "ip_address", headerName: "네트워크 / 위치", minWidth: 190, cellRenderer: ({ data }) => <div className="grid-primary"><b>Local {data.ip_address || "-"}</b><small>Server {data.server_observed_ip || "-"} · {data.location || "미지정"}</small></div> },
+    { field: "last_seen_at", headerName: "마지막 통신", minWidth: 165, sort: "desc", valueFormatter: ({ value }) => date(value), comparator: (a, b) => new Date(a) - new Date(b) },
+    { field: "online", headerName: "상태", pinned: "right", width: 105, filter: false, cellRenderer: ({ value }) => <em className={value ? "online" : "offline"}>● {value ? "온라인" : "오프라인"}</em> },
+  ], []);
+  return <DataGrid rows={rows} columns={columns} loading={loading} empty="등록된 자산이 없습니다." pageSize={paginate ? 20 : 10} className={paginate ? "asset-grid full-grid" : "asset-grid compact-grid"} onRowClicked={({ data }) => onDetail(data.id)} />;
+}
+const complianceLabels={PROHIBITED:"사용 금지",LICENSE_REQUIRED:"라이선스 확인",REVIEW_REQUIRED:"검토 필요"};
+function SoftwareCompliance(){
+  const empty={softwareName:"",publisher:"",matchType:"CONTAINS",classification:"REVIEW_REQUIRED",sourceName:"관리자 등록",sourceRef:"",notes:"",enabled:true};
+  const [data,setData]=useState({policies:[],detections:[],syncLogs:[],affectedAssets:0}),[form,setForm]=useState(empty),[message,setMessage]=useState(""),[busy,setBusy]=useState(false);
+  async function load(){try{setData(await api("/api/v1/admin/software-compliance"));setMessage("");}catch(e){setMessage(`조회 실패: ${e.message}`);}}
+  useEffect(()=>{load()},[]);
+  async function add(e){e.preventDefault();setBusy(true);try{await api("/api/v1/admin/software-compliance/policies",{method:"POST",body:JSON.stringify(form)});setForm(empty);await load();setMessage("판정 기준을 등록했습니다.");}catch(e){setMessage(`등록 실패: ${e.message}`);}finally{setBusy(false)}}
+  async function remove(id){if(!confirm("이 판정 기준을 삭제하시겠습니까?"))return;await api(`/api/v1/admin/software-compliance/policies/${id}`,{method:"DELETE"});await load();}
+  async function sync(){setBusy(true);try{const x=await api("/api/v1/admin/software-compliance/sync",{method:"POST"});setMessage(x.status==="NOT_CONFIGURED"?x.message:`${x.importedCount}건을 동기화했습니다.`);await load();}catch(e){setMessage(`동기화 실패: ${e.message}`);}finally{setBusy(false)}}
+  const set=(k,v)=>setForm(x=>({...x,[k]:v}));
+  const detectionColumns=useMemo(()=>[
+    {field:"classification",headerName:"판정",width:130,pinned:"left",cellRenderer:({value})=><em className={`compliance-badge ${value.toLowerCase()}`}>{complianceLabels[value]}</em>},
+    {field:"hostname",headerName:"장비",minWidth:150},
+    {headerName:"담당자/부서",minWidth:150,valueGetter:({data})=>data.assigned_to||data.department||"-"},
+    {field:"software_name",headerName:"설치 프로그램",minWidth:220,flex:1},
+    {field:"version",headerName:"버전",width:120},
+    {field:"publisher",headerName:"게시자",minWidth:160},
+    {field:"source_name",headerName:"근거",minWidth:150},
+  ],[]);
+  const policyColumns=useMemo(()=>[
+    {field:"software_name",headerName:"프로그램명",minWidth:220,pinned:"left"},
+    {field:"publisher",headerName:"게시자",minWidth:160,valueFormatter:({value})=>value||"전체"},
+    {field:"match_type",headerName:"일치 방식",width:120},
+    {field:"classification",headerName:"분류",minWidth:140,valueFormatter:({value})=>complianceLabels[value]},
+    {field:"source_name",headerName:"출처",minWidth:180,flex:1},
+    {headerName:"관리",width:100,filter:false,sortable:false,cellRenderer:({data})=><button className="danger-button grid-action" onClick={()=>remove(data.id)}>삭제</button>},
+  ],[]);
+  return <section className="compliance-page"><div className="intro"><div><h2>소프트웨어 컴플라이언스</h2><p>판정 목록과 Agent 설치목록을 대조해 확인이 필요한 장비를 표시합니다.</p></div><button onClick={sync} disabled={busy}>↻ 공공 기초자료 동기화</button></div>
+    <div className="compliance-summary"><article><small>판정 기준</small><b>{data.policies.length}</b><span>활성 목록</span></article><article className="danger"><small>탐지 장비</small><b>{data.affectedAssets}</b><span>관리자 확인 필요</span></article><article><small>탐지 프로그램</small><b>{data.detections.length}</b><span>중복 설치 포함</span></article></div>
+    <article className="panel compliance-form"><div className="panel-heading"><div><h3>판정 목록 등록</h3><p>제품명과 게시자를 기준으로 설치 프로그램을 대조합니다.</p></div></div><form onSubmit={add}><input required value={form.softwareName} onChange={e=>set("softwareName",e.target.value)} placeholder="프로그램명"/><input value={form.publisher} onChange={e=>set("publisher",e.target.value)} placeholder="게시자(선택)"/><select value={form.matchType} onChange={e=>set("matchType",e.target.value)}><option value="CONTAINS">이름 포함</option><option value="EXACT">이름 정확히</option><option value="PREFIX">이름 시작</option></select><select value={form.classification} onChange={e=>set("classification",e.target.value)}><option value="REVIEW_REQUIRED">검토 필요</option><option value="LICENSE_REQUIRED">라이선스 확인</option><option value="PROHIBITED">사용 금지</option></select><input value={form.sourceRef} onChange={e=>set("sourceRef",e.target.value)} placeholder="근거 URL/문서"/><input value={form.notes} onChange={e=>set("notes",e.target.value)} placeholder="판정 메모"/><button disabled={busy}>기준 등록</button></form>{message&&<p className="result">{message}</p>}</article>
+    <article className="panel table"><div className="panel-heading"><div><h3>탐지 장비</h3><p>설치만으로 불법 사용이 확정되지는 않으며 보유 라이선스와 사용권을 확인해야 합니다.</p></div></div><DataGrid rows={data.detections} columns={detectionColumns} empty="현재 판정 목록과 일치하는 설치 프로그램이 없습니다." className="menu-grid" /></article>
+    <article className="panel table"><div className="panel-heading"><div><h3>관리 판정 목록</h3><p>공공 기초자료와 기관 자체 기준을 함께 관리합니다.</p></div></div><DataGrid rows={data.policies} columns={policyColumns} empty="등록된 판정 기준이 없습니다." className="menu-grid" /></article>
+  </section>;
 }
 function App() {
   const [user, setUser] = useState(undefined),
@@ -1580,6 +1464,8 @@ function App() {
           <InspectionLog />
         ) : active === "서버 모니터링" ? (
           <ServerMonitoring />
+        ) : active === "SW 컴플라이언스" ? (
+          <SoftwareCompliance />
         ) : active === "자산 관리" ? (
           <section>
             <div className="intro">

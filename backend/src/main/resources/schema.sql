@@ -32,6 +32,10 @@ CREATE INDEX IF NOT EXISTS idx_asset_management_history_asset ON asset_managemen
 CREATE TABLE IF NOT EXISTS asset_disk(id BIGSERIAL PRIMARY KEY,asset_id UUID NOT NULL REFERENCES asset(id) ON DELETE CASCADE,name VARCHAR(100),filesystem VARCHAR(50),total_bytes BIGINT,free_bytes BIGINT);
 CREATE TABLE IF NOT EXISTS asset_software(id BIGSERIAL PRIMARY KEY,asset_id UUID NOT NULL REFERENCES asset(id) ON DELETE CASCADE,name VARCHAR(500) NOT NULL,version VARCHAR(100),publisher VARCHAR(255));
 ALTER TABLE asset_software ADD COLUMN IF NOT EXISTS install_date VARCHAR(20);
+CREATE TABLE IF NOT EXISTS software_policy(id BIGSERIAL PRIMARY KEY,software_name VARCHAR(500) NOT NULL,publisher VARCHAR(255),match_type VARCHAR(20) NOT NULL DEFAULT 'CONTAINS',classification VARCHAR(30) NOT NULL DEFAULT 'REVIEW_REQUIRED',source_name VARCHAR(255) NOT NULL DEFAULT '관리자 등록',source_ref TEXT,notes TEXT,enabled BOOLEAN NOT NULL DEFAULT true,external_key VARCHAR(255),created_at TIMESTAMPTZ NOT NULL DEFAULT now(),updated_at TIMESTAMPTZ NOT NULL DEFAULT now());
+CREATE UNIQUE INDEX IF NOT EXISTS idx_software_policy_external_key ON software_policy(source_name,external_key) WHERE external_key IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_asset_software_name_lower ON asset_software(lower(name));
+CREATE TABLE IF NOT EXISTS software_policy_sync_log(id BIGSERIAL PRIMARY KEY,source_name VARCHAR(255) NOT NULL,source_url TEXT,status VARCHAR(20) NOT NULL,imported_count INTEGER NOT NULL DEFAULT 0,message TEXT,started_at TIMESTAMPTZ NOT NULL DEFAULT now(),completed_at TIMESTAMPTZ);
 CREATE TABLE IF NOT EXISTS agent_release(version VARCHAR(30) PRIMARY KEY,filename VARCHAR(255) NOT NULL,sha256 VARCHAR(64) NOT NULL,size_bytes BIGINT NOT NULL,created_at TIMESTAMPTZ NOT NULL DEFAULT now());
 ALTER TABLE agent_release ADD COLUMN IF NOT EXISTS release_notes TEXT NOT NULL DEFAULT '';
 UPDATE agent_release SET release_notes='보안 장치 인증 기반 자동 업데이트, SHA-256 무결성 검증 및 관리자 배포 기능 추가' WHERE version='0.2.0' AND release_notes='';
@@ -41,6 +45,8 @@ UPDATE agent_release SET release_notes='관리자 자산 목록에 장비별 배
 UPDATE agent_release SET release_notes='Agent 0.2.4 정식 실행파일 및 무결성 해시 배포' WHERE version='0.2.4' AND release_notes='';
 UPDATE agent_release SET release_notes='시스템 트레이 기능 도입을 위한 Agent 실행 구조 및 업데이트 안정성 개선' WHERE version='0.2.5' AND release_notes='';
 UPDATE agent_release SET release_notes='시스템 트레이에서 PC 요약·관리 페이지 열기 제공, 등록·하트비트 기반 버전 변경 이력 추가' WHERE version='0.2.6' AND release_notes='';
+UPDATE agent_release SET release_notes='활성 사용자 세션의 트레이 앱 자동 실행 및 업데이트 후 트레이 자동 복구' WHERE version='0.2.8' AND release_notes='';
+UPDATE agent_release SET release_notes='인벤토리 오류와 무관한 독립 하트비트 및 서버 온라인 판정 정확도 개선' WHERE version='0.2.9' AND release_notes='';
 CREATE TABLE IF NOT EXISTS agent_update_history(id BIGSERIAL PRIMARY KEY,agent_id UUID NOT NULL REFERENCES agent(id) ON DELETE CASCADE,from_version VARCHAR(30),to_version VARCHAR(30) NOT NULL,event_type VARCHAR(30) NOT NULL,created_at TIMESTAMPTZ NOT NULL DEFAULT now());
 CREATE INDEX IF NOT EXISTS idx_agent_update_history_created_at ON agent_update_history(created_at DESC);
 CREATE TABLE IF NOT EXISTS system_inspection_log(id BIGSERIAL PRIMARY KEY,period_start TIMESTAMPTZ UNIQUE NOT NULL,status VARCHAR(20) NOT NULL,db_status VARCHAR(20) NOT NULL,total_assets INTEGER NOT NULL,online_assets INTEGER NOT NULL,stale_assets INTEGER NOT NULL,security_alerts INTEGER NOT NULL,notes VARCHAR(1000),created_at TIMESTAMPTZ NOT NULL DEFAULT now());

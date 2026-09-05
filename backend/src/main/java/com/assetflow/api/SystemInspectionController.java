@@ -27,13 +27,13 @@ public class SystemInspectionController {
   @GetMapping("/live")
   public Map<String,Object> live(){
     var infra=infrastructure.inspect();var out=new LinkedHashMap<String,Object>();
-    out.put("checkedAt",java.time.OffsetDateTime.now());out.put("platform",infra.platform());out.put("nodeName",infra.nodeName());out.put("nodeReady",infra.nodeReady());out.put("k3sVersion",infra.k3sVersion());out.put("cpuUsage",infra.cpuUsage());out.put("memoryUsage",infra.memoryUsage());out.put("memoryCapacity",infra.memoryCapacity());out.put("storageCapacity",infra.storageCapacity());out.put("storageAllocatable",infra.storageAllocatable());out.put("diskPressure",infra.diskPressure());out.put("podTotal",infra.podTotal());out.put("podReady",infra.podReady());out.put("podRestarts",infra.podRestarts());out.put("backendReady",infra.backendReady());out.put("frontendReady",infra.frontendReady());out.put("gitSha",infra.gitSha());out.put("error",infra.error());out.put("database","NORMAL");out.put("totalAssets",count("SELECT count(*) FROM asset"));out.put("onlineAssets",count("SELECT count(*) FROM asset WHERE last_seen_at>now()-interval '15 minutes'"));return out;
+    out.put("checkedAt",java.time.OffsetDateTime.now());out.put("platform",infra.platform());out.put("nodeName",infra.nodeName());out.put("nodeReady",infra.nodeReady());out.put("k3sVersion",infra.k3sVersion());out.put("cpuUsage",infra.cpuUsage());out.put("memoryUsage",infra.memoryUsage());out.put("memoryCapacity",infra.memoryCapacity());out.put("storageCapacity",infra.storageCapacity());out.put("storageAllocatable",infra.storageAllocatable());out.put("diskPressure",infra.diskPressure());out.put("podTotal",infra.podTotal());out.put("podReady",infra.podReady());out.put("podRestarts",infra.podRestarts());out.put("backendReady",infra.backendReady());out.put("frontendReady",infra.frontendReady());out.put("gitSha",infra.gitSha());out.put("error",infra.error());out.put("database","NORMAL");out.put("totalAssets",count("SELECT count(*) FROM asset"));out.put("onlineAssets",count("SELECT count(*) FROM asset s JOIN agent a ON a.id=s.agent_id WHERE GREATEST(s.last_seen_at,a.last_seen_at)>now()-interval '15 minutes'"));return out;
   }
 
   private void inspect(boolean manual){
     int total=count("SELECT count(*) FROM asset");
-    int online=count("SELECT count(*) FROM asset WHERE last_seen_at>now()-interval '15 minutes'");
-    int stale=count("SELECT count(*) FROM asset WHERE last_seen_at<now()-interval '7 days'");
+    int online=count("SELECT count(*) FROM asset s JOIN agent a ON a.id=s.agent_id WHERE GREATEST(s.last_seen_at,a.last_seen_at)>now()-interval '15 minutes'");
+    int stale=count("SELECT count(*) FROM asset s JOIN agent a ON a.id=s.agent_id WHERE GREATEST(s.last_seen_at,a.last_seen_at)<now()-interval '7 days'");
     int security=count("SELECT count(*) FROM asset WHERE bitlocker_enabled IS DISTINCT FROM true OR firewall_enabled IS DISTINCT FROM true OR antivirus_status IS DISTINCT FROM 'Healthy' OR tpm_enabled IS DISTINCT FROM true OR secure_boot_enabled IS DISTINCT FROM true");
     var infra=infrastructure.inspect();
     String status=stale>0||security>0||!infra.nodeReady()||infra.diskPressure()||infra.podReady()<infra.podTotal()||infra.error()!=null?"ATTENTION":"NORMAL";

@@ -22,8 +22,8 @@ public class AssetController {
   @GetMapping("/dashboard")
   public Map<String, Object> dashboard() {
     int total = count("SELECT count(*) FROM asset");
-    int online = count("SELECT count(*) FROM asset WHERE last_seen_at>now()-interval '15 minutes'");
-    int stale = count("SELECT count(*) FROM asset WHERE last_seen_at<now()-interval '7 days'");
+    int online = count("SELECT count(*) FROM asset s JOIN agent a ON a.id=s.agent_id WHERE GREATEST(s.last_seen_at,a.last_seen_at)>now()-interval '15 minutes'");
+    int stale = count("SELECT count(*) FROM asset s JOIN agent a ON a.id=s.agent_id WHERE GREATEST(s.last_seen_at,a.last_seen_at)<now()-interval '7 days'");
     int bitlocker = count("SELECT count(*) FROM asset WHERE bitlocker_enabled=false");
     int antivirus = count("SELECT count(*) FROM asset WHERE antivirus_status IS DISTINCT FROM 'Healthy'");
     int warranty = count("SELECT count(*) FROM asset WHERE warranty_expires_at BETWEEN current_date AND current_date+90");
@@ -39,12 +39,13 @@ public class AssetController {
     return db.queryForList("""
         SELECT s.id,s.hostname,s.serial_no,s.manufacturer,s.model,s.username,s.department,s.asset_tag,
                s.lifecycle_status,s.category,s.location,s.assigned_to,s.warranty_expires_at,s.next_audit_at,
-               s.os_name,s.os_version,s.ip_address,a.last_ip server_observed_ip,s.last_seen_at,a.version agent_version,
-               (s.last_seen_at>now()-interval '15 minutes') online
+               s.os_name,s.os_version,s.ip_address,a.last_ip server_observed_ip,
+               GREATEST(s.last_seen_at,a.last_seen_at) last_seen_at,a.version agent_version,
+               (GREATEST(s.last_seen_at,a.last_seen_at)>now()-interval '15 minutes') online
         FROM asset s JOIN agent a ON a.id=s.agent_id
         WHERE s.hostname ILIKE ? OR coalesce(s.username,'') ILIKE ? OR coalesce(s.asset_tag,'') ILIKE ?
           OR coalesce(s.assigned_to,'') ILIKE ? OR coalesce(s.location,'') ILIKE ?
-        ORDER BY s.last_seen_at DESC LIMIT 500
+        ORDER BY GREATEST(s.last_seen_at,a.last_seen_at) DESC LIMIT 500
         """, "%"+q+"%", "%"+q+"%", "%"+q+"%", "%"+q+"%", "%"+q+"%");
   }
 
@@ -52,7 +53,8 @@ public class AssetController {
   public ResponseEntity<?> asset(@PathVariable UUID id) {
     var rows = db.queryForList("""
         SELECT s.*,a.version agent_version,a.registered_at agent_registered_at,
-               a.last_seen_at agent_last_seen_at,a.last_ip agent_last_ip
+               a.last_seen_at agent_last_seen_at,a.last_ip agent_last_ip,
+               GREATEST(s.last_seen_at,a.last_seen_at) effective_last_seen_at
         FROM asset s JOIN agent a ON a.id=s.agent_id WHERE s.id=?
         """, id);
     if (rows.isEmpty()) return ResponseEntity.notFound().build();

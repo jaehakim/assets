@@ -67,7 +67,9 @@ public class AgentUpdateController {
 
   @GetMapping("/api/v1/agents/updates/latest")
   public ResponseEntity<?> latest(@RequestHeader(value="Authorization", required=false) String authorization) {
-    if (auth.authenticate(authorization) == null) return ResponseEntity.status(401).build();
+    UUID agentId=auth.authenticate(authorization);
+    if (agentId == null) return ResponseEntity.status(401).build();
+    db.update("UPDATE agent SET last_seen_at=now() WHERE id=?",agentId);
     var rows = db.queryForList("SELECT version,sha256,size_bytes FROM agent_release ORDER BY string_to_array(version,'.')::int[] DESC,created_at DESC LIMIT 1");
     if (rows.isEmpty()) return ResponseEntity.noContent().build();
     var row = rows.getFirst();
@@ -77,7 +79,9 @@ public class AgentUpdateController {
 
   @GetMapping("/api/v1/agents/updates/{version}/download")
   public ResponseEntity<?> download(@RequestHeader(value="Authorization", required=false) String authorization, @PathVariable String version) {
-    if (auth.authenticate(authorization) == null) return ResponseEntity.status(401).build();
+    UUID agentId=auth.authenticate(authorization);
+    if (agentId == null) return ResponseEntity.status(401).build();
+    db.update("UPDATE agent SET last_seen_at=now() WHERE id=?",agentId);
     var rows = db.queryForList("SELECT filename FROM agent_release WHERE version=?",version);
     if (rows.isEmpty()) return ResponseEntity.notFound().build();
     Path file = releases.resolve(rows.getFirst().get("filename").toString()).normalize();
