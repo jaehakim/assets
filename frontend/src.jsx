@@ -29,26 +29,31 @@ const assetGridTheme = themeBalham.withParams({
   spacing: 4,
 });
 
-function ExtColumnHeader({ displayName, column, enableSorting, progressSort, showColumnMenu }) {
+function ExtColumnHeader({ displayName, column, enableSorting, enableMenu, progressSort, showColumnMenu }) {
   const triggerRef = useRef(null);
   const [, refresh] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
   useEffect(() => {
     const update = () => refresh((value) => value + 1);
     column.addEventListener("sortChanged", update);
-    return () => column.removeEventListener("sortChanged", update);
+    column.addEventListener("filterActiveChanged", update);
+    return () => {
+      column.removeEventListener("sortChanged", update);
+      column.removeEventListener("filterActiveChanged", update);
+    };
   }, [column]);
   const sort = column.getSort();
   return <div className="x-column-header">
     <button className="x-column-title" type="button" onClick={(event) => enableSorting && progressSort(event.shiftKey)} title={enableSorting ? `${displayName} 정렬` : displayName}>
       <span>{displayName}</span>
+      {column.isFilterActive() && <i className="x-filter-active" aria-label="필터 적용됨"/>}
       {sort && <i className={`x-sort x-sort-${sort}`} aria-label={sort === "asc" ? "오름차순" : "내림차순"}/>}
     </button>
-    <button ref={triggerRef} className={`x-column-trigger${menuOpen ? " is-open" : ""}`} type="button" aria-label={`${displayName} 열 메뉴`} aria-expanded={menuOpen} onClick={(event) => {
+    {enableMenu && <button ref={triggerRef} className={`x-column-trigger${menuOpen ? " is-open" : ""}`} type="button" aria-label={`${displayName} 열 메뉴`} aria-expanded={menuOpen} onClick={(event) => {
       event.stopPropagation();
       setMenuOpen(true);
       showColumnMenu(triggerRef.current, () => setMenuOpen(false));
-    }}><span/></button>
+    }}><span/></button>}
   </div>;
 }
 
