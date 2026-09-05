@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { AgGridReact } from "ag-grid-react";
-import { AllCommunityModule, ModuleRegistry, themeQuartz } from "ag-grid-community";
+import { AllCommunityModule, ModuleRegistry, themeBalham } from "ag-grid-community";
 import mermaid from "mermaid";
 import "./style.css";
 import "./operations.css";
@@ -14,23 +14,46 @@ import "./monitoring.css";
 import "./console-kit.css";
 import "./ag-grid-ext.css";
 ModuleRegistry.registerModules([AllCommunityModule]);
-const assetGridTheme = themeQuartz.withParams({
-  accentColor: "#4059c7",
+const assetGridTheme = themeBalham.withParams({
+  accentColor: "#2f5f9f",
   backgroundColor: "#ffffff",
-  borderColor: "#d8dde8",
+  borderColor: "#b7c1ce",
   borderRadius: 0,
   fontFamily: "'Pretendard Variable',Pretendard,sans-serif",
   fontSize: 12,
-  foregroundColor: "#243047",
-  headerBackgroundColor: "#edf1f7",
-  headerFontWeight: 700,
-  rowHoverColor: "#eef3ff",
-  selectedRowBackgroundColor: "#e5edff",
-  spacing: 6,
+  foregroundColor: "#25354d",
+  headerBackgroundColor: "#dce6f2",
+  headerFontWeight: 600,
+  rowHoverColor: "#dfeaf7",
+  selectedRowBackgroundColor: "#c8ddf3",
+  spacing: 4,
 });
 
+function ExtColumnHeader({ displayName, column, enableSorting, progressSort, showColumnMenu }) {
+  const triggerRef = useRef(null);
+  const [, refresh] = useState(0);
+  const [menuOpen, setMenuOpen] = useState(false);
+  useEffect(() => {
+    const update = () => refresh((value) => value + 1);
+    column.addEventListener("sortChanged", update);
+    return () => column.removeEventListener("sortChanged", update);
+  }, [column]);
+  const sort = column.getSort();
+  return <div className="x-column-header">
+    <button className="x-column-title" type="button" onClick={(event) => enableSorting && progressSort(event.shiftKey)} title={enableSorting ? `${displayName} 정렬` : displayName}>
+      <span>{displayName}</span>
+      {sort && <i className={`x-sort x-sort-${sort}`} aria-label={sort === "asc" ? "오름차순" : "내림차순"}/>}
+    </button>
+    <button ref={triggerRef} className={`x-column-trigger${menuOpen ? " is-open" : ""}`} type="button" aria-label={`${displayName} 열 메뉴`} aria-expanded={menuOpen} onClick={(event) => {
+      event.stopPropagation();
+      setMenuOpen(true);
+      showColumnMenu(triggerRef.current, () => setMenuOpen(false));
+    }}><span/></button>
+  </div>;
+}
+
 function DataGrid({ rows = [], columns, loading = false, empty = "조회된 데이터가 없습니다.", pageSize = 20, onRowClicked, className = "" }) {
-  const defaultColDef = useMemo(() => ({ sortable: true, filter: true, resizable: true, minWidth: 90, suppressHeaderMenuButton: false }), []);
+  const defaultColDef = useMemo(() => ({ sortable: true, filter: true, resizable: true, minWidth: 90, headerComponent: ExtColumnHeader, suppressHeaderMenuButton: true }), []);
   const gridRef = useRef();
   const [quickFilter, setQuickFilter] = useState("");
   const [displayed, setDisplayed] = useState(rows.length);
@@ -66,7 +89,6 @@ function DataGrid({ rows = [], columns, loading = false, empty = "조회된 데�
         paginationPageSize={pageSize}
         paginationPageSizeSelector={[10, 20, 50, 100]}
         localeText={localeText}
-        columnMenu="new"
         overlayNoRowsTemplate={`<span class="grid-empty">${empty}</span>`}
         onRowClicked={onRowClicked}
         onFilterChanged={({api})=>setDisplayed(api.getDisplayedRowCount())}
