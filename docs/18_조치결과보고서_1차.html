@@ -60,6 +60,7 @@ pre code{background:none;padding:0}
   <a href="16_수정요청_적용계획서.html">16. 수정요청 적용계획서 (07·13·15 통합)</a>
   <a href="17_추가요구사항_검토서.html">17. 추가 요구사항 검토서</a>
   <a href="18_조치결과보고서_1차.html" class="active">18. 조치결과보고서 (1차)</a>
+  <a href="19_전문가_검토_프롬프트.html">19. IT 자산관리 시스템 전문가 검토·기획·분석·테스팅 프롬프트</a>
   <a href="windows-agent-communication-status.html">Agent 0.2.11 통신 상태와 로그</a>
   <a href="windows-agent-removal-protection-plan.html">Windows 정보 수집 에이전트 임의 삭제 방지 적용 계획</a>
   <a href="windows-agent-tray-validation.html">Agent 0.2.10 트레이 변경 및 Windows 검증</a>
@@ -69,7 +70,7 @@ pre code{background:none;padding:0}
 <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js"></script>
 <script>
-  const links = {"README.md":"index.html","01_현황분석.md":"01_현황분석.html","02_IT자산관리_전문가_검토.md":"02_IT자산관리_전문가_검토.html","03_보안전문가_검토.md":"03_보안전문가_검토.html","04_인프라유지보수_검토.md":"04_인프라유지보수_검토.html","05_개선기획_로드맵.md":"05_개선기획_로드맵.html","06_기술검토서.md":"06_기술검토서.html","07_수정요청서.md":"07_수정요청서.html","08_기능추가요청서.md":"08_기능추가요청서.html","09_조치결과보고서_양식.md":"09_조치결과보고서_양식.html","10_디자인전문가_UI검토.md":"10_디자인전문가_UI검토.html","11_웹전문가_프런트엔드검토.md":"11_웹전문가_프런트엔드검토.html","12_IT자산관리전문가_화면검토.md":"12_IT자산관리전문가_화면검토.html","13_수정요청서_UI.md":"13_수정요청서_UI.html","14_보안웹취약점_점검보고서.md":"14_보안웹취약점_점검보고서.html","15_수정요청서_보안웹취약점.md":"15_수정요청서_보안웹취약점.html","16_수정요청_적용계획서.md":"16_수정요청_적용계획서.html","17_추가요구사항_검토서.md":"17_추가요구사항_검토서.html","18_조치결과보고서_1차.md":"18_조치결과보고서_1차.html","windows-agent-communication-status.md":"windows-agent-communication-status.html","windows-agent-removal-protection-plan.md":"windows-agent-removal-protection-plan.html","windows-agent-tray-validation.md":"windows-agent-tray-validation.html"};
+  const links = {"README.md":"index.html","01_현황분석.md":"01_현황분석.html","02_IT자산관리_전문가_검토.md":"02_IT자산관리_전문가_검토.html","03_보안전문가_검토.md":"03_보안전문가_검토.html","04_인프라유지보수_검토.md":"04_인프라유지보수_검토.html","05_개선기획_로드맵.md":"05_개선기획_로드맵.html","06_기술검토서.md":"06_기술검토서.html","07_수정요청서.md":"07_수정요청서.html","08_기능추가요청서.md":"08_기능추가요청서.html","09_조치결과보고서_양식.md":"09_조치결과보고서_양식.html","10_디자인전문가_UI검토.md":"10_디자인전문가_UI검토.html","11_웹전문가_프런트엔드검토.md":"11_웹전문가_프런트엔드검토.html","12_IT자산관리전문가_화면검토.md":"12_IT자산관리전문가_화면검토.html","13_수정요청서_UI.md":"13_수정요청서_UI.html","14_보안웹취약점_점검보고서.md":"14_보안웹취약점_점검보고서.html","15_수정요청서_보안웹취약점.md":"15_수정요청서_보안웹취약점.html","16_수정요청_적용계획서.md":"16_수정요청_적용계획서.html","17_추가요구사항_검토서.md":"17_추가요구사항_검토서.html","18_조치결과보고서_1차.md":"18_조치결과보고서_1차.html","19_전문가_검토_프롬프트.md":"19_전문가_검토_프롬프트.html","windows-agent-communication-status.md":"windows-agent-communication-status.html","windows-agent-removal-protection-plan.md":"windows-agent-removal-protection-plan.html","windows-agent-tray-validation.md":"windows-agent-tray-validation.html"};
   const main = document.getElementById("content");
   main.innerHTML = marked.parse(JSON.parse(document.getElementById("md").textContent), { gfm: true });
   main.querySelectorAll("a[href]").forEach((a) => {
