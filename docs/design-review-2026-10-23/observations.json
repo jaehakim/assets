@@ -1,0 +1,77 @@
+[
+  {
+    "port": 18080,
+    "title": "AssetFlow | IT 자산관리 운영센터"
+  },
+  {
+    "port": 30080,
+    "title": "AssetFlow | IT 자산관리 운영센터"
+  },
+  {
+    "port": 18082,
+    "title": "AssetFlow | IT 자산관리 운영센터"
+  },
+  {
+    "view": "자산 관리",
+    "heading": [
+      "자산 목록"
+    ]
+  },
+  {
+    "view": "SW 컴플라이언스",
+    "heading": [
+      "소프트웨어 컴플라이언스"
+    ]
+  },
+  {
+    "view": "Agent 배포",
+    "heading": [
+      "Agent 배포"
+    ]
+  },
+  {
+    "view": "업데이트 이력",
+    "heading": [
+      "업데이트 이력"
+    ]
+  },
+  {
+    "view": "시스템 가이드",
+    "heading": [
+      "시스템 가이드"
+    ]
+  },
+  {
+    "view": "서버 모니터링",
+    "heading": [
+      "서버 상태 모니터링"
+    ]
+  },
+  {
+    "view": "점검 일지",
+    "heading": [
+      "시스템 점검 일지"
+    ]
+  },
+  {
+    "width": 1440,
+    "scrollWidth": 1440,
+    "sidebarVisible": "flex",
+    "mainLeft": 228,
+    "smallText": 41
+  },
+  {
+    "width": 768,
+    "scrollWidth": 768,
+    "sidebarVisible": "flex",
+    "mainLeft": 228,
+    "smallText": 38
+  },
+  {
+    "width": 390,
+    "scrollWidth": 390,
+    "sidebarVisible": "none",
+    "mainLeft": 33.640625,
+    "smallText": 35
+  }
+]

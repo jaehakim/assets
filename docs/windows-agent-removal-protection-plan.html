@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>Windows 정보 수집 에이전트 임의 삭제 방지 적용 계획 | AssetFlow 검토</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<style>
+:root{--bg:#ffffff;--panel:#f7f8fa;--text:#1f2937;--muted:#6b7280;--line:#e5e7eb;--accent:#3b5bdb;--accent-soft:#edf2ff;--code:#f3f4f6}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);color-scheme:light}
+body{font-family:"Pretendard","Malgun Gothic","Apple SD Gothic Neo",system-ui,sans-serif;font-size:15px;line-height:1.7;display:flex;min-height:100vh}
+nav{width:270px;flex:none;background:var(--panel);border-right:1px solid var(--line);padding:24px 16px;position:sticky;top:0;height:100vh;overflow:auto}
+nav .brand{font-weight:800;font-size:17px;margin:0 8px 4px}
+nav .sub{color:var(--muted);font-size:12px;margin:0 8px 18px}
+nav a{display:block;padding:8px 10px;border-radius:8px;color:var(--text);text-decoration:none;font-size:14px;margin-bottom:2px}
+nav a:hover{background:#eceff3}
+nav a.active{background:var(--accent-soft);color:var(--accent);font-weight:700}
+main{flex:1;min-width:0;padding:40px 48px 80px;max-width:1180px}
+h1{font-size:28px;margin:0 0 12px;padding-bottom:12px;border-bottom:2px solid var(--line)}
+h2{font-size:21px;margin:40px 0 12px;padding-left:10px;border-left:4px solid var(--accent)}
+h3{font-size:17px;margin:28px 0 10px}
+a{color:var(--accent)}
+blockquote{margin:12px 0;padding:10px 16px;background:var(--accent-soft);border-left:4px solid var(--accent);border-radius:0 8px 8px 0;color:#374151}
+blockquote p{margin:4px 0}
+table{border-collapse:collapse;width:100%;margin:12px 0 20px;font-size:13.5px;display:block;overflow-x:auto}
+th,td{border:1px solid var(--line);padding:7px 10px;text-align:left;vertical-align:top}
+th{background:var(--panel);font-weight:700;white-space:nowrap}
+tr:nth-child(even) td{background:#fbfbfc}
+code{background:var(--code);padding:1px 5px;border-radius:4px;font-family:"D2Coding",Consolas,monospace;font-size:.9em}
+pre{background:#f6f8fa;border:1px solid var(--line);border-radius:8px;padding:14px;overflow:auto}
+pre code{background:none;padding:0}
+.mermaid{background:#fff;border:1px solid var(--line);border-radius:10px;padding:16px;margin:14px 0 22px;text-align:center;overflow-x:auto}
+.foot{margin-top:56px;color:var(--muted);font-size:12px;border-top:1px solid var(--line);padding-top:12px}
+@media (max-width:860px){body{display:block}nav{position:static;width:auto;height:auto;border-right:0;border-bottom:1px solid var(--line)}main{padding:24px 16px 60px}}
+@media print{nav{display:none}main{max-width:none;padding:0}}
+</style>
+</head>
+<body>
+<nav>
+  <div class="brand">AssetFlow 검토</div>
+  <div class="sub">IT자산관리 · 보안 · 인프라 · 디자인 · 웹</div>
+  <a href="index.html">개요 (README)</a>
+  <a href="01_현황분석.html">01. AssetFlow 소스 현황 분석</a>
+  <a href="02_IT자산관리_전문가_검토.html">02. IT 자산관리 전문가 관점 검토</a>
+  <a href="03_보안전문가_검토.html">03. 보안 전문가 관점 검토</a>
+  <a href="04_인프라유지보수_검토.html">04. 인프라 유지보수 관리 관점 검토</a>
+  <a href="05_개선기획_로드맵.html">05. 통합 개선 기획 및 로드맵</a>
+  <a href="06_기술검토서.html">06. 기술검토서</a>
+  <a href="07_수정요청서.html">07. 수정요청서 (결함 시정 요청)</a>
+  <a href="08_기능추가요청서.html">08. 기능추가요청서 (신규 기능 요구)</a>
+  <a href="09_조치결과보고서_양식.html">09. 조치결과보고서 (양식)</a>
+  <a href="10_디자인전문가_UI검토.html">10. 디자인 전문가 UI 검토 — 화면 대비·타이포그래피·그리드 헤더 메뉴</a>
+  <a href="11_웹전문가_프런트엔드검토.html">11. 웹 전문가 프런트엔드 검토 — AG Grid 컬럼 메뉴 기능 검증·접근성·성능</a>
+  <a href="12_IT자산관리전문가_화면검토.html">12. IT자산관리 전문가 화면 검토 — 자산 목록 그리드 구성·컬럼 옵션의 업무 적합성</a>
+  <a href="13_수정요청서_UI.html">13. 수정요청서 (화면·UI)</a>
+  <a href="14_보안웹취약점_점검보고서.html">14. 보안·웹 취약점 점검 보고서</a>
+  <a href="15_수정요청서_보안웹취약점.html">15. 수정요청서 (보안·웹 취약점)</a>
+  <a href="16_수정요청_적용계획서.html">16. 수정요청 적용계획서 (07·13·15 통합)</a>
+  <a href="17_추가요구사항_검토서.html">17. 추가 요구사항 검토서</a>
+  <a href="18_조치결과보고서_1차.html">18. 조치결과보고서 (1차)</a>
+  <a href="windows-agent-communication-status.html">Agent 0.2.11 통신 상태와 로그</a>
+  <a href="windows-agent-removal-protection-plan.html" class="active">Windows 정보 수집 에이전트 임의 삭제 방지 적용 계획</a>
+  <a href="windows-agent-tray-validation.html">Agent 0.2.10 트레이 변경 및 Windows 검증</a>
+</nav>
+<main id="content"></main>
+<script id="md" type="application/json">"# Windows 정보 수집 에이전트 임의 삭제 방지 적용 계획\n\n작성일: 2026-09-11  \n대상: AssetFlow Agent / Windows 10·11 조직 관리 PC  \n상태: 검토 및 구현 계획. 이 문서 작성만으로 단말 ACL·서비스 보안 정책을 변경하지 않는다.\n\n## 1. 목표와 적용 경계\n\n표준 사용자가 서비스 중지·삭제, 실행 파일 변조, 장치 인증정보 변경으로 정보 수집을 임의 중단하지 못하도록 한다. IT 관리자의 승인된 제거·복구·업데이트는 유지한다. 사용자가 확인할 수 있는 트레이와 수집 목적 안내를 제공한다.\n\n로컬 관리자, SYSTEM, 오프라인 디스크 접근 권한까지 가진 사용자의 삭제를 일반 사용자 모드 에이전트가 완전히 차단할 수 있다고 보장하지 않는다. 관리자 권한 회수, 단말 관리 정책, 디스크 암호화 등 조직 차원의 관리가 필요하다. Microsoft의 보호된 안티멀웨어 서비스는 인증·서명 등 별도 요건이 있는 기능이므로 이 자산 수집기에 임의 적용하지 않는다. [Microsoft 보호된 안티멀웨어 서비스](https://learn.microsoft.com/en-us/windows/win32/services/protecting-anti-malware-services-)\n\n트레이 프로세스 종료와 정보 수집 서비스 삭제는 별개다. 사용자 세션 프로세스는 사용자가 종료할 수 있으며, 트레이 종료 여부를 수집 중단이나 보안 침해의 확정 증거로 취급하지 않는다.\n\n## 2. 현재 소스 검토\n\n| 구성 | 현재 동작 | 보완할 사항 |\n|---|---|---|\n| `agent/Program.cs` | Windows 서비스와 `--tray` UI 분리 | 서비스와 UI의 권한 경계 유지 |\n| `agent/TraySessionService.cs` | LocalSystem 서비스가 활성 세션별 트레이 복구 | 로그인·RDP·사용자 전환·업데이트 시 복구 검증 |\n| `agent/scripts/install-service.ps1`, `agent/release/install-service.bat` | Program Files 설치, HKLM Run 등록, 자동 시작 서비스 | 명시적인 ACL 설정·검증·복원, 설치 경로 일관성 |\n| `agent/AgentState.cs` | ProgramData의 `agent.json`에 등록 토큰·장치 토큰 저장 | 실제 파일 ACL 확인 필요. 기본 상속에 의존하지 않기 |\n| `agent/TrayApplication.cs` | 관리 페이지를 열 때 `AgentState` 사용 | 민감 설정을 차단하기 전에 공개 URL을 별도 파일 또는 읽기 전용 IPC로 분리 |\n| `agent/UpdateService.cs` | SYSTEM 권한으로 실행 파일 교체 | 동일한 ACL 유지, 서명 검증, 변경 실패 복구 |\n| 제거 스크립트 | 관리자 권한으로 서비스·Run 항목·프로세스 제거 | 승인 기록, 장치 토큰 폐기, 오프라인 비상 제거 절차 |\n| 서버 heartbeat | 마지막 접속 시각 추적 | 제거와 네트워크 장애를 구분할 증거·관리 이벤트 추가 |\n\n현재 단말의 실제 ACL은 이 Linux 환경에서 측정하지 않았다. 아래 정책은 목표 설계이며 적용 완료로 간주하지 않는다.\n\n## 3. 권한별 정책\n\n| 주체 | 허용 | 제한 |\n|---|---|---|\n| 표준 사용자 | 트레이·PC 정보·관리 페이지, 공개 상태 조회 | 서비스 중지·삭제·설정 변경, 설치 파일 쓰기, 장치 토큰 읽기·쓰기 |\n| 승인된 IT 관리자 | 배포·업데이트·진단·제거·복구 | 작업별 조직 승인·감사 절차 적용 |\n| SYSTEM 서비스 | 인벤토리·설정 접근·검증된 업데이트 | 원격 임의 명령 실행 기능 추가 금지 |\n| 로컬 관리자 보유 사용자 | 기술적으로 우회 가능 | 조직 정책으로 상시 관리자 권한 축소, 중앙 탐지·복구 |\n\n서비스 보안은 파일 ACL과 별도로 설정한다. 표준 사용자에게 조회 권한만 제공하고 `SERVICE_STOP`, `SERVICE_CHANGE_CONFIG`, `DELETE`, `WRITE_DAC`, `WRITE_OWNER`를 부여하지 않는다. 설치 시 기존 보안 설명자를 저장하고 승인된 관리 주체의 권한을 보존한다. 임의의 일괄 Deny ACE는 SYSTEM·관리자·업데이트까지 막을 수 있어 사용하지 않는다. [Microsoft 서비스 접근 권한](https://learn.microsoft.com/en-us/windows/win32/services/service-security-and-access-rights)\n\n## 4. 구현 단계\n\n### 단계 A — 민감 설정 분리 및 설치 권한 강화\n\n1. 서비스 전용 설정 `ProgramData\\AssetFlow\\private\\agent.json`과 공개 UI 설정 `ProgramData\\AssetFlow\\public\\ui.json`을 분리한다. 공개 설정에는 검증된 HTTPS 관리 URL·표시 이름만 두며 인증정보는 포함하지 않는다.\n2. 기존 설정 마이그레이션은 서비스 중지 → 백업 → 새 위치에 쓰기 → 권한 확인 → 서비스 시작 → 정상 보고 확인 순으로 수행한다. 실패하면 백업 설정과 ACL을 복원한다.\n3. 설치 디렉터리는 SYSTEM·Administrators에 수정 권한, Users에 읽기·실행만 허용한다. 민감 설정 디렉터리는 SYSTEM·Administrators만 접근하도록 한다. 공개 설정은 Users 읽기만 허용한다.\n4. 로그는 서비스 로그와 사용자 트레이 로그를 분리한다. 사용자 로그에 토큰·개인정보 인벤토리 전문을 기록하지 않는다.\n5. 서비스 DACL은 조회 권한과 관리 권한을 명시적으로 나누고 `sc.exe sdshow`, `Get-Acl`로 설치 후 검증한다. 실제 변경은 백업·복원을 지원하는 멱등 스크립트로 구현한다.\n6. 설치 디렉터리 재분석 지점·심볼릭 링크, 기존 파일 소유자와 상속 권한을 검사하여 다른 경로에 SYSTEM 쓰기가 발생하지 않도록 한다.\n7. 설치 실패를 성공으로 표시하지 않고 오류 코드·실패 단계·복구 결과를 기록한다.\n\n완료 기준: 표준 계정으로 파일 삭제·덮어쓰기, 토큰 읽기, 서비스 중지·삭제가 모두 거부되고, IT 관리자 설치·업데이트·제거 및 일반 사용자 트레이가 정상 동작한다.\n\n### 단계 B — 승인된 제거 절차\n\n1. 서버에 제거 요청·승인·실행·완료·실패 이벤트를 추가한다. 사용자, 장치 ID, 사유, 승인자, 유효기간을 기록한다.\n2. 온라인 제거는 IT 관리자 권한과 장치에 바인딩된 짧은 유효기간의 일회용 서명 승인서를 사용한다. 서비스는 내장 공개키로 검증한다. 공용 제거 비밀번호·등록 토큰 재사용은 금지한다.\n3. 승인서 사용 여부는 서버에서 추적한다. 재사용·다른 장치 사용·만료·시간 변경 시나리오를 검증한다.\n4. 오프라인은 제한된 장치용 승인서와 조직의 비상 복구 관리자 절차를 제공한다. 서버 장애 때문에 관리자의 정당한 복구가 영구 차단되지 않게 한다.\n5. 제거 중에는 자동 복구와 업데이트가 재실행되지 않도록 승인된 유지보수 상태를 사용한다. 완료 후 서비스·Run 항목·파일을 정리하고 서버 장치 토큰을 폐기한다.\n6. 퇴역·반납 시 서버 자산 기록 보존과 로컬 자격증명 폐기를 구분한다. `/purge`의 실제 삭제 범위와 실패 처리를 문서화한다.\n\n중요: 승인서는 정상 제거 도구의 운영 통제다. 관리자 권한 보유자가 Windows 도구로 직접 삭제하는 것을 완전히 막는 보안 경계로 설명하지 않는다.\n\n### 단계 C — 중앙 관리와 감지\n\n1. 조직이 실제 사용하는 Intune·GPO·구성 관리 도구를 확인한 뒤 필수 설치·준수 검사·복구 정책을 연동한다. 해당 서비스가 이미 연결되었다고 가정하지 않는다.\n2. 상시 로컬 관리자 권한을 줄이고 승인된 일시 권한 상승과 관리 계정을 사용한다.\n3. 서버에서 장기 heartbeat 누락, 승인되지 않은 등록 초기화, 서비스 상태 변경 이벤트를 수집한다. 오프라인·절전·VPN 단절은 삭제 확정과 분리한다.\n4. 승인된 제거·퇴역 장치는 자동 재설치 대상에서 제외한다.\n5. 코드 서명 및 업데이트 발행자 검증을 도입한다. 현재 SHA-256 검증은 전송된 파일의 일치 여부를 확인하지만 발행자의 독립된 신뢰 검증을 대체하지 않는다.\n\n## 5. 테스트와 수용 기준\n\nWindows 10 x64와 Windows 11 x64에서 표준 계정·IT 관리자 계정을 각각 사용한다. 현재 배포는 `win-x64`이며 x86·ARM64 전용 패키지는 별도 검증·배포 항목이다. Windows 10은 실제 조직 사용 빌드와 지원 상태를 확인한다. [.NET Windows 지원 환경](https://learn.microsoft.com/en-us/dotnet/core/install/windows)\n\n| 시험 | 기대 결과 |\n|---|---|\n| 표준 사용자의 `sc stop/delete/config` | 접근 거부, 수집 지속 |\n| 설치 파일·설정·업데이트 파일 삭제/변조 | 접근 거부 |\n| 토큰 파일 읽기 | 표준 사용자 접근 거부, 트레이는 정상 실행 |\n| 트레이 강제 종료 | 서비스 heartbeat 지속, 활성 세션에서 트레이 복구 |\n| 재부팅·로그오프·RDP·사용자 전환 | 서비스 자동 실행, 세션별 아이콘 하나 |\n| Explorer 재시작·100/150/200% DPI | 아이콘 복구·식별 가능 |\n| 승인 없는 정상 제거 도구 실행 | 거부 및 감사 기록 |\n| 만료·재사용·다른 장치 승인서 | 거부 |\n| 승인된 제거 | 완전 제거, 토큰 폐기, 중앙 재설치 제외 |\n| 업데이트·롤백 | 파일 ACL 유지, 기존 장치 ID 유지 |\n| 네트워크 단절·서버 장애 | 수집 재시도, 승인된 비상 복구 가능 |\n| 로컬 관리자 우회 삭제 | 차단 보장 제외, 중앙 누락 탐지 확인 |\n\nWindows 알림 영역의 숨김/고정은 사용자 설정이다. 아이콘을 숨겨진 영역에서 작업 표시줄로 이동하는 안내를 제공하고 강제 표시 레지스트리 해킹은 사용하지 않는다. [Microsoft 작업 표시줄 사용자 설정](https://support.microsoft.com/en-us/windows/experience/personalization/customize-the-taskbar-in-windows)\n\n## 6. 배포와 롤백\n\n- 순서: 개발 VM → IT 파일럿 → 제한된 부서 → 전체 조직.\n- 각 단계에서 설치 성공률, 정상 보고율, 업데이트 성공률, 제거·복구 성공 여부를 확인한다.\n- 롤백 자료: 이전 서명 실행 파일, 서비스 설정·DACL, 파일 ACL, 장치 설정 백업, 데이터 마이그레이션 버전.\n- 트레이 미표시, 정상 업데이트 실패, 관리자 복구 불가, 토큰 노출 중 하나라도 확인되면 확대 배포를 중단하고 원인을 수정한다.\n- ACL 롤백과 프로그램 버전 롤백을 별도로 수행한다. 이전 프로그램으로 돌아간다고 ACL이 자동 복원되지는 않는다.\n\n## 7. 작업 목록과 이번 적용 상태\n\n| 작업 | 상태 |\n|---|---|\n| 현행 소스 분석·권한별 목표·단계별 계획 문서화 | 완료 |\n| 트레이 STA 초기화·아이콘·사용자 세션 실행 개선 | 별도 0.2.10 변경에 포함 |\n| 민감 설정 분리·명시적 ACL·서비스 DACL 적용 | 후속 구현 |\n| 승인서 발급·제거 API·감사 저장소 | 후속 구현 |\n| 중앙 관리 연동·코드 서명 | 조직 환경 확인 후 구현 |\n| 실제 Windows 권한별 통합 시험 | Windows 시험 단말에서 수행 필요 |\n\n계획서 검토 시 확정할 운영 항목: 관리 대상 Windows 빌드/CPU, 사용자 로컬 관리자 보유 현황, IT 관리자 그룹, 중앙 배포 도구, 코드 서명 인증서, 비상 제거 책임자와 감사 기록 보존 기간.\n"</script>
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js"></script>
+<script>
+  const links = {"README.md":"index.html","01_현황분석.md":"01_현황분석.html","02_IT자산관리_전문가_검토.md":"02_IT자산관리_전문가_검토.html","03_보안전문가_검토.md":"03_보안전문가_검토.html","04_인프라유지보수_검토.md":"04_인프라유지보수_검토.html","05_개선기획_로드맵.md":"05_개선기획_로드맵.html","06_기술검토서.md":"06_기술검토서.html","07_수정요청서.md":"07_수정요청서.html","08_기능추가요청서.md":"08_기능추가요청서.html","09_조치결과보고서_양식.md":"09_조치결과보고서_양식.html","10_디자인전문가_UI검토.md":"10_디자인전문가_UI검토.html","11_웹전문가_프런트엔드검토.md":"11_웹전문가_프런트엔드검토.html","12_IT자산관리전문가_화면검토.md":"12_IT자산관리전문가_화면검토.html","13_수정요청서_UI.md":"13_수정요청서_UI.html","14_보안웹취약점_점검보고서.md":"14_보안웹취약점_점검보고서.html","15_수정요청서_보안웹취약점.md":"15_수정요청서_보안웹취약점.html","16_수정요청_적용계획서.md":"16_수정요청_적용계획서.html","17_추가요구사항_검토서.md":"17_추가요구사항_검토서.html","18_조치결과보고서_1차.md":"18_조치결과보고서_1차.html","windows-agent-communication-status.md":"windows-agent-communication-status.html","windows-agent-removal-protection-plan.md":"windows-agent-removal-protection-plan.html","windows-agent-tray-validation.md":"windows-agent-tray-validation.html"};
+  const main = document.getElementById("content");
+  main.innerHTML = marked.parse(JSON.parse(document.getElementById("md").textContent), { gfm: true });
+  main.querySelectorAll("a[href]").forEach((a) => {
+    const target = decodeURIComponent(a.getAttribute("href"));
+    if (links[target]) a.setAttribute("href", links[target]);
+  });
+  main.querySelectorAll("pre > code.language-mermaid").forEach((code) => {
+    const box = document.createElement("div");
+    box.className = "mermaid";
+    box.textContent = code.textContent;
+    code.parentElement.replaceWith(box);
+  });
+  const foot = document.createElement("div");
+  foot.className = "foot";
+  foot.textContent = "원본: windows-agent-removal-protection-plan.md · 생성: build-html.mjs";
+  main.appendChild(foot);
+  mermaid.initialize({ startOnLoad: false, theme: "default", securityLevel: "strict",
+    themeVariables: { darkMode: false, background: "#ffffff", fontFamily: "Pretendard, Malgun Gothic, sans-serif" },
+    flowchart: { htmlLabels: true, curve: "basis" }, gantt: { axisFormat: "%y-%m" } });
+  mermaid.run({ querySelector: ".mermaid" });
+</script>
+</body>
+</html>

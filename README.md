@@ -69,9 +69,12 @@ dotnet publish -c Release -r win-x64 --self-contained true -o publish
   -RegistrationToken "서버의-AGENT_REGISTRATION_TOKEN"
 ```
 
-장치 설정과 발급 토큰은 `%ProgramData%\AssetFlow\agent.json`에 저장됩니다. 서비스 제거는 `scripts\uninstall-service.ps1`을 사용합니다.
-실행 로그는 `%ProgramFiles%\AssetFlow\Agent\logs\agent-YYYYMMDD.log`에 저장됩니다. `CollectionMinutes`의 기본값은 60분, `UpdateCheckMinutes`의 기본값은 5분이며 최소 실행 주기는 각각 5분입니다.
+장치 설정과 발급 토큰은 `%ProgramData%\AssetFlow\agent.json`에 저장됩니다. 0.2.12부터 장치 토큰은 DPAPI(LocalMachine)로 암호화되고 등록 토큰은 최초 등록 후 삭제되며, 폴더는 SYSTEM·Administrators 전용 ACL로 보호됩니다(트레이는 `tray.json`만 읽음). 서비스 제거는 `scripts\uninstall-service.ps1`을 사용합니다.
+0.2.11부터 실행 로그는 `%ProgramData%\AssetFlow\logs\agent-YYYYMMDD.log`, 통신 이력은 같은 폴더의 `communication-YYYYMMDD.log`에 저장됩니다. `CollectionMinutes`의 기본값은 60분, `UpdateCheckMinutes`의 기본값은 5분이며 최소 실행 주기는 각각 5분입니다.
 Windows 서비스는 활성 사용자 세션의 트레이 앱을 주기적으로 확인합니다. 트레이 앱이 종료되거나 Agent 자동 업데이트로 교체된 경우에도 로그인된 사용자 세션에서 자동으로 다시 실행됩니다.
+0.2.10부터 트레이를 STA UI 스레드에서 실행하고, 설치 직후에는 서비스가 일반 사용자 권한으로 트레이를 시작합니다. Windows 10·11 x64에서 알림 영역의 숨김 아이콘도 확인하십시오. 트레이 오류 로그는 `%LOCALAPPDATA%\AssetFlow\logs`에 저장됩니다.
+상세 변경과 Windows 검증 절차는 [트레이 검증 문서](docs/windows-agent-tray-validation.md), 사용자 임의 삭제 방지 방안은 [적용 계획서](docs/windows-agent-removal-protection-plan.md)를 참고하십시오. 삭제 방지 ACL·승인 제거 기능은 계획 단계이며 이번 트레이 배포에는 포함하지 않습니다.
+0.2.11의 상태 색상·통신 로그·보관 정책은 [통신 상태 및 로그 안내](docs/windows-agent-communication-status.md)를 참고하십시오.
 하트비트는 인벤토리 수집과 독립적으로 5분마다 전송되므로 WMI 또는 인벤토리 오류가 발생해도 Agent 온라인 상태와 실행 버전을 보고합니다.
 
 빌드된 단일 실행 파일은 `agent/release/AssetFlow.Agent.exe`에 포함됩니다. 배포 전 `agent/release/SHA256SUMS.txt`로 무결성을 확인하십시오.
@@ -115,6 +118,13 @@ Windows 서비스는 활성 사용자 세션의 트레이 앱을 주기적으로
 - Agent ID만으로 인증하지 않고 등록 토큰과 장치별 Bearer 토큰을 분리합니다.
 
 ## 변경 이력
+
+### 2026-10-23 — Agent 0.2.12 / Backend 0.2.0 (수정요청 1차 반영, 미배포)
+
+- 검토 문서(docs 07·13·15) 수정요청 반영 계획 [16 적용계획서](docs/16_수정요청_적용계획서.md), 추가 요구사항 [17 검토서](docs/17_추가요구사항_검토서.md), 조치 현황 [18 조치결과보고서](docs/18_조치결과보고서_1차.md)
+- Backend: 릴리스 업로드 관리자 세션 필수·버전 불변(409)·PE 헤더 검증·업로드자 기록, 기본 비밀값 기동 차단, 로그인 세션 ID 재발급, CSV 수식 이스케이프, 입력 길이 검증(422), Actuator readiness(DB 포함), ShedLock, 점검 DB 상태 실측, 인덱스 4종, SW 절삭 플래그
+- Agent 0.2.12: 장치 토큰 DPAPI 보호·등록 토큰 자동 삭제, `%ProgramData%\AssetFlow` 소유자·ACL 검증과 자가 복구, 트레이용 `tray.json` 분리, 로그온 사용자(`DOMAIN\user`) 수집, 메모리 미수집 시 null, 설치 스크립트 `icacls`, `scripts\fix-acl.ps1`
+- 배포: CI `paths-ignore`·`environment: production`·`persist-credentials:false`, kustomize 단일 롤아웃, DB 백업 CronJob과 복구 절차, nginx 보안 헤더·속도 제한·본문 크기 제한, kubeconfig 600, 프런트 의존성 고정
 
 ### 2026-08-22 — 0.2.7
 

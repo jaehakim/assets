@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>Agent 0.2.11 통신 상태와 로그 | AssetFlow 검토</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<style>
+:root{--bg:#ffffff;--panel:#f7f8fa;--text:#1f2937;--muted:#6b7280;--line:#e5e7eb;--accent:#3b5bdb;--accent-soft:#edf2ff;--code:#f3f4f6}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);color-scheme:light}
+body{font-family:"Pretendard","Malgun Gothic","Apple SD Gothic Neo",system-ui,sans-serif;font-size:15px;line-height:1.7;display:flex;min-height:100vh}
+nav{width:270px;flex:none;background:var(--panel);border-right:1px solid var(--line);padding:24px 16px;position:sticky;top:0;height:100vh;overflow:auto}
+nav .brand{font-weight:800;font-size:17px;margin:0 8px 4px}
+nav .sub{color:var(--muted);font-size:12px;margin:0 8px 18px}
+nav a{display:block;padding:8px 10px;border-radius:8px;color:var(--text);text-decoration:none;font-size:14px;margin-bottom:2px}
+nav a:hover{background:#eceff3}
+nav a.active{background:var(--accent-soft);color:var(--accent);font-weight:700}
+main{flex:1;min-width:0;padding:40px 48px 80px;max-width:1180px}
+h1{font-size:28px;margin:0 0 12px;padding-bottom:12px;border-bottom:2px solid var(--line)}
+h2{font-size:21px;margin:40px 0 12px;padding-left:10px;border-left:4px solid var(--accent)}
+h3{font-size:17px;margin:28px 0 10px}
+a{color:var(--accent)}
+blockquote{margin:12px 0;padding:10px 16px;background:var(--accent-soft);border-left:4px solid var(--accent);border-radius:0 8px 8px 0;color:#374151}
+blockquote p{margin:4px 0}
+table{border-collapse:collapse;width:100%;margin:12px 0 20px;font-size:13.5px;display:block;overflow-x:auto}
+th,td{border:1px solid var(--line);padding:7px 10px;text-align:left;vertical-align:top}
+th{background:var(--panel);font-weight:700;white-space:nowrap}
+tr:nth-child(even) td{background:#fbfbfc}
+code{background:var(--code);padding:1px 5px;border-radius:4px;font-family:"D2Coding",Consolas,monospace;font-size:.9em}
+pre{background:#f6f8fa;border:1px solid var(--line);border-radius:8px;padding:14px;overflow:auto}
+pre code{background:none;padding:0}
+.mermaid{background:#fff;border:1px solid var(--line);border-radius:10px;padding:16px;margin:14px 0 22px;text-align:center;overflow-x:auto}
+.foot{margin-top:56px;color:var(--muted);font-size:12px;border-top:1px solid var(--line);padding-top:12px}
+@media (max-width:860px){body{display:block}nav{position:static;width:auto;height:auto;border-right:0;border-bottom:1px solid var(--line)}main{padding:24px 16px 60px}}
+@media print{nav{display:none}main{max-width:none;padding:0}}
+</style>
+</head>
+<body>
+<nav>
+  <div class="brand">AssetFlow 검토</div>
+  <div class="sub">IT자산관리 · 보안 · 인프라 · 디자인 · 웹</div>
+  <a href="index.html">개요 (README)</a>
+  <a href="01_현황분석.html">01. AssetFlow 소스 현황 분석</a>
+  <a href="02_IT자산관리_전문가_검토.html">02. IT 자산관리 전문가 관점 검토</a>
+  <a href="03_보안전문가_검토.html">03. 보안 전문가 관점 검토</a>
+  <a href="04_인프라유지보수_검토.html">04. 인프라 유지보수 관리 관점 검토</a>
+  <a href="05_개선기획_로드맵.html">05. 통합 개선 기획 및 로드맵</a>
+  <a href="06_기술검토서.html">06. 기술검토서</a>
+  <a href="07_수정요청서.html">07. 수정요청서 (결함 시정 요청)</a>
+  <a href="08_기능추가요청서.html">08. 기능추가요청서 (신규 기능 요구)</a>
+  <a href="09_조치결과보고서_양식.html">09. 조치결과보고서 (양식)</a>
+  <a href="10_디자인전문가_UI검토.html">10. 디자인 전문가 UI 검토 — 화면 대비·타이포그래피·그리드 헤더 메뉴</a>
+  <a href="11_웹전문가_프런트엔드검토.html">11. 웹 전문가 프런트엔드 검토 — AG Grid 컬럼 메뉴 기능 검증·접근성·성능</a>
+  <a href="12_IT자산관리전문가_화면검토.html">12. IT자산관리 전문가 화면 검토 — 자산 목록 그리드 구성·컬럼 옵션의 업무 적합성</a>
+  <a href="13_수정요청서_UI.html">13. 수정요청서 (화면·UI)</a>
+  <a href="14_보안웹취약점_점검보고서.html">14. 보안·웹 취약점 점검 보고서</a>
+  <a href="15_수정요청서_보안웹취약점.html">15. 수정요청서 (보안·웹 취약점)</a>
+  <a href="16_수정요청_적용계획서.html">16. 수정요청 적용계획서 (07·13·15 통합)</a>
+  <a href="17_추가요구사항_검토서.html">17. 추가 요구사항 검토서</a>
+  <a href="18_조치결과보고서_1차.html">18. 조치결과보고서 (1차)</a>
+  <a href="windows-agent-communication-status.html" class="active">Agent 0.2.11 통신 상태와 로그</a>
+  <a href="windows-agent-removal-protection-plan.html">Windows 정보 수집 에이전트 임의 삭제 방지 적용 계획</a>
+  <a href="windows-agent-tray-validation.html">Agent 0.2.10 트레이 변경 및 Windows 검증</a>
+</nav>
+<main id="content"></main>
+<script id="md" type="application/json">"# Agent 0.2.11 통신 상태와 로그\n\n## 트레이 상태\n\n| 색상 | 의미 | 판정 |\n|---|---|---|\n| 초록 / 체크 | 서버 통신 정상 | 최근 12분 이내 성공, 미해결 작업 오류 없음 |\n| 빨강 / 느낌표 | 통신 또는 작업 오류 | 등록·하트비트·인벤토리·업데이트 중 실패가 남음 |\n| 노랑 / 느낌표 | 통신 확인 지연 | 서비스는 동작하나 성공한 통신이 12분 넘게 없음 |\n| 회색 / 대시 | 초기 대기·서비스 응답 없음 | 상태 파일 없음/읽기 실패, 첫 통신 전, 서비스 상태 갱신이 45초 넘게 중단 |\n\n서비스가 10초마다 공개 상태 파일을 기록하고 트레이가 5초마다 읽는다. 변경 반영은 정상 스케줄링 시 최대 약 15초, 서비스 강제 종료 감지는 약 45~50초다. 요청 실패는 HTTP 오류 또는 시간 초과가 확정된 시점에 반영된다. 현재 HTTP 제한 시간은 최대 5분으로, 네트워크 단절 직후 즉시 빨강을 보장하지 않는다.\n\n우선순위: 상태 파일 없음/서비스 응답 없음 → 미해결 오류 → 첫 통신 대기 → 장기 통신 지연 → 정상. 서버에 별도 주기 요청을 추가하지 않고 실제 등록·하트비트·인벤토리·업데이트 작업 결과를 사용한다. 초록은 최근 통신 성공을 뜻하며 지속 연결을 뜻하지 않는다.\n\n작업별 실패는 해당 작업의 다음 성공 시 해제한다. 예: 인벤토리 실패 후 하트비트만 성공해도 빨강 유지. 인벤토리 재시도 간격이 60분이면 오류 해제까지 다음 성공을 기다릴 수 있다. 우클릭 메뉴에서 실패 작업·마지막 통신 시각·상태 문구를 확인한다.\n\n상태 파일: `%ProgramFiles%\\AssetFlow\\Agent\\agent-status.json`. 토큰·사용자 인벤토리 본문을 포함하지 않으며 서비스가 임시 파일 작성 후 교체한다. 트레이 읽기는 파일 교체를 방해하지 않도록 공유 삭제 접근을 사용한다. 쓰기 권한은 정상적인 Program Files 설치 ACL에 의존한다. 임의 설치 경로나 변조된 ACL에 대한 강화는 별도 삭제 방지 계획 대상이다.\n\n## 통신 이력\n\n- 위치: `%ProgramData%\\AssetFlow\\logs\\communication-YYYYMMDD.log`.\n- 서비스·작업 결과와 상태 전이: 같은 폴더의 `agent-YYYYMMDD.log`.\n- 트레이 예외: `%LOCALAPPDATA%\\AssetFlow\\logs\\tray-YYYYMMDD.log`.\n- 우클릭 메뉴의 `서비스·통신 로그 열기`로 폴더를 연다.\n- 0.2.10 이전 로그는 기존 `%ProgramFiles%\\AssetFlow\\Agent\\logs`에 남으며 자동 이관하지 않는다.\n\n| 이벤트 | 기록 항목 |\n|---|---|\n| `HTTP_START` | 타임존 포함 시각, 요청 ID, HTTP 메서드, 정규화된 API 경로, 알려진 요청 Content-Length |\n| `HTTP_RESPONSE` | 같은 요청 ID, HTTP 코드, 성공/실패, 응답 헤더까지 소요 시간(ms), 알려진 응답 Content-Length |\n| `HTTP_FAILED` | 요청 ID, 네트워크 예외 종류 또는 CANCELLED_OR_TIMEOUT, 소요 시간 |\n| `INVENTORY_ACK` | 서버가 수락한 전송의 디스크·소프트웨어 항목 수 |\n| `DOWNLOAD_COMPLETE` | 다운로드 스트림 완료 시 버전과 실제 기록 바이트 |\n| 서비스 작업 완료/실패 | 등록·하트비트·인벤토리·업데이트 전체 작업 결과와 실패 예외 |\n| `TRAY_STATUS` | 서비스가 판정한 상태 변화, 색상 및 설명 |\n\nContent-Length가 없는 스트리밍/청크 요청은 크기가 비어 있을 수 있다. 응답 헤더 성공 이후 본문 수신·파싱·파일 저장·해시 검증에 실패할 수 있으므로 `HTTP_RESPONSE SUCCESS`만으로 전체 작업 성공을 판정하지 않는다. `DOWNLOAD_COMPLETE`도 해시 검증 완료 전 이벤트이며 전체 업데이트 결과는 서비스 로그에서 확인한다.\n\nHTTP 타임아웃과 서비스 종료 취소는 전송 핸들러에서 `CANCELLED_OR_TIMEOUT`으로 기록한다. 서비스 종료 요청은 작업 오류로 반영하지 않는다. 실패 작업은 기존 정책에 따라 재시도한다.\n\n통신 로그에는 Authorization·등록 토큰·쿠키·URL 쿼리·서버 호스트·요청/응답 본문·장비명·설치 소프트웨어명을 기록하지 않는다. API 경로도 등록/heartbeat/inventory/latest/download 등의 고정 값으로 정규화한다.\n\n서비스 로그와 통신 로그는 파일별 10MiB 기준 분할, 유형별 하루 현재 파일+이전 4개, 최근 30일 보관이다. 기준을 넘긴 다음 쓰기 전에 분할하며 큰 한 줄 때문에 파일 크기가 기준을 넘을 수 있다. 오래된 로그 정리는 하루 첫 기록 시 실행한다. 트레이 진단 로그는 기존 정책을 유지한다. 디스크 공간·권한 문제로 로그를 못 쓰더라도 통신을 중단하지 않는다.\n\n로그는 로컬 파일이며 중앙 서버로 자동 전송하지 않는다. 기본 재설치 시 ProgramData 로그는 보존되지만 명시적 `/purge` 제거 시 함께 삭제된다.\n\n## 검증\n\n`docker run --rm -v \"$PWD:/src\" -w /src mcr.microsoft.com/dotnet/sdk:8.0 dotnet run --project agent-tests/AgentHealth.Tests.csproj -c Release`\n\n자동 시험: 초기 대기, 등록 오류/복구, 작업별 오류 유지, 성공 복구, 서비스 중단, 통신 지연, 시계 역행, JSON 전달, 동시 상태 변경, HTTP 200/204/401/500, 네트워크·취소 예외, 비밀정보 비노출, 로그 보관·분할·쓰기 실패 격리.\n\nWindows 실기 시험: Windows 10·11 x64에서 정상 통신, 서버 차단/복구, 잘못된 토큰, 인벤토리 오류, 서비스 중지/시작 후 색상과 두 로그를 대조한다. 숨김 아이콘 영역도 확인한다. Linux 교차 빌드 환경에서는 실제 Windows 화면을 시험하지 못했다.\n\n## 배포 결과 (2026-09-11)\n\n- 버전: 0.2.11 / Windows x64 self-contained.\n- 상태 판정 13개 검사와 통신·로그 테스트 통과, publish 성공.\n- 컴파일된 STA 진입점, 버전, ICO 리소스 및 설치 PowerShell 구문 확인.\n- 운영 업데이트 API 등록 완료. 외부 HTTPS 관리자 릴리스 목록에서 최신 버전 확인.\n- 두 backend Pod의 배포 파일 해시가 로컬 실행 파일과 일치.\n- 실행 파일 크기: 72,607,202 bytes.\n- SHA-256: `00141571a4c9a12e17709e9b21b8d303ffacae888e9066cfadccd9d77f5c6ae0`.\n- Windows 실기 화면·단말 전체 적용은 미확인. 서버 최신 버전 등록과 단말 적용 완료는 별개다.\n"</script>
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js"></script>
+<script>
+  const links = {"README.md":"index.html","01_현황분석.md":"01_현황분석.html","02_IT자산관리_전문가_검토.md":"02_IT자산관리_전문가_검토.html","03_보안전문가_검토.md":"03_보안전문가_검토.html","04_인프라유지보수_검토.md":"04_인프라유지보수_검토.html","05_개선기획_로드맵.md":"05_개선기획_로드맵.html","06_기술검토서.md":"06_기술검토서.html","07_수정요청서.md":"07_수정요청서.html","08_기능추가요청서.md":"08_기능추가요청서.html","09_조치결과보고서_양식.md":"09_조치결과보고서_양식.html","10_디자인전문가_UI검토.md":"10_디자인전문가_UI검토.html","11_웹전문가_프런트엔드검토.md":"11_웹전문가_프런트엔드검토.html","12_IT자산관리전문가_화면검토.md":"12_IT자산관리전문가_화면검토.html","13_수정요청서_UI.md":"13_수정요청서_UI.html","14_보안웹취약점_점검보고서.md":"14_보안웹취약점_점검보고서.html","15_수정요청서_보안웹취약점.md":"15_수정요청서_보안웹취약점.html","16_수정요청_적용계획서.md":"16_수정요청_적용계획서.html","17_추가요구사항_검토서.md":"17_추가요구사항_검토서.html","18_조치결과보고서_1차.md":"18_조치결과보고서_1차.html","windows-agent-communication-status.md":"windows-agent-communication-status.html","windows-agent-removal-protection-plan.md":"windows-agent-removal-protection-plan.html","windows-agent-tray-validation.md":"windows-agent-tray-validation.html"};
+  const main = document.getElementById("content");
+  main.innerHTML = marked.parse(JSON.parse(document.getElementById("md").textContent), { gfm: true });
+  main.querySelectorAll("a[href]").forEach((a) => {
+    const target = decodeURIComponent(a.getAttribute("href"));
+    if (links[target]) a.setAttribute("href", links[target]);
+  });
+  main.querySelectorAll("pre > code.language-mermaid").forEach((code) => {
+    const box = document.createElement("div");
+    box.className = "mermaid";
+    box.textContent = code.textContent;
+    code.parentElement.replaceWith(box);
+  });
+  const foot = document.createElement("div");
+  foot.className = "foot";
+  foot.textContent = "원본: windows-agent-communication-status.md · 생성: build-html.mjs";
+  main.appendChild(foot);
+  mermaid.initialize({ startOnLoad: false, theme: "default", securityLevel: "strict",
+    themeVariables: { darkMode: false, background: "#ffffff", fontFamily: "Pretendard, Malgun Gothic, sans-serif" },
+    flowchart: { htmlLabels: true, curve: "basis" }, gantt: { axisFormat: "%y-%m" } });
+  mermaid.run({ querySelector: ".mermaid" });
+</script>
+</body>
+</html>
