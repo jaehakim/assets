@@ -45,6 +45,16 @@ HTTP 타임아웃과 서비스 종료 취소는 전송 핸들러에서 `CANCELLE
 
 로그는 로컬 파일이며 중앙 서버로 자동 전송하지 않는다. 기본 재설치 시 ProgramData 로그는 보존되지만 명시적 `/purge` 제거 시 함께 삭제된다.
 
+## 0.2.12 변경 (2026-10-23, 미업로드)
+
+- **토큰 보호 (CR-005)**: `agent.json`의 `DeviceToken`은 DPAPI(LocalMachine)로 암호화된 `DeviceTokenProtected`로 저장되고, 설치 스크립트가 쓴 평문 토큰은 첫 기동 시 자동 이관된다. 최초 등록 성공 후 `RegistrationToken`은 파일에서 제거된다.
+- **폴더 보호 (CR-S01)**: 서비스 기동 시 `%ProgramData%\AssetFlow` 소유자가 SYSTEM/Administrators가 아니면 기동을 거부하고 로그에 사유를 남긴다(`scripts\fix-acl.ps1` 또는 재설치로 복구). Users 쓰기 ACE·상속이 남아 있으면 SYSTEM/Administrators 전용으로 자가 교정한다. 자동 업데이트 스크립트와 설치 스크립트(`icacls`)도 같은 ACL을 적용한다.
+- **트레이 (CR-S01 ③)**: 트레이는 `%ProgramData%\AssetFlow\tray.json`(ApiUrl·버전, Users 읽기 가능)만 읽고 `agent.json`을 열지 않는다.
+- **사용자명 (CR-018)**: `Win32_ComputerSystem.UserName` → 없으면 활성 WTS 세션 사용자(`DOMAIN\user`). 서비스·컴퓨터 계정(`…$`)·미로그온은 null로 보고되어 화면에 "미식별"로 표시된다.
+- **메모리 (CR-022)**: WMI 실패 시 0 대신 null.
+- **장치 토큰 복구 (CR-A09)**: 하트비트·인벤토리가 연속 3회 HTTP 401이면 등록 토큰(`agent.json` 또는 `ASSETFLOW_REGISTRATION_TOKEN`)이 있을 때 자동 재등록한다. 없으면 트레이 상태가 "장치 토큰 무효 (재등록 필요)"로 바뀐다.
+- **업데이트 스크립트 (CR-S04)**: `apply-update.cmd`는 실행 후 자신을 삭제한다. `.bak`는 롤백용으로 유지한다.
+
 ## 검증
 
 `docker run --rm -v "$PWD:/src" -w /src mcr.microsoft.com/dotnet/sdk:8.0 dotnet run --project agent-tests/AgentHealth.Tests.csproj -c Release`

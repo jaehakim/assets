@@ -14,7 +14,31 @@ concurrency:
   group: assetflow-production
   cancel-in-progress: false
 jobs:
+  # CR-A03: 배포 전에 백엔드·Agent·프런트 검증을 x64 호스트 러너에서 실행한다 (실패 시 build·deploy 차단).
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with: {distribution: temurin, java-version: '21', cache: maven}
+      - name: Backend unit tests
+        run: mvn -B -q test
+        working-directory: backend
+      - uses: actions/setup-dotnet@v4
+        with: {dotnet-version: '8.0.x'}
+      - name: Agent console tests
+        run: dotnet run --project agent-tests/AgentHealth.Tests.csproj -c Release
+      - name: Agent compile check (win-x64 build on Linux)
+        run: dotnet build agent/AssetFlow.Agent.csproj -c Release
+      - uses: actions/setup-node@v4
+        with: {node-version: '22', cache: npm, cache-dependency-path: frontend/package-lock.json}
+      - name: Frontend build
+        run: npm ci && npm run build
+        working-directory: frontend
   build:
+    needs: test
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -99,5 +123,5 @@ jobs:
         with:
           package-name: ${{ matrix.package }}
           package-type: container
-          min-versions-to-keep: 5
+          min-versions-to-keep: 10   # CR-A12: 롤백 대상 이미지 보존
           delete-only-untagged-versions: false

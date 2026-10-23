@@ -46,7 +46,13 @@ public class AssetController {
         WHERE s.hostname ILIKE ? OR coalesce(s.username,'') ILIKE ? OR coalesce(s.asset_tag,'') ILIKE ?
           OR coalesce(s.assigned_to,'') ILIKE ? OR coalesce(s.location,'') ILIKE ?
         ORDER BY GREATEST(s.last_seen_at,a.last_seen_at) DESC LIMIT 500
-        """, "%"+q+"%", "%"+q+"%", "%"+q+"%", "%"+q+"%", "%"+q+"%");
+        """, like(q), like(q), like(q), like(q), like(q));
+  }
+
+  /** CR-A10: 검색어의 LIKE 와일드카드(% _ \\)를 문자 그대로 취급한다. */
+  static String like(String q) {
+    String escaped = Objects.toString(q, "").replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
+    return "%" + escaped + "%";
   }
 
   @GetMapping("/assets/{id}")

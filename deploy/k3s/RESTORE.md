@@ -37,3 +37,9 @@ kubectl delete ns assetflow-restore
 2. StatefulSet `postgres`의 PVC가 손상된 경우 PVC 삭제 후 재생성 → 위 3단계와 같이 `pg_restore`
 3. `kubectl -n assetflow scale deploy/backend --replicas=2` → `/actuator/health/readiness`가 UP인지 확인
 4. 복구 시각·손실 구간(RPO)·소요(RTO)를 점검 일지에 기록
+
+## 리허설 기록
+
+| 일자 | 덤프 | 복구 시간 | 검증 | 비고 |
+|---|---|---|---|---|
+| 2026-10-23 | `assetflow-20261023T121102Z.dump` (89KB, 수동 잡, sha256 OK) | pg_restore 1초, 전체 절차 약 2분 | 자산 4·Agent 4·SW 552행, `max(last_seen_at)` 운영과 일치 | 별도 네임스페이스 `assetflow-restore`에서 수행 후 삭제. 오프노드 복제는 결정 ③ 대기 |

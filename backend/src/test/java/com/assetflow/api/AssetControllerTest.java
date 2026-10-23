@@ -23,6 +23,13 @@ class AssetControllerTest {
     assertEquals(rows, new AssetController(db).assets("PC"));
     verify(db).queryForList(contains("s.bitlocker_enabled,s.antivirus_status"), eq("%PC%"), eq("%PC%"), eq("%PC%"), eq("%PC%"), eq("%PC%"));
   }
+  // CR-A10
+  @Test void searchEscapesLikeWildcards() {
+    assertEquals("%50\\%%", AssetController.like("50%"));
+    assertEquals("%a\\_b%", AssetController.like("a_b"));
+    assertEquals("%c:\\\\x%", AssetController.like("c:\\x"));
+    assertEquals("%%", AssetController.like(null));
+  }
   // CR-012
   @Test void csvEscapesFormulaTriggers() {
     assertEquals("\"'=1+1\"", AssetController.csv("=1+1"));
