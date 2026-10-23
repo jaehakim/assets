@@ -60,7 +60,7 @@ const page = (it) => `<!doctype html>
 <body>
 <nav>
   <div class="brand">AssetFlow 검토</div>
-  <div class="sub">IT자산관리 · 보안 · 인프라 유지보수</div>
+  <div class="sub">IT자산관리 · 보안 · 인프라 · 디자인 · 웹</div>
   ${items.map((x) => `<a href="${x.html}"${x === it ? ' class="active"' : ""}>${x.file === "README.md" ? "개요 (README)" : x.title}</a>`).join("\n  ")}
 </nav>
 <main id="content"></main>

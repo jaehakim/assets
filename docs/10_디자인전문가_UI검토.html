@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>10. 디자인 전문가 UI 검토 — 화면 대비·타이포그래피·그리드 헤더 메뉴 | AssetFlow 검토</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<style>
+:root{--bg:#ffffff;--panel:#f7f8fa;--text:#1f2937;--muted:#6b7280;--line:#e5e7eb;--accent:#3b5bdb;--accent-soft:#edf2ff;--code:#f3f4f6}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);color-scheme:light}
+body{font-family:"Pretendard","Malgun Gothic","Apple SD Gothic Neo",system-ui,sans-serif;font-size:15px;line-height:1.7;display:flex;min-height:100vh}
+nav{width:270px;flex:none;background:var(--panel);border-right:1px solid var(--line);padding:24px 16px;position:sticky;top:0;height:100vh;overflow:auto}
+nav .brand{font-weight:800;font-size:17px;margin:0 8px 4px}
+nav .sub{color:var(--muted);font-size:12px;margin:0 8px 18px}
+nav a{display:block;padding:8px 10px;border-radius:8px;color:var(--text);text-decoration:none;font-size:14px;margin-bottom:2px}
+nav a:hover{background:#eceff3}
+nav a.active{background:var(--accent-soft);color:var(--accent);font-weight:700}
+main{flex:1;min-width:0;padding:40px 48px 80px;max-width:1180px}
+h1{font-size:28px;margin:0 0 12px;padding-bottom:12px;border-bottom:2px solid var(--line)}
+h2{font-size:21px;margin:40px 0 12px;padding-left:10px;border-left:4px solid var(--accent)}
+h3{font-size:17px;margin:28px 0 10px}
+a{color:var(--accent)}
+blockquote{margin:12px 0;padding:10px 16px;background:var(--accent-soft);border-left:4px solid var(--accent);border-radius:0 8px 8px 0;color:#374151}
+blockquote p{margin:4px 0}
+table{border-collapse:collapse;width:100%;margin:12px 0 20px;font-size:13.5px;display:block;overflow-x:auto}
+th,td{border:1px solid var(--line);padding:7px 10px;text-align:left;vertical-align:top}
+th{background:var(--panel);font-weight:700;white-space:nowrap}
+tr:nth-child(even) td{background:#fbfbfc}
+code{background:var(--code);padding:1px 5px;border-radius:4px;font-family:"D2Coding",Consolas,monospace;font-size:.9em}
+pre{background:#f6f8fa;border:1px solid var(--line);border-radius:8px;padding:14px;overflow:auto}
+pre code{background:none;padding:0}
+.mermaid{background:#fff;border:1px solid var(--line);border-radius:10px;padding:16px;margin:14px 0 22px;text-align:center;overflow-x:auto}
+.foot{margin-top:56px;color:var(--muted);font-size:12px;border-top:1px solid var(--line);padding-top:12px}
+@media (max-width:860px){body{display:block}nav{position:static;width:auto;height:auto;border-right:0;border-bottom:1px solid var(--line)}main{padding:24px 16px 60px}}
+@media print{nav{display:none}main{max-width:none;padding:0}}
+</style>
+</head>
+<body>
+<nav>
+  <div class="brand">AssetFlow 검토</div>
+  <div class="sub">IT자산관리 · 보안 · 인프라 · 디자인 · 웹</div>
+  <a href="index.html">개요 (README)</a>
+  <a href="01_현황분석.html">01. AssetFlow 소스 현황 분석</a>
+  <a href="02_IT자산관리_전문가_검토.html">02. IT 자산관리 전문가 관점 검토</a>
+  <a href="03_보안전문가_검토.html">03. 보안 전문가 관점 검토</a>
+  <a href="04_인프라유지보수_검토.html">04. 인프라 유지보수 관리 관점 검토</a>
+  <a href="05_개선기획_로드맵.html">05. 통합 개선 기획 및 로드맵</a>
+  <a href="06_기술검토서.html">06. 기술검토서</a>
+  <a href="07_수정요청서.html">07. 수정요청서 (결함 시정 요청)</a>
+  <a href="08_기능추가요청서.html">08. 기능추가요청서 (신규 기능 요구)</a>
+  <a href="09_조치결과보고서_양식.html">09. 조치결과보고서 (양식)</a>
+  <a href="10_디자인전문가_UI검토.html" class="active">10. 디자인 전문가 UI 검토 — 화면 대비·타이포그래피·그리드 헤더 메뉴</a>
+  <a href="11_웹전문가_프런트엔드검토.html">11. 웹 전문가 프런트엔드 검토 — AG Grid 컬럼 메뉴 기능 검증·접근성·성능</a>
+  <a href="12_IT자산관리전문가_화면검토.html">12. IT자산관리 전문가 화면 검토 — 자산 목록 그리드 구성·컬럼 옵션의 업무 적합성</a>
+  <a href="13_수정요청서_UI.html">13. 수정요청서 (화면·UI)</a>
+</nav>
+<main id="content"></main>
+<script id="md" type="application/json">"# 10. 디자인 전문가 UI 검토 — 화면 대비·타이포그래피·그리드 헤더 메뉴\n\n> 검토일 2026-10-23 · 대상 `frontend/` (src.jsx 1,771줄, CSS 10파일, AG Grid 36.1.0, React 19.2) · 관련: [11 웹전문가 검토](11_웹전문가_프런트엔드검토.md), [12 ITAM 화면 검토](12_IT자산관리전문가_화면검토.md), [13 UI 수정요청서](13_수정요청서_UI.md)\n\n## 1. 검토 방법\n\n| 구분 | 내용 |\n|---|---|\n| 정적 분석 | CSS 10파일 전수 파싱 → 같은 규칙에 전경·배경이 함께 선언된 94쌍의 WCAG 대비율 계산, 12px 미만 font-size 선언 151건 추출, 색상 토큰 수·`!important` 수 집계 |\n| 렌더링 측정 | 모의 API(자산 37건)로 Vite 빌드 후 헤드리스 Edge(1440×900, 1280×720, 390×844)에서 실제 계산된 색·글자 크기·요소 치수 측정, 화면 캡처 |\n| 기준 | WCAG 2.1 AA — 일반 텍스트 4.5:1, 큰 텍스트(18pt 또는 14pt 굵게) 3:1, UI 구성요소 3:1, 포인터 타깃 24×24px(2.5.8) |\n| 제외 | 사용자 조사·사용성 테스트, 브랜드 가이드 적합성(가이드 미보유) |\n\n## 2. 종합 의견\n\n현재 화면은 \"데이터 밀도가 높은 운영 콘솔\"을 지향하지만, **5개의 서로 다른 디자인 방향이 CSS 파일 적층 순서로만 덮어써져** 있어 하나의 시스템으로 읽히지 않는다. 그 결과 ① 보조 텍스트 대부분이 대비 기준에 미달하고, ② 글자 크기가 6~10px까지 내려가 가독성이 낮으며, ③ 그리드 헤더 메뉴는 존재 자체를 발견하기 어렵고 열어도 화면 밖으로 잘린다. 세 가지는 모두 토큰(색·크기) 정리와 컴포넌트 단위 수정으로 해결 가능한 수준이며, 정보 구조 자체를 바꿀 필요는 없다.\n\n## 3. 디자인 시스템 적층 현황\n\n```mermaid\nflowchart LR\n  A[\"style.css\u003cbr/>카드형·둥근 모서리 12px\u003cbr/>DM Sans·흰 사이드바 238px\"] --> B[\"admin-kit.css\u003cbr/>다크 그라디언트 사이드바 250px\"]\n  B --> C[\"control-room.css\u003cbr/>네이비 사이드바 228px\u003cbr/>모노스페이스 라벨·2px 모서리\"]\n  C --> D[\"console-kit.css\u003cbr/>IBM Plex 3종(미로드)\u003cbr/>HTML 표 스타일\"]\n  D --> E[\"ag-grid-ext.css\u003cbr/>ExtJS 스타일 그리드\u003cbr/>Pretendard !important\"]\n  E --> F((\"최종 화면\"))\n```\n\n| 지표 | 측정값 | 판단 |\n|---|---|---|\n| CSS 파일 수 / 적층 순서 의존 | 10개, `src.jsx:7-16` import 순서가 곧 우선순위 | 순서를 바꾸면 화면이 달라지는 취약한 구조 |\n| 고유 hex 색상 수 | **499개** | 토큰 체계 부재. 보통 운영 콘솔은 30~50개 |\n| `!important` 사용 | **64회** | 상위 파일이 하위 파일을 억지로 덮는 신호 |\n| 사이드바 폭 재정의 | 238 → 250 → 228px(3회), 접힘 58px | 고정 푸터 `.asset-pagination{left:228px}`는 더 이상 쓰이지 않는 규칙 |\n| 모서리 반경 | 12px(카드) ↔ 2px(그리드·버튼) 혼재, 모달만 18px | 한 화면에 두 세계가 공존 |\n| 글꼴 패밀리 선언 | DM Sans·Noto Sans KR(로드), Pretendard(로드), IBM Plex Sans/Sans KR/Sans Condensed/Mono(**선언만, 로드 없음**), ui-monospace | 제목·내비·수치는 시스템 대체 글꼴로 렌더링됨 |\n\n렌더링 측정에서 `h2`, `.nav-label`은 `\"IBM Plex Sans Condensed\", \"IBM Plex Sans KR\", sans-serif`로 계산되었고 해당 글꼴은 어디에서도 로드되지 않는다(`index.html`, `style.css @import` 모두 미포함). 시스템 가이드 화면(`src.jsx:846`)은 \"제목·메뉴는 IBM Plex Sans Condensed를 사용합니다\"라고 안내하고 있어 문서와 실제가 어긋난다.\n\n## 4. 색 대비 검토\n\n### 4.1 렌더링 기준 실측 (대시보드·자산 목록, 1440×900)\n\n| 대비율 | 크기 | 요소 | 전경 | 배경 | 판정 |\n|---|---|---|---|---|---|\n| 2.49 | 9px | `.stats small` \"Agent 보고 기준\" | #99a1ae | #f9fafb | 미달 |\n| 2.65 | 8px | `.compliance-legend>small` 산정 기준 설명 | #949ca9 | #f9fafb | 미달 |\n| 2.71 | 8px | `.action-list small` 조치 설명 | #929aa8 | #f9fafb | 미달 |\n| 2.84 | 7px | `.nav-health small` \"NODE OSAKA · K3S\" | #59667b | #151f30 | 미달 |\n| 3.48 | 10px | `.dashboard-insights span` KPI 라벨 | #7d8796 | #f9fafb | 미달 |\n| 3.56 | 9px | `.nav-group>small` 메뉴 그룹명 | #65718a | #111a28 | 미달 |\n| 3.56 | 10px | `.stats span` 지표 라벨 \"전체 PC\" | #7c8595 | #f9fafb | 미달 |\n| 3.58 | 10px | `.grid-primary small` 시리얼·생애주기 | #7a8495 | #f7f9fc | 미달 |\n| 3.73 | 8px | `.offline` 배지 | #737c89 | #eff1f4 | 미달 |\n| 3.79 | 8px | `.online` 배지 | #188d6b | #e9f8f3 | 미달 |\n| 3.99 | 9px | `.panel-heading>span` \"LIVE\" | #168966 | #e9f8f3 | 미달 |\n| 4.29 | 11px | `.intro p` 화면 설명 | #707b8b | #ffffff | 미달 |\n| 3.28 | 17px 굵게 | `.dashboard-insights b` \"76%\" | #1f9d74 | #f9fafb | 큰 텍스트 기준(3:1) 충족 |\n\n대시보드 한 화면에서 **11px 미만 텍스트 요소 84개**(10px 61, 9px 10, 8px 11, 7px 2)가 측정되었고, 그중 대비 4.5:1을 충족하는 것은 주 텍스트 색(#17202e 계열)을 쓰는 요소뿐이다.\n\n### 4.2 정적 분석 추가 미달 항목\n\n| 대비율 | 요소 | 전경/배경 | 비고 |\n|---|---|---|---|\n| 2.03 / 2.04 | `.alert i`, `.stats i.orange` 아이콘 타일 | #ee9b3d / #fff2e4 | 비텍스트 UI도 3:1 필요 |\n| 2.61 | `.stats i.green` | #24ad80 / #e9f8f3 | |\n| 2.87 | `.shield-action` | #d37b2b / #fff2e4 | 운영 조치 센터 아이콘 |\n| 3.03 | `th` (style.css) | #8992a1 / #fafbfc | 레거시 표 헤더 |\n| 3.32 | `.inspection-warn` \"확인 필요\" 배지 | #c96d24 / #fff1e2 | 점검 일지 상태 |\n| 3.47 | `.loginerror b` 느낌표 | #fff / #e45d66 | 9px |\n| 3.55 | `.virus-action` | #d9535f / #fff0f1 | |\n| 3.56 | `.workspace-tabs button` 비활성 탭 | #697586 / #dde1e6 | 10px |\n| 4.11 | `.stats i.blue`, `.device-mark` | #5368e8 / #eef0ff | |\n| 4.27 | `.storage-state.danger` | #b84d4d / #fce9e9 | 8px |\n| 4.46 | `.login-submit`, `.compliance-form button` | #fff / #5973c8~#3854aa | 그라디언트 밝은 쪽 기준 |\n\n### 4.3 로그인 화면\n\n왼쪽 비주얼 패널의 보조 텍스트는 7~9px(`.login-kicker` 9px, `.console-metrics small` **6px**, `.access-meta small` 7px, `.ops-console code` 7px)로 구성되어 있다. 장식 목적이라면 `aria-hidden`과 함께 이미지로 처리하고, 정보라면 11px 이상으로 올려야 한다. 오른쪽 폼의 `.login-help small`(8px, #9aa2af)은 실제 안내문인데 대비 약 2.6:1이다.\n\n### 4.4 권장 색 토큰\n\n| 토큰 | 현재 분산 값 | 제안 | 배경 #f9fafb 대비 |\n|---|---|---|---|\n| `--ink` 본문 | #17202e, #182033, #25354d, #263247 … | #1b2432 | 15.1:1 |\n| `--ink-2` 보조 | #707b8b, #7d8796, #7c8595, #7a8495 … | **#5b6775** | 5.6:1 |\n| `--ink-3` 캡션 | #929aa8, #99a1ae, #949ca9, #8e97a5 … | **#66717f**(11px 이상에서만) | 4.9:1 |\n| `--ok` | #188d6b, #168966, #24ad80, #21866a, #1f9d74 | 텍스트 #137257 / 배경 #e3f5ee | 5.9:1 |\n| `--warn` | #ed9b3c, #d37b2b, #c96d24, #bd7429 | 텍스트 #9a5a12 / 배경 #fff1dc | 5.5:1 |\n| `--danger` | #d9535f, #c74343, #b84d4d, #a22f3a | 텍스트 #a3313c / 배경 #fdeaec | 6.3:1 |\n| `--muted-on-navy` | #65718a, #59667b, #8e9aaf | **#9aa6bb** (배경 #111a28) | 7.9:1 |\n\n## 5. 타이포그래피 크기 체계\n\n| 측정 | 값 |\n|---|---|\n| 12px 미만 font-size 선언 | **151건**(CSS 전체) |\n| 최소 크기 | 6px(`.console-metrics small`), 7px(`.nav-health *`, `.manual-step-head>em`, `.access-meta *`, `.monitor-strip span`) |\n| 그리드 헤더 | 10px(`.x-column-title`), 툴바·페이지네이션 10px |\n| 본문 그리드 셀 | 12px(테마 파라미터) — 유일하게 적정 |\n\n운영 콘솔의 밀도를 유지하면서도 가독성을 확보하는 권장 스케일은 다음과 같다.\n\n| 토큰 | 크기 | 용도 |\n|---|---|---|\n| `--fs-xs` | 11px | 캡션·배지·모노스페이스 라벨(최소 허용치) |\n| `--fs-sm` | 12px | 그리드 셀·툴바·메뉴 항목·보조 설명 |\n| `--fs-md` | 13px | 본문·폼 입력·내비게이션 |\n| `--fs-lg` | 16px | 패널 제목 |\n| `--fs-xl` | 20px | 화면 제목(h2) |\n| `--fs-num` | 24px | KPI 수치 |\n\n## 6. 그리드 헤더 메뉴(컬럼 옵션 ▾) — 디자인 관점\n\n실측 캡처: 메뉴를 열면 대시보드 \"최근 접속 자산\" 그리드에서 **메뉴 상단 802px, 높이 428px**로 900px 뷰포트를 넘어 정렬 3개 항목만 보이고 고정·자동 맞춤·컬럼 표시 영역은 잘린다.\n\n![컬럼 메뉴가 뷰포트 하단에서 잘린 모습 (1440×900)](img/ui-02-column-menu-clipped.png)\n\n| 항목 | 현재 | 문제 | 제안 |\n|---|---|---|---|\n| 발견 가능성 | 트리거 `opacity:0`, 헤더 hover 시에만 표시(`ag-grid-ext.css:31,33`) | 기능이 있다는 단서가 없음. 터치 기기에서는 hover가 없어 영구히 보이지 않음 | 기본 opacity .55, hover/focus 1. 정렬·고정·숨김 상태가 있으면 항상 표시 |\n| 타깃 크기 | 18×26px | WCAG 2.5.8(24×24) 미달, 헤더 높이 28px에 눌려 있음 | 헤더 높이 32px, 트리거 24×24px |\n| 위치·크기 | `position:fixed`, 폭 218px 고정, 높이 가변(최대 약 430px) | 화면 하단 그리드에서 잘림. 내부 스크롤 없음 | 아래 공간 부족 시 위로 플립, `max-height: calc(100vh - top - 8px)` + 내부 스크롤 |\n| 구성 | 정렬 3 / 고정 3 / 자동 맞춤 2 / 컬럼 표시 체크리스트 | 필터 진입점 없음(기능상 가장 필요). 체크리스트가 메뉴 하단에 붙어 길이를 늘림 | \"필터…\" 항목 추가. 컬럼 표시는 \"컬럼 선택…\" 서브 패널 또는 툴바의 별도 버튼으로 분리 |\n| 아이콘 | 유니코드 글리프 ↑↓×◧◨◇↔⇔ (`src.jsx:82-91`) | 글꼴에 따라 모양·굵기가 달라지고 ◧◨◇는 의미 전달이 약함 | 16px SVG 아이콘 세트(이미 core-16 아이콘 사용 중)로 통일 |\n| 상태 피드백 | 정렬 시 헤더 배경 #c5d5e6 + 4px 삼각형 | 다중 정렬 시 순서(1,2) 표시 없음. 숨긴 컬럼이 있다는 표시 없음 | 정렬 순서 숫자 배지, 툴바에 \"숨긴 컬럼 N\" 칩 |\n| 비활성 규칙 | 이미 왼쪽 고정인 컬럼에도 \"왼쪽에 고정\" 활성 | 현재 상태를 메뉴가 반영하지 않음 | 현재 상태 항목은 체크 표시 + 비활성 |\n| 글자 크기 | 메뉴 11px, 라벨 9px, 헤더 10px | 5장 스케일 미달 | 12px / 11px |\n\n## 7. 레이아웃·반응형\n\n![대시보드 1440×900 — 10px 이하 보조 텍스트와 조밀 행의 2줄 셀](img/ui-01-dashboard.png)\n\n![자산 목록 1440×900 — 2줄 셀 하단 줄이 행 경계와 맞닿음](img/ui-04-asset-list.png)\n\n![390×844 — 사이드바와 접기 버튼이 함께 사라지고 버튼이 세로로 줄바꿈](img/ui-06-mobile-390.png)\n\n| 화면 | 관찰(실측) | 영향 | 제안 |\n|---|---|---|---|\n| ≤650px (390×844 캡처) | `aside{display:none}`이라 **메뉴 접기 버튼까지 함께 사라져 내비게이션 수단이 없음** | 모바일에서 대시보드 외 화면 이동 불가 | main 상단에 햄버거 버튼, 사이드바를 드로어로 |\n| ≤650px | \"↻ 새로고침\" 버튼이 세로로 글자가 쌓이고 CSV 버튼이 3줄로 줄바꿈 | 조작 불가 수준의 외관 | `white-space:nowrap`, 아이콘 전용 축약, `.intro{flex-wrap:wrap}` |\n| 조밀 행(기본값 30px) | 2줄 셀(`.grid-primary` b+small) 콘텐츠 29px → 하단 줄이 행 경계와 맞닿음(캡처 01·04) | 시리얼·생애주기 텍스트가 잘려 보임 | 2줄 렌더러 컬럼이 있으면 최소 36px, 조밀 모드는 1줄로 축약 |\n| 1440×900 | 그리드 `height:calc(100vh - 235px)` 고정 | 창 높이에 따라 페이지네이션 바가 패널 밖으로 밀릴 수 있음(720px에서는 정상) | `min-height`와 함께 `flex:1` 컨테이너로 전환 |\n| 모달 | 1180×880, 모서리 18px, 배경 블러 | 콘솔 톤(2px 모서리)과 이질적 | 모서리 4px, 블러 제거(성능·일관성) |\n\n## 8. 상태 표현의 신뢰성\n\n운영 콘솔에서 \"상태처럼 보이는 텍스트\"는 모두 실제 데이터여야 한다. 아래는 코드에 고정된 문자열이다.\n\n![로그인 화면 — 6~9px 장식 텍스트와 고정 상태 문구(LIVE, ALL SYSTEMS OPERATIONAL, AUDIT ENABLED)](img/ui-08-login.png)\n\n| 위치 | 문자열 | 문제 |\n|---|---|---|\n| `src.jsx:1542-1545` 사이드바 | `CONTROL PLANE NORMAL`, `NODE OSAKA · K3S` | 실제 노드명·상태와 무관. 서버 모니터링 화면과 불일치 가능 |\n| `src.jsx:241-262` 로그인 | `LIVE`, `2 + 2 Pods`, `Protected`, `inventory synchronized`, `ALL SYSTEMS OPERATIONAL`, `SECURE ACCESS NODE AF-OPS / 01` | 장애 중에도 \"정상\"으로 표시됨 |\n| `src.jsx:287` 로그인 | `SESSION AUDIT ENABLED` | 감사 로그 기능은 현재 없음([07 수정요청서](07_수정요청서.md) 참조) |\n| `src.jsx:1684` 대시보드 | `LIVE` 배지 | 폴링 주기·마지막 갱신 시각 없음 |\n\n제안: 사이드바 상태는 `/api/v1/dashboard` 또는 점검 API에 바인딩하고, 로그인 화면의 장식 요소는 `aria-hidden` 일러스트로 바꾸거나 제거한다. \"LIVE\"는 \"갱신 HH:MM\"으로 대체한다.\n\n## 9. 기타\n\n- **다크 모드·대비 선호**: `prefers-color-scheme`, `prefers-contrast`, `prefers-reduced-motion` 대응 없음. 스피너·버튼 transform 애니메이션은 reduced-motion에서 비활성화 필요.\n- **포커스 표시**: `:focus-visible` 규칙 3곳뿐. 그리드 트리거·탭 닫기·메뉴 항목에 일관된 2px 아웃라인 토큰 필요.\n- **아이콘 출처**: `cdn.statically.io/.../icons@main` — 디자인 자산이 외부 저장소의 변동 브랜치에 의존. 셀프 호스팅 권장(웹 검토 참조).\n\n## 10. 권고 요약\n\n| 우선순위 | 항목 | 수정요청 |\n|---|---|---|\n| 즉시 | 보조 텍스트·배지 색 토큰 교체(4.4), 최소 글자 11px(5장) | CR-U09, U10, U11 |\n| 즉시 | 헤더 메뉴 플립·내부 스크롤, 트리거 상시 표시·24px | CR-U02, U05 |\n| 즉시 | 모바일 내비게이션 복구 | CR-U14 |\n| 1개월 | 디자인 토큰 파일 1개로 통합, 미사용 CSS 제거, 글꼴 1종 확정 | CR-U12, U13 |\n| 1개월 | 2줄 셀 행 높이, 좁은 폭 버튼 줄바꿈, 고정 문자열 제거 | CR-U15, U16, U18 |\n| 분기 | 아이콘 SVG 통일, 정렬 순서 배지, reduced-motion | CR-U07 외 |\n"</script>
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js"></script>
+<script>
+  const links = {"README.md":"index.html","01_현황분석.md":"01_현황분석.html","02_IT자산관리_전문가_검토.md":"02_IT자산관리_전문가_검토.html","03_보안전문가_검토.md":"03_보안전문가_검토.html","04_인프라유지보수_검토.md":"04_인프라유지보수_검토.html","05_개선기획_로드맵.md":"05_개선기획_로드맵.html","06_기술검토서.md":"06_기술검토서.html","07_수정요청서.md":"07_수정요청서.html","08_기능추가요청서.md":"08_기능추가요청서.html","09_조치결과보고서_양식.md":"09_조치결과보고서_양식.html","10_디자인전문가_UI검토.md":"10_디자인전문가_UI검토.html","11_웹전문가_프런트엔드검토.md":"11_웹전문가_프런트엔드검토.html","12_IT자산관리전문가_화면검토.md":"12_IT자산관리전문가_화면검토.html","13_수정요청서_UI.md":"13_수정요청서_UI.html"};
+  const main = document.getElementById("content");
+  main.innerHTML = marked.parse(JSON.parse(document.getElementById("md").textContent), { gfm: true });
+  main.querySelectorAll("a[href]").forEach((a) => {
+    const target = decodeURIComponent(a.getAttribute("href"));
+    if (links[target]) a.setAttribute("href", links[target]);
+  });
+  main.querySelectorAll("pre > code.language-mermaid").forEach((code) => {
+    const box = document.createElement("div");
+    box.className = "mermaid";
+    box.textContent = code.textContent;
+    code.parentElement.replaceWith(box);
+  });
+  const foot = document.createElement("div");
+  foot.className = "foot";
+  foot.textContent = "원본: 10_디자인전문가_UI검토.md · 생성: build-html.mjs";
+  main.appendChild(foot);
+  mermaid.initialize({ startOnLoad: false, theme: "default", securityLevel: "strict",
+    themeVariables: { darkMode: false, background: "#ffffff", fontFamily: "Pretendard, Malgun Gothic, sans-serif" },
+    flowchart: { htmlLabels: true, curve: "basis" }, gantt: { axisFormat: "%y-%m" } });
+  mermaid.run({ querySelector: ".mermaid" });
+</script>
+</body>
+</html>
