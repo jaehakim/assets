@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>09. 조치결과보고서 (양식) | AssetFlow 검토</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<style>
+:root{--bg:#ffffff;--panel:#f7f8fa;--text:#1f2937;--muted:#6b7280;--line:#e5e7eb;--accent:#3b5bdb;--accent-soft:#edf2ff;--code:#f3f4f6}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);color-scheme:light}
+body{font-family:"Pretendard","Malgun Gothic","Apple SD Gothic Neo",system-ui,sans-serif;font-size:15px;line-height:1.7;display:flex;min-height:100vh}
+nav{width:270px;flex:none;background:var(--panel);border-right:1px solid var(--line);padding:24px 16px;position:sticky;top:0;height:100vh;overflow:auto}
+nav .brand{font-weight:800;font-size:17px;margin:0 8px 4px}
+nav .sub{color:var(--muted);font-size:12px;margin:0 8px 18px}
+nav a{display:block;padding:8px 10px;border-radius:8px;color:var(--text);text-decoration:none;font-size:14px;margin-bottom:2px}
+nav a:hover{background:#eceff3}
+nav a.active{background:var(--accent-soft);color:var(--accent);font-weight:700}
+main{flex:1;min-width:0;padding:40px 48px 80px;max-width:1180px}
+h1{font-size:28px;margin:0 0 12px;padding-bottom:12px;border-bottom:2px solid var(--line)}
+h2{font-size:21px;margin:40px 0 12px;padding-left:10px;border-left:4px solid var(--accent)}
+h3{font-size:17px;margin:28px 0 10px}
+a{color:var(--accent)}
+blockquote{margin:12px 0;padding:10px 16px;background:var(--accent-soft);border-left:4px solid var(--accent);border-radius:0 8px 8px 0;color:#374151}
+blockquote p{margin:4px 0}
+table{border-collapse:collapse;width:100%;margin:12px 0 20px;font-size:13.5px;display:block;overflow-x:auto}
+th,td{border:1px solid var(--line);padding:7px 10px;text-align:left;vertical-align:top}
+th{background:var(--panel);font-weight:700;white-space:nowrap}
+tr:nth-child(even) td{background:#fbfbfc}
+code{background:var(--code);padding:1px 5px;border-radius:4px;font-family:"D2Coding",Consolas,monospace;font-size:.9em}
+pre{background:#f6f8fa;border:1px solid var(--line);border-radius:8px;padding:14px;overflow:auto}
+pre code{background:none;padding:0}
+.mermaid{background:#fff;border:1px solid var(--line);border-radius:10px;padding:16px;margin:14px 0 22px;text-align:center;overflow-x:auto}
+.foot{margin-top:56px;color:var(--muted);font-size:12px;border-top:1px solid var(--line);padding-top:12px}
+@media (max-width:860px){body{display:block}nav{position:static;width:auto;height:auto;border-right:0;border-bottom:1px solid var(--line)}main{padding:24px 16px 60px}}
+@media print{nav{display:none}main{max-width:none;padding:0}}
+</style>
+</head>
+<body>
+<nav>
+  <div class="brand">AssetFlow 검토</div>
+  <div class="sub">IT자산관리 · 보안 · 인프라 유지보수</div>
+  <a href="index.html">개요 (README)</a>
+  <a href="01_현황분석.html">01. AssetFlow 소스 현황 분석</a>
+  <a href="02_IT자산관리_전문가_검토.html">02. IT 자산관리 전문가 관점 검토</a>
+  <a href="03_보안전문가_검토.html">03. 보안 전문가 관점 검토</a>
+  <a href="04_인프라유지보수_검토.html">04. 인프라 유지보수 관리 관점 검토</a>
+  <a href="05_개선기획_로드맵.html">05. 통합 개선 기획 및 로드맵</a>
+  <a href="06_기술검토서.html">06. 기술검토서</a>
+  <a href="07_수정요청서.html">07. 수정요청서 (결함 시정 요청)</a>
+  <a href="08_기능추가요청서.html">08. 기능추가요청서 (신규 기능 요구)</a>
+  <a href="09_조치결과보고서_양식.html" class="active">09. 조치결과보고서 (양식)</a>
+</nav>
+<main id="content"></main>
+<script id="md" type="application/json">"# 09. 조치결과보고서 (양식)\n\n> [07 수정요청서](07_수정요청서.md)와 [08 기능추가요청서](08_기능추가요청서.md)에 대한 개발 측 회신 양식. 요청 건별로 아래 표를 작성하고, 검토자가 확인시험 후 판정한다.\n\n| 항목 | 내용 |\n|---|---|\n| 문서번호 | AF-RR-2026-___ |\n| 대상 요청서 | AF-CR-2026-001 / AF-FR-2026-001 |\n| 보고일 | |\n| 작성자 | |\n\n## 1. 조치 현황 요약\n\n| 구분 | 요청 | 완료 | 진행 | 미착수 | 반려/협의 |\n|---|---|---|---|---|---|\n| P0 (CR) | 14 | | | | |\n| P1 (CR) | 17 | | | | |\n| P2 (CR) | 5 | | | | |\n| 기능추가 (FR) | 24 | | | | |\n\n## 2. 건별 조치 내역\n\n| 요청번호 | 조치 내용 | 변경 파일 / PR | 시험 방법 | 시험 결과 | 조치일 | 검토자 판정 |\n|---|---|---|---|---|---|---|\n| CR-002 | (예) `permitAll` 제거, `RELEASE_MANAGER` 역할 + 토큰 동시 검증 | `SecurityConfig.java`, PR #__ | 세션 없이 토큰만으로 업로드 요청 | 403 확인 | | 적합 / 부적합 |\n| CR-___ | | | | | | |\n| CR-___ | | | | | | |\n| FR-___ | | | | | | |\n\n## 3. 미조치·협의 사항\n\n| 요청번호 | 사유 | 대안 / 보완 통제 | 예정일 |\n|---|---|---|---|\n| | | | |\n\n## 4. 잔여 위험\n\n| 위험 | 등급 | 수용 여부 | 수용 승인자 |\n|---|---|---|---|\n| | | | |\n\n## 5. 확인\n\n| 구분 | 성명 | 일자 | 서명 |\n|---|---|---|---|\n| 조치자 | | | |\n| 검토자 | | | |\n| 승인자 | | | |\n"</script>
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js"></script>
+<script>
+  const links = {"README.md":"index.html","01_현황분석.md":"01_현황분석.html","02_IT자산관리_전문가_검토.md":"02_IT자산관리_전문가_검토.html","03_보안전문가_검토.md":"03_보안전문가_검토.html","04_인프라유지보수_검토.md":"04_인프라유지보수_검토.html","05_개선기획_로드맵.md":"05_개선기획_로드맵.html","06_기술검토서.md":"06_기술검토서.html","07_수정요청서.md":"07_수정요청서.html","08_기능추가요청서.md":"08_기능추가요청서.html","09_조치결과보고서_양식.md":"09_조치결과보고서_양식.html"};
+  const main = document.getElementById("content");
+  main.innerHTML = marked.parse(JSON.parse(document.getElementById("md").textContent), { gfm: true });
+  main.querySelectorAll("a[href]").forEach((a) => {
+    const target = decodeURIComponent(a.getAttribute("href"));
+    if (links[target]) a.setAttribute("href", links[target]);
+  });
+  main.querySelectorAll("pre > code.language-mermaid").forEach((code) => {
+    const box = document.createElement("div");
+    box.className = "mermaid";
+    box.textContent = code.textContent;
+    code.parentElement.replaceWith(box);
+  });
+  const foot = document.createElement("div");
+  foot.className = "foot";
+  foot.textContent = "원본: 09_조치결과보고서_양식.md · 생성: build-html.mjs";
+  main.appendChild(foot);
+  mermaid.initialize({ startOnLoad: false, theme: "default", securityLevel: "strict",
+    themeVariables: { darkMode: false, background: "#ffffff", fontFamily: "Pretendard, Malgun Gothic, sans-serif" },
+    flowchart: { htmlLabels: true, curve: "basis" }, gantt: { axisFormat: "%y-%m" } });
+  mermaid.run({ querySelector: ".mermaid" });
+</script>
+</body>
+</html>

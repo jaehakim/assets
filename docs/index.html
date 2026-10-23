@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>AssetFlow IT 자산관리 소스 분석·기획 검토 문서 | AssetFlow 검토</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<style>
+:root{--bg:#ffffff;--panel:#f7f8fa;--text:#1f2937;--muted:#6b7280;--line:#e5e7eb;--accent:#3b5bdb;--accent-soft:#edf2ff;--code:#f3f4f6}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);color-scheme:light}
+body{font-family:"Pretendard","Malgun Gothic","Apple SD Gothic Neo",system-ui,sans-serif;font-size:15px;line-height:1.7;display:flex;min-height:100vh}
+nav{width:270px;flex:none;background:var(--panel);border-right:1px solid var(--line);padding:24px 16px;position:sticky;top:0;height:100vh;overflow:auto}
+nav .brand{font-weight:800;font-size:17px;margin:0 8px 4px}
+nav .sub{color:var(--muted);font-size:12px;margin:0 8px 18px}
+nav a{display:block;padding:8px 10px;border-radius:8px;color:var(--text);text-decoration:none;font-size:14px;margin-bottom:2px}
+nav a:hover{background:#eceff3}
+nav a.active{background:var(--accent-soft);color:var(--accent);font-weight:700}
+main{flex:1;min-width:0;padding:40px 48px 80px;max-width:1180px}
+h1{font-size:28px;margin:0 0 12px;padding-bottom:12px;border-bottom:2px solid var(--line)}
+h2{font-size:21px;margin:40px 0 12px;padding-left:10px;border-left:4px solid var(--accent)}
+h3{font-size:17px;margin:28px 0 10px}
+a{color:var(--accent)}
+blockquote{margin:12px 0;padding:10px 16px;background:var(--accent-soft);border-left:4px solid var(--accent);border-radius:0 8px 8px 0;color:#374151}
+blockquote p{margin:4px 0}
+table{border-collapse:collapse;width:100%;margin:12px 0 20px;font-size:13.5px;display:block;overflow-x:auto}
+th,td{border:1px solid var(--line);padding:7px 10px;text-align:left;vertical-align:top}
+th{background:var(--panel);font-weight:700;white-space:nowrap}
+tr:nth-child(even) td{background:#fbfbfc}
+code{background:var(--code);padding:1px 5px;border-radius:4px;font-family:"D2Coding",Consolas,monospace;font-size:.9em}
+pre{background:#f6f8fa;border:1px solid var(--line);border-radius:8px;padding:14px;overflow:auto}
+pre code{background:none;padding:0}
+.mermaid{background:#fff;border:1px solid var(--line);border-radius:10px;padding:16px;margin:14px 0 22px;text-align:center;overflow-x:auto}
+.foot{margin-top:56px;color:var(--muted);font-size:12px;border-top:1px solid var(--line);padding-top:12px}
+@media (max-width:860px){body{display:block}nav{position:static;width:auto;height:auto;border-right:0;border-bottom:1px solid var(--line)}main{padding:24px 16px 60px}}
+@media print{nav{display:none}main{max-width:none;padding:0}}
+</style>
+</head>
+<body>
+<nav>
+  <div class="brand">AssetFlow 검토</div>
+  <div class="sub">IT자산관리 · 보안 · 인프라 유지보수</div>
+  <a href="index.html" class="active">개요 (README)</a>
+  <a href="01_현황분석.html">01. AssetFlow 소스 현황 분석</a>
+  <a href="02_IT자산관리_전문가_검토.html">02. IT 자산관리 전문가 관점 검토</a>
+  <a href="03_보안전문가_검토.html">03. 보안 전문가 관점 검토</a>
+  <a href="04_인프라유지보수_검토.html">04. 인프라 유지보수 관리 관점 검토</a>
+  <a href="05_개선기획_로드맵.html">05. 통합 개선 기획 및 로드맵</a>
+  <a href="06_기술검토서.html">06. 기술검토서</a>
+  <a href="07_수정요청서.html">07. 수정요청서 (결함 시정 요청)</a>
+  <a href="08_기능추가요청서.html">08. 기능추가요청서 (신규 기능 요구)</a>
+  <a href="09_조치결과보고서_양식.html">09. 조치결과보고서 (양식)</a>
+</nav>
+<main id="content"></main>
+<script id="md" type="application/json">"# AssetFlow IT 자산관리 소스 분석·기획 검토 문서\n\n> 작성일: 2026-10-23 · 대상: `assets/` (AssetFlow Agent 0.2.9 / Backend / Frontend / k3s)\n> HTML 버전은 같은 폴더의 `*.html`을 브라우저로 열면 Mermaid 다이어그램이 라이트 모드로 표시됩니다(`index.html`에서 시작).\n\n### A. 분석·검토 (작업 문서)\n\n| No | 문서 | 관점 | 주요 내용 |\n|---|---|---|---|\n| 01 | [현황분석](01_현황분석.md) | 공통 | 아키텍처, Agent 흐름, ERD, API, 성숙도, 코드 품질 |\n| 02 | [IT자산관리 전문가 검토](02_IT자산관리_전문가_검토.md) | ITAM/SAM | 식별키·사용자명 결함, 생애주기, 마스터 데이터, 라이선스, 실사, KPI |\n| 03 | [보안전문가 검토](03_보안전문가_검토.md) | 보안 | 업데이트 채널 위협, 취약점 22건, 개인정보, ISMS-P 매핑 |\n| 04 | [인프라유지보수 검토](04_인프라유지보수_검토.md) | 운영 | SPOF, 백업, 스케줄 중복, 성능·용량, CI/CD, 관측성, Runbook, SLO |\n| 05 | [개선기획 로드맵](05_개선기획_로드맵.md) | 통합 | 우선순위 백로그(P0~P3), 일정, To-Be 아키텍처, 즉시 적용 코드 |\n\n### B. 공식 문서 (결재·회신용)\n\n| No | 문서 | 문서번호 | 용도 |\n|---|---|---|---|\n| 06 | [기술검토서](06_기술검토서.md) | AF-TR-2026-001 | 검토 범위·방법·영역별 평가·종합 판정(조건부 운영)·선결 조건 |\n| 07 | [수정요청서](07_수정요청서.md) | AF-CR-2026-001 | 기존 결함·취약점 시정 36건(CR-001~036), 등급·기한·완료 기준 |\n| 08 | [기능추가요청서](08_기능추가요청서.md) | AF-FR-2026-001 | 신규 기능 24건(FR-001~024), 우선순위·선행관계·수용 기준 |\n| 09 | [조치결과보고서 양식](09_조치결과보고서_양식.md) | AF-RR-2026-___ | 개발 측 건별 조치 회신·검토자 판정 양식 |\n\n```mermaid\nflowchart LR\n  A[\"01~05\u003cbr/>분석·검토\"] --> TR[\"06 기술검토서\u003cbr/>판정\"]\n  TR --> CR[\"07 수정요청서\u003cbr/>결함 시정\"]\n  TR --> FR[\"08 기능추가요청서\u003cbr/>신규 기능\"]\n  CR --> RR[\"09 조치결과보고서\"]\n  FR --> RR\n  RR -->|확인시험| TR\n```\n\n## 핵심 결론 (요약)\n\n| 구분 | 가장 중요한 발견 | 조치 |\n|---|---|---|\n| 보안 | 릴리스 업로드가 관리자 로그인 없이 토큰만으로 가능하고(`SecurityConfig.java:6`), Agent는 서버가 준 SHA-256만 확인 → 서버/토큰 유출 시 **전 PC에 SYSTEM 권한 코드 배포** 가능 | 업로드 경로 인증 강화(즉시), 코드서명·서명 매니페스트 검증(1분기) |\n| 자산관리 | 사용자명이 항상 `SYSTEM`(`InventoryCollector.cs:25`), PC 이름 변경 시 중복 자산 생성(`AgentClient.cs:29`) | 로그온 사용자 수집, 식별키 재설계·중복 병합 |\n| 인프라 | DB 백업 없음, 2개 Pod에서 스케줄 중복 실행, 헬스체크·점검이 DB를 실측하지 않음, 핵심 인덱스 누락 | 백업 CronJob·복구 리허설, ShedLock, Actuator, 인덱스 |\n\n## 문서 재생성\n\nMD를 수정한 뒤 HTML을 다시 만들려면 저장소 루트(`assets/`)에서:\n\n```bash\nnode docs/build-html.mjs\n```\n"</script>
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js"></script>
+<script>
+  const links = {"README.md":"index.html","01_현황분석.md":"01_현황분석.html","02_IT자산관리_전문가_검토.md":"02_IT자산관리_전문가_검토.html","03_보안전문가_검토.md":"03_보안전문가_검토.html","04_인프라유지보수_검토.md":"04_인프라유지보수_검토.html","05_개선기획_로드맵.md":"05_개선기획_로드맵.html","06_기술검토서.md":"06_기술검토서.html","07_수정요청서.md":"07_수정요청서.html","08_기능추가요청서.md":"08_기능추가요청서.html","09_조치결과보고서_양식.md":"09_조치결과보고서_양식.html"};
+  const main = document.getElementById("content");
+  main.innerHTML = marked.parse(JSON.parse(document.getElementById("md").textContent), { gfm: true });
+  main.querySelectorAll("a[href]").forEach((a) => {
+    const target = decodeURIComponent(a.getAttribute("href"));
+    if (links[target]) a.setAttribute("href", links[target]);
+  });
+  main.querySelectorAll("pre > code.language-mermaid").forEach((code) => {
+    const box = document.createElement("div");
+    box.className = "mermaid";
+    box.textContent = code.textContent;
+    code.parentElement.replaceWith(box);
+  });
+  const foot = document.createElement("div");
+  foot.className = "foot";
+  foot.textContent = "원본: README.md · 생성: build-html.mjs";
+  main.appendChild(foot);
+  mermaid.initialize({ startOnLoad: false, theme: "default", securityLevel: "strict",
+    themeVariables: { darkMode: false, background: "#ffffff", fontFamily: "Pretendard, Malgun Gothic, sans-serif" },
+    flowchart: { htmlLabels: true, curve: "basis" }, gantt: { axisFormat: "%y-%m" } });
+  mermaid.run({ querySelector: ".mermaid" });
+</script>
+</body>
+</html>

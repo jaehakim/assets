@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>04. 인프라 유지보수 관리 관점 검토 | AssetFlow 검토</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<style>
+:root{--bg:#ffffff;--panel:#f7f8fa;--text:#1f2937;--muted:#6b7280;--line:#e5e7eb;--accent:#3b5bdb;--accent-soft:#edf2ff;--code:#f3f4f6}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);color-scheme:light}
+body{font-family:"Pretendard","Malgun Gothic","Apple SD Gothic Neo",system-ui,sans-serif;font-size:15px;line-height:1.7;display:flex;min-height:100vh}
+nav{width:270px;flex:none;background:var(--panel);border-right:1px solid var(--line);padding:24px 16px;position:sticky;top:0;height:100vh;overflow:auto}
+nav .brand{font-weight:800;font-size:17px;margin:0 8px 4px}
+nav .sub{color:var(--muted);font-size:12px;margin:0 8px 18px}
+nav a{display:block;padding:8px 10px;border-radius:8px;color:var(--text);text-decoration:none;font-size:14px;margin-bottom:2px}
+nav a:hover{background:#eceff3}
+nav a.active{background:var(--accent-soft);color:var(--accent);font-weight:700}
+main{flex:1;min-width:0;padding:40px 48px 80px;max-width:1180px}
+h1{font-size:28px;margin:0 0 12px;padding-bottom:12px;border-bottom:2px solid var(--line)}
+h2{font-size:21px;margin:40px 0 12px;padding-left:10px;border-left:4px solid var(--accent)}
+h3{font-size:17px;margin:28px 0 10px}
+a{color:var(--accent)}
+blockquote{margin:12px 0;padding:10px 16px;background:var(--accent-soft);border-left:4px solid var(--accent);border-radius:0 8px 8px 0;color:#374151}
+blockquote p{margin:4px 0}
+table{border-collapse:collapse;width:100%;margin:12px 0 20px;font-size:13.5px;display:block;overflow-x:auto}
+th,td{border:1px solid var(--line);padding:7px 10px;text-align:left;vertical-align:top}
+th{background:var(--panel);font-weight:700;white-space:nowrap}
+tr:nth-child(even) td{background:#fbfbfc}
+code{background:var(--code);padding:1px 5px;border-radius:4px;font-family:"D2Coding",Consolas,monospace;font-size:.9em}
+pre{background:#f6f8fa;border:1px solid var(--line);border-radius:8px;padding:14px;overflow:auto}
+pre code{background:none;padding:0}
+.mermaid{background:#fff;border:1px solid var(--line);border-radius:10px;padding:16px;margin:14px 0 22px;text-align:center;overflow-x:auto}
+.foot{margin-top:56px;color:var(--muted);font-size:12px;border-top:1px solid var(--line);padding-top:12px}
+@media (max-width:860px){body{display:block}nav{position:static;width:auto;height:auto;border-right:0;border-bottom:1px solid var(--line)}main{padding:24px 16px 60px}}
+@media print{nav{display:none}main{max-width:none;padding:0}}
+</style>
+</head>
+<body>
+<nav>
+  <div class="brand">AssetFlow 검토</div>
+  <div class="sub">IT자산관리 · 보안 · 인프라 유지보수</div>
+  <a href="index.html">개요 (README)</a>
+  <a href="01_현황분석.html">01. AssetFlow 소스 현황 분석</a>
+  <a href="02_IT자산관리_전문가_검토.html">02. IT 자산관리 전문가 관점 검토</a>
+  <a href="03_보안전문가_검토.html">03. 보안 전문가 관점 검토</a>
+  <a href="04_인프라유지보수_검토.html" class="active">04. 인프라 유지보수 관리 관점 검토</a>
+  <a href="05_개선기획_로드맵.html">05. 통합 개선 기획 및 로드맵</a>
+  <a href="06_기술검토서.html">06. 기술검토서</a>
+  <a href="07_수정요청서.html">07. 수정요청서 (결함 시정 요청)</a>
+  <a href="08_기능추가요청서.html">08. 기능추가요청서 (신규 기능 요구)</a>
+  <a href="09_조치결과보고서_양식.html">09. 조치결과보고서 (양식)</a>
+</nav>
+<main id="content"></main>
+<script id="md" type="application/json">"# 04. 인프라 유지보수 관리 관점 검토\n\n> 관점: 운영 안정성(SRE), 백업·복구, 관측성, 성능·용량, 배포·변경관리, 장애 대응\n> 핵심 질문: \"새벽 3시에 장애가 나면 **누가, 어떻게 알고, 몇 분 안에 복구하는가?**\"\n\n## 1. 총평\n\nk3s 무중단 롤링 배포(maxUnavailable 0, PDB, preStop), 일일 점검 일지, 실시간 노드/Pod 조회 등 **운영 가시성에 대한 의지는 높다.** 그러나 ① **DB 백업이 전혀 없고**, ② 단일 노드·단일 PostgreSQL로 SPOF가 남아 있으며, ③ 2개 Backend Replica에서 **스케줄 작업이 중복 실행**되고, ④ 헬스체크·점검 로직이 DB 상태를 실제로 확인하지 않으며, ⑤ 알림 체계가 없어 장애를 사람이 화면을 봐야만 안다. \"무중단 배포\"는 갖췄지만 **\"복구 가능성\"**이 확보되지 않은 상태다.\n\n## 2. 현행 운영 구성과 SPOF\n\n```mermaid\nflowchart TB\n  subgraph HOST[\"물리/VM 호스트 1대 (arm64)\"]\n    NPM[\"Nginx Proxy Manager\u003cbr/>(Docker)\"]\n    RUN[\"GitHub Self-hosted Runner\u003cbr/>(sudo 권한)\"]\n    subgraph K3S[\"k3s server (단일 노드)\"]\n      FE1[\"frontend-1\"]:::ok\n      FE2[\"frontend-2\"]:::ok\n      BE1[\"backend-1\u003cbr/>@Scheduled 실행\"]:::warn\n      BE2[\"backend-2\u003cbr/>@Scheduled 실행\"]:::warn\n      PG[(\"postgres-0\u003cbr/>local-path\")]:::spof\n      PVC[(\"agent-releases\u003cbr/>RWO local-path\")]:::spof\n    end\n    DISK[(\"호스트 로컬 디스크\")]:::spof\n  end\n  NPM --> FE1 & FE2\n  FE1 & FE2 --> BE1 & BE2\n  BE1 & BE2 --> PG\n  BE1 & BE2 --> PVC\n  PG --> DISK\n  PVC --> DISK\n  RUN -.kubectl.-> K3S\n  classDef spof fill:#ffe1e1,stroke:#d33\n  classDef warn fill:#fff4d6,stroke:#c90\n  classDef ok fill:#e6f6ec,stroke:#2a8\n```\n\n## 3. 결함 및 개선 항목\n\n### 3.1 가용성·데이터 보호\n\n| ID | 등급 | 항목 | 근거 | 조치 |\n|---|---|---|---|---|\n| OPS-01 | **Critical** | PostgreSQL 백업·복구 절차 없음 | `deploy/k3s/postgres.yaml`(백업 리소스 없음), `deploy/README.md`는 \"설정\"만 권고 | 일 1회 `pg_dump` CronJob → 외부 오브젝트 스토리지(암호화), WAL 아카이빙(pgBackRest/wal-g)으로 PITR, **월 1회 복구 리허설** |\n| OPS-02 | High | 단일 노드·local-path로 노드/디스크 장애 시 전체 중단 + 데이터 손실 | `deploy/k3s/README.md` | 단기: 백업 + 호스트 스냅샷. 중기: 외부 관리형 PostgreSQL 또는 CloudNativePG(복제), 3노드 k3s + Longhorn |\n| OPS-03 | High | Agent 릴리스 파일이 RWO PVC에만 존재 — DB의 `agent_release`와 파일 정합성 보장 없음 | `backend.yaml` agent-releases | 릴리스 파일을 오브젝트 스토리지(S3/MinIO)로 이전, 백업 대상 포함 |\n| OPS-04 | Medium | PVC 용량 감시 없음 (Postgres 10Gi, releases 2Gi, 릴리스 무한 누적) | `backend.yaml`, `postgres.yaml` | 사용률 80% 경보, 릴리스 보존정책(최근 N개) |\n\n### 3.2 애플리케이션 운영 결함\n\n| ID | 등급 | 항목 | 근거 | 조치 |\n|---|---|---|---|---|\n| OPS-05 | High | **@Scheduled 작업이 Backend 2개 Pod에서 각각 실행** — SW 정책 동기화 2회 동시 실행(`synchronized`는 JVM 내부만 보호), 점검 로그 경합 | `SoftwarePolicySyncService.java:20-21`, `SystemInspectionController.java:16` | ShedLock(JDBC) 또는 PostgreSQL advisory lock, 혹은 k8s CronJob으로 분리 |\n| OPS-06 | High | 헬스체크가 DB를 확인하지 않음 — DB 장애에도 Ready 유지 | `AssetController.java:19-20` | Spring Boot Actuator `health`(db 포함) — readiness는 DB 포함, liveness는 프로세스만 |\n| OPS-07 | High | 점검 일지의 DB 상태가 **하드코딩 `NORMAL`** | `SystemInspectionController.java:37`(`\"database\",\"NORMAL\"`), `:51`(`'NORMAL'`) | 실제 `SELECT 1` 지연시간·커넥션 풀·DB 크기·복제 지연 측정 |\n| OPS-08 | Medium | 점검 로직이 첫 번째 노드만 조회 | `K3sInspectionService.java:31` `nodes.get(0)` | 다중 노드 대응(노드별 상태 테이블) |\n| OPS-09 | Medium | 보안 경고 집계 기준 불일치 — 대시보드는 `bitlocker=false`만, 점검은 `NULL`도 경고 | `AssetController.java:27-28` vs `SystemInspectionController.java:44` | 판정 로직을 단일 뷰/서비스로 통일, \"미확인(Unknown)\" 상태 별도 표기 |\n| OPS-10 | Medium | 스키마를 기동 시마다 실행(`sql.init.mode: always`), 버전 관리 없음 | `application.yml:6`, `schema.sql` | Flyway 도입, 롤링 배포 호환(확장→이행→축소) 마이그레이션 규칙 |\n| OPS-11 | Medium | 장애 알림 채널 없음 — 점검 결과 `ATTENTION`도 화면 표시뿐 | `SystemInspectionController.java:46` | Slack/Teams/메일/SMS 웹훅, 장기 미접속·보안 경고·동기화 실패·디스크 압박 알림 |\n| OPS-12 | Low | 타임존 하드코딩 `Asia/Seoul` 다수 | `SystemInspectionController.java:16,28,51` | 설정값화 |\n\n### 3.3 성능·용량\n\n| ID | 등급 | 항목 | 근거 | 조치 |\n|---|---|---|---|---|\n| PERF-01 | High | `agent.token_hash` 인덱스 없음 — **모든 Agent 요청(5분마다 2회 이상)이 agent 테이블 순차 스캔** | `schema.sql:1`, `AgentAuth.java:3` | `CREATE UNIQUE INDEX ... ON agent(token_hash)` |\n| PERF-02 | High | `asset_software.asset_id`, `asset_disk.asset_id` 인덱스 없음 — 인벤토리 수신 시 `DELETE ... WHERE asset_id=?` 전체 스캔 | `schema.sql:32-33`, `AgentController.java:73-75` | FK 인덱스 추가 |\n| PERF-03 | High | 인벤토리마다 SW 전체 DELETE→INSERT (행 단위 개별 INSERT) | `AgentController.java:75-76` | 해시 비교로 **변경 시에만** diff 반영, `batchUpdate`. 1,000대×200개 기준 시간당 20만 행 삭제·삽입 → 테이블 팽창·WAL 증가 |\n| PERF-04 | Medium | SW 컴플라이언스 조회가 전 자산 SW × 전 정책 LIKE 조인 | `SoftwareComplianceController.java:18-24` | 수집 시점 매칭 결과 테이블, 정책 변경 시 재계산 배치 |\n| PERF-05 | Medium | 자산 목록 `LIMIT 500` 고정 + 클라이언트 `JSON.stringify` 필터 | `AssetController.java:48`, `src.jsx` App `filtered` | 서버 페이지네이션·정렬·필터(AG Grid server-side row model) |\n| PERF-06 | Medium | Agent 주기에 지터 없음 — 출근 시간 동시 부팅 시 요청 폭주 | `agent/Worker.cs:2` | 최초 실행·주기에 무작위 지터(±20%), 서버 응답으로 주기 조정(백프레셔) |\n| PERF-07 | Low | 업데이트 확인마다 `UPDATE agent SET last_seen_at` 쓰기 | `AgentUpdateController.java:72,84` | heartbeat에서만 갱신 |\n\n**용량 추정 (1,000대, PC당 SW 200개 가정)**\n\n| 항목 | 현행 | 개선 후 |\n|---|---|---|\n| Agent 요청 | heartbeat+업데이트확인 ≈ 400 req/분 | 업데이트 확인 1시간 주기 + ETag → ≈ 220 req/분 |\n| asset_software 행 변경 | 시간당 ~200,000 (전체 치환) | 시간당 수백(실제 변경분) |\n| DB 증가 | 이력 테이블 무기한 누적 | 보존정책·파티셔닝(월 단위) |\n\n### 3.4 Agent 운영성\n\n| ID | 항목 | 근거 | 조치 |\n|---|---|---|---|\n| AGT-01 | 로그 파일 무한 누적(보존 정책 없음) | `agent/DailyFileLogger.cs:4` | 최근 14일 보관·용량 상한, 오류 요약을 heartbeat로 서버 전송 |\n| AGT-02 | 오프라인 큐 없음 — 전송 실패 시 다음 주기까지 데이터 공백 | `Worker.cs` | 로컬 큐(SQLite/파일) + 지수 백오프 재전송 (README 3단계 계획) |\n| AGT-03 | 401(토큰 무효) 시 영구 실패 루프 | `Worker.cs`, `AgentClient.cs:24` | 401 연속 N회 → 재등록 절차(관리자 승인형) 진입, 상태를 트레이에 표시 |\n| AGT-04 | Agent 자체 상태(마지막 수집 성공·오류·소요시간) 서버 미보고 | heartbeat는 version만 | heartbeat에 `lastInventoryAt`, `lastError`, `collectMs`, 디스크 여유, 업데이트 상태 포함 |\n| AGT-05 | 설치 형태가 BAT/PS1 — 대량 배포 도구(SCCM/Intune/GPO) 표준 미지원 | `agent/release/*.bat` | 서명된 MSI(WiX), 사일런트 설치 속성, 업그레이드 코드 |\n\n### 3.5 배포 파이프라인(CI/CD)\n\n```mermaid\nflowchart LR\n  P[\"push main\"] --> B[\"build (arm64)\u003cbr/>tag: sha, latest\"]\n  B --> D1[\"kubectl apply -k\u003cbr/>(image: latest)\"]:::warn\n  D1 --> D2[\"set image sha-xxxx\"]\n  D2 --> RS[\"rollout status\"]\n  RS --> C[\"GHCR 5개만 유지\"]\n  classDef warn fill:#fff4d6,stroke:#c90\n```\n\n| ID | 항목 | 근거 | 조치 |\n|---|---|---|---|\n| CD-01 | 매 배포 시 `apply -k`가 이미지를 `:latest`로 되돌린 뒤 `set image` → **롤아웃 2회**, `IfNotPresent`로 오래된 latest 캐시 기동 가능 | `.github/workflows/deploy-k3s.yml`, `deploy/k3s/backend.yaml`·`frontend.yaml` | kustomize `images:` 필드로 sha 태그를 주입(`kustomize edit set image`) 후 한 번만 apply |\n| CD-02 | 테스트·정적분석·취약점 스캔 단계 없음 | workflow | `mvn verify`, `npm run build`, Trivy, CodeQL, 실패 시 배포 중단 |\n| CD-03 | GHCR 최근 5개만 보존 → 롤백 가능 범위 제한 | `cleanup-ghcr` | 릴리스 태그(semver)는 보존, sha 태그만 정리 |\n| CD-04 | 운영 노드에 sudo 권한 Self-hosted Runner 상주 | workflow `sudo k3s ctr images pull` | 전용 최소권한 계정, `ghcr-pull` Secret으로 kubelet이 pull 하도록 변경해 sudo 제거 |\n| CD-05 | Agent 빌드·서명·릴리스가 CI에 없음(수동 EXE 커밋) | `agent/release/` | Windows runner에서 빌드→서명→SBOM→릴리스 업로드(승인 게이트) |\n| CD-06 | 프런트 의존성 `latest` | `frontend/package.json` | 정확한 버전 고정 + Renovate/Dependabot |\n\n## 4. 관측성(Observability) 목표 구성\n\n```mermaid\nflowchart LR\n  BE[\"Backend\u003cbr/>Actuator /metrics\u003cbr/>JSON 구조화 로그\"] --> PROM[\"Prometheus\u003cbr/>(kube-prometheus-stack)\"]\n  NODE[\"node-exporter\u003cbr/>kube-state-metrics\"] --> PROM\n  PGX[\"postgres-exporter\"] --> PROM\n  BE --> LOKI[\"Loki / Promtail\"]\n  PROM --> GRAF[\"Grafana 대시보드\"]\n  LOKI --> GRAF\n  PROM --> AM[\"Alertmanager\"]\n  AM --> CH[\"Slack/Teams/메일/SMS\"]\n  BB[\"Blackbox exporter\u003cbr/>외부 URL·TLS 만료\"] --> PROM\n```\n\n**필수 알림 규칙(초안)**\n\n| 알림 | 조건 | 심각도 |\n|---|---|---|\n| API 다운 | 외부 `/api/v1/health` 2분 연속 실패 | Critical |\n| DB 다운/지연 | readiness 실패 또는 쿼리 p95 > 500ms 10분 | Critical |\n| 백업 실패 | 최근 성공 백업 > 26시간 | Critical |\n| 디스크 압박 | PVC/노드 디스크 사용률 > 80% | Warning |\n| TLS 만료 | 인증서 만료 \u003c 14일 | Warning |\n| Agent 대량 오프라인 | 온라인 비율이 1시간 전 대비 20%p 이상 급락 | Warning |\n| 업데이트 실패 | 신규 버전 배포 24시간 후 미전환 비율 > 10% | Warning |\n| SW 정책 동기화 실패 | `software_policy_sync_log.status = FAILED` | Info |\n\n## 5. 운영 절차(Runbook) 정비 목록\n\n| 절차서 | 내용 |\n|---|---|\n| 일일 점검 | 점검 일지 확인 → ATTENTION 항목 조치 기록 (현행 자동 점검 활용) |\n| 백업·복구 | 백업 확인, 분기 복구 리허설, 복구 목표 RPO 24h→1h / RTO 4h |\n| Agent 릴리스 | 빌드→서명→파일럿 링→확대→완료, 롤백 기준(오류율·오프라인 증가) |\n| 비밀값 교체 | 등록·업데이트 토큰, DB·관리자 비밀번호 교체 주기(분기)와 무중단 교체 순서 |\n| 인증서 갱신 | NPM Let's Encrypt 자동 갱신 확인, 코드서명 인증서 만료 관리 |\n| k3s/OS 패치 | 월 1회 OS 패치, k3s 마이너 업그레이드(분기), 사전 백업 |\n| 장애 대응 | 등급 정의(S1~S4), 연락 체계, 사후 분석(Post-mortem) 양식 |\n| Agent 문제 PC | 로그 위치, 재등록, 강제 재설치(`install-service.bat`), 제거(`/purge`) |\n\n## 6. 서비스 수준 목표(SLO) 제안\n\n| 지표 | 목표 |\n|---|---|\n| 관리 콘솔 가용성(월) | 99.5% |\n| Agent 수집 API 가용성(월) | 99.9% (Agent 재전송 큐 전제) |\n| 데이터 신선도 | 95% PC가 24시간 내 인벤토리 반영 |\n| RPO / RTO | 1시간 / 4시간 |\n| 보안 패치 반영 | Critical CVE 7일 이내 |\n"</script>
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js"></script>
+<script>
+  const links = {"README.md":"index.html","01_현황분석.md":"01_현황분석.html","02_IT자산관리_전문가_검토.md":"02_IT자산관리_전문가_검토.html","03_보안전문가_검토.md":"03_보안전문가_검토.html","04_인프라유지보수_검토.md":"04_인프라유지보수_검토.html","05_개선기획_로드맵.md":"05_개선기획_로드맵.html","06_기술검토서.md":"06_기술검토서.html","07_수정요청서.md":"07_수정요청서.html","08_기능추가요청서.md":"08_기능추가요청서.html","09_조치결과보고서_양식.md":"09_조치결과보고서_양식.html"};
+  const main = document.getElementById("content");
+  main.innerHTML = marked.parse(JSON.parse(document.getElementById("md").textContent), { gfm: true });
+  main.querySelectorAll("a[href]").forEach((a) => {
+    const target = decodeURIComponent(a.getAttribute("href"));
+    if (links[target]) a.setAttribute("href", links[target]);
+  });
+  main.querySelectorAll("pre > code.language-mermaid").forEach((code) => {
+    const box = document.createElement("div");
+    box.className = "mermaid";
+    box.textContent = code.textContent;
+    code.parentElement.replaceWith(box);
+  });
+  const foot = document.createElement("div");
+  foot.className = "foot";
+  foot.textContent = "원본: 04_인프라유지보수_검토.md · 생성: build-html.mjs";
+  main.appendChild(foot);
+  mermaid.initialize({ startOnLoad: false, theme: "default", securityLevel: "strict",
+    themeVariables: { darkMode: false, background: "#ffffff", fontFamily: "Pretendard, Malgun Gothic, sans-serif" },
+    flowchart: { htmlLabels: true, curve: "basis" }, gantt: { axisFormat: "%y-%m" } });
+  mermaid.run({ querySelector: ".mermaid" });
+</script>
+</body>
+</html>

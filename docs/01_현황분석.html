@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>01. AssetFlow 소스 현황 분석 | AssetFlow 검토</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<style>
+:root{--bg:#ffffff;--panel:#f7f8fa;--text:#1f2937;--muted:#6b7280;--line:#e5e7eb;--accent:#3b5bdb;--accent-soft:#edf2ff;--code:#f3f4f6}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);color-scheme:light}
+body{font-family:"Pretendard","Malgun Gothic","Apple SD Gothic Neo",system-ui,sans-serif;font-size:15px;line-height:1.7;display:flex;min-height:100vh}
+nav{width:270px;flex:none;background:var(--panel);border-right:1px solid var(--line);padding:24px 16px;position:sticky;top:0;height:100vh;overflow:auto}
+nav .brand{font-weight:800;font-size:17px;margin:0 8px 4px}
+nav .sub{color:var(--muted);font-size:12px;margin:0 8px 18px}
+nav a{display:block;padding:8px 10px;border-radius:8px;color:var(--text);text-decoration:none;font-size:14px;margin-bottom:2px}
+nav a:hover{background:#eceff3}
+nav a.active{background:var(--accent-soft);color:var(--accent);font-weight:700}
+main{flex:1;min-width:0;padding:40px 48px 80px;max-width:1180px}
+h1{font-size:28px;margin:0 0 12px;padding-bottom:12px;border-bottom:2px solid var(--line)}
+h2{font-size:21px;margin:40px 0 12px;padding-left:10px;border-left:4px solid var(--accent)}
+h3{font-size:17px;margin:28px 0 10px}
+a{color:var(--accent)}
+blockquote{margin:12px 0;padding:10px 16px;background:var(--accent-soft);border-left:4px solid var(--accent);border-radius:0 8px 8px 0;color:#374151}
+blockquote p{margin:4px 0}
+table{border-collapse:collapse;width:100%;margin:12px 0 20px;font-size:13.5px;display:block;overflow-x:auto}
+th,td{border:1px solid var(--line);padding:7px 10px;text-align:left;vertical-align:top}
+th{background:var(--panel);font-weight:700;white-space:nowrap}
+tr:nth-child(even) td{background:#fbfbfc}
+code{background:var(--code);padding:1px 5px;border-radius:4px;font-family:"D2Coding",Consolas,monospace;font-size:.9em}
+pre{background:#f6f8fa;border:1px solid var(--line);border-radius:8px;padding:14px;overflow:auto}
+pre code{background:none;padding:0}
+.mermaid{background:#fff;border:1px solid var(--line);border-radius:10px;padding:16px;margin:14px 0 22px;text-align:center;overflow-x:auto}
+.foot{margin-top:56px;color:var(--muted);font-size:12px;border-top:1px solid var(--line);padding-top:12px}
+@media (max-width:860px){body{display:block}nav{position:static;width:auto;height:auto;border-right:0;border-bottom:1px solid var(--line)}main{padding:24px 16px 60px}}
+@media print{nav{display:none}main{max-width:none;padding:0}}
+</style>
+</head>
+<body>
+<nav>
+  <div class="brand">AssetFlow 검토</div>
+  <div class="sub">IT자산관리 · 보안 · 인프라 유지보수</div>
+  <a href="index.html">개요 (README)</a>
+  <a href="01_현황분석.html" class="active">01. AssetFlow 소스 현황 분석</a>
+  <a href="02_IT자산관리_전문가_검토.html">02. IT 자산관리 전문가 관점 검토</a>
+  <a href="03_보안전문가_검토.html">03. 보안 전문가 관점 검토</a>
+  <a href="04_인프라유지보수_검토.html">04. 인프라 유지보수 관리 관점 검토</a>
+  <a href="05_개선기획_로드맵.html">05. 통합 개선 기획 및 로드맵</a>
+  <a href="06_기술검토서.html">06. 기술검토서</a>
+  <a href="07_수정요청서.html">07. 수정요청서 (결함 시정 요청)</a>
+  <a href="08_기능추가요청서.html">08. 기능추가요청서 (신규 기능 요구)</a>
+  <a href="09_조치결과보고서_양식.html">09. 조치결과보고서 (양식)</a>
+</nav>
+<main id="content"></main>
+<script id="md" type="application/json">"# 01. AssetFlow 소스 현황 분석\n\n> 분석 대상: `assets/` (AssetFlow, Agent 0.2.9 / Backend 0.1.0 / Frontend 0.2.0)\n> 분석일: 2026-10-23 · 분석 방식: 전체 소스 정적 분석(빌드·실행 없음)\n\n## 1. 시스템 개요\n\nAssetFlow는 Windows PC에 설치된 .NET 8 Agent가 하드웨어·OS·네트워크·소프트웨어·보안 상태를 수집해 Spring Boot API로 전송하고, React 관리 콘솔에서 조회·관리하는 **에이전트 기반 IT 자산관리(ITAM) 시스템**이다. 운영 환경은 단일 노드 k3s(Backend 2, Frontend 2, PostgreSQL 1)이며 GitHub Actions + GHCR + Self-hosted Runner로 배포한다.\n\n| 영역 | 기술 | 규모(LOC) | 주요 파일 |\n|---|---|---|---|\n| Windows Agent | C# / .NET 8 Worker Service + WinForms 트레이 | 약 600 | `agent/Worker.cs`, `InventoryCollector.cs`, `UpdateService.cs`, `TraySessionService.cs` |\n| Backend | Java 21 / Spring Boot 3.4.5 / JdbcTemplate | 약 550 | `api/*Controller.java`, `service/*.java` |\n| DB | PostgreSQL 16, `schema.sql` 자동 실행 | 69 | `backend/src/main/resources/schema.sql` |\n| Frontend | React(latest) + Vite + AG Grid 36 + Mermaid 11 | 1,771 (단일 파일) | `frontend/src.jsx` |\n| 배포 | Docker Compose / k3s Kustomize / GitHub Actions | - | `deploy/k3s/*.yaml`, `.github/workflows/deploy-k3s.yml` |\n\n## 2. 전체 아키텍처\n\n```mermaid\nflowchart LR\n  subgraph PC[\"Windows PC (LocalSystem)\"]\n    SVC[\"AssetFlowAgent 서비스\u003cbr/>Worker / UpdateService\"]\n    TRAY[\"트레이 앱 (--tray)\u003cbr/>사용자 세션\"]\n    CFG[(\"ProgramData\\\\AssetFlow\\\\agent.json\u003cbr/>RegistrationToken / DeviceToken\")]\n    SVC -- CreateProcessAsUser --> TRAY\n    SVC --- CFG\n  end\n  subgraph EDGE[\"Host\"]\n    NPM[\"Nginx Proxy Manager\u003cbr/>TLS 종단 (Let's Encrypt)\"]\n  end\n  subgraph K3S[\"k3s 단일 노드 (namespace: assetflow)\"]\n    FE[\"frontend x2\u003cbr/>Nginx + React SPA\u003cbr/>NodePort 30080\"]\n    BE[\"backend x2\u003cbr/>Spring Boot :8080\"]\n    PG[(\"PostgreSQL 16\u003cbr/>StatefulSet x1 · local-path 10Gi\")]\n    REL[(\"agent-releases PVC\u003cbr/>RWO 2Gi\")]\n    KAPI[\"Kubernetes API\u003cbr/>(ClusterRole 조회)\"]\n  end\n  EXT[\"공공기관 SW 판정자료\u003cbr/>CSV/JSON URL\"]\n  ADMIN[\"관리자 브라우저\"]\n\n  SVC -- \"HTTPS JSON\u003cbr/>register / heartbeat / inventory / updates\" --> NPM\n  ADMIN -- HTTPS --> NPM\n  NPM --> FE\n  FE -- \"/api/ 프록시\" --> BE\n  BE --> PG\n  BE --> REL\n  BE -- \"일일 점검\" --> KAPI\n  BE -- \"매일 03:20 동기화\" --> EXT\n```\n\n## 3. Agent 동작 흐름\n\n```mermaid\nsequenceDiagram\n  autonumber\n  participant A as Agent(Service)\n  participant API as Backend API\n  participant DB as PostgreSQL\n  A->>A: agentKey = SHA256(MachineName | MachineGuid)\n  A->>API: POST /agents/register (X-Registration-Token)\n  API->>DB: agent upsert, token_hash = SHA256(deviceToken)\n  API-->>A: agentId, deviceToken(256bit)\n  A->>A: agent.json 평문 저장\n  par 60분 주기\n    A->>API: POST /agents/inventory (Bearer)\n    API->>DB: asset UPSERT, disk/software DELETE→INSERT(최대 2,000건)\n  and 5분 주기\n    A->>API: POST /agents/heartbeat (version)\n    API->>DB: last_seen_at, 버전변경 이력\n  and 5분 주기\n    A->>API: GET /agents/updates/latest\n    API-->>A: version, sha256, downloadUrl\n    A->>API: GET /updates/{v}/download\n    A->>A: SHA-256 비교 → apply-update.cmd (SYSTEM) 실행 → 서비스 교체\n  end\n```\n\n## 4. 데이터 모델 (현행)\n\n```mermaid\nerDiagram\n  agent ||--o| asset : \"1:1 (agent_id UNIQUE)\"\n  agent ||--o{ agent_update_history : has\n  asset ||--o{ asset_disk : has\n  asset ||--o{ asset_software : has\n  asset ||--o{ asset_management_history : has\n  software_policy }o..o{ asset_software : \"LIKE 매칭(조회 시 계산)\"\n  agent {\n    uuid id PK\n    varchar agent_key UK\n    varchar token_hash \"인덱스 없음\"\n    varchar version\n    timestamptz last_seen_at\n    varchar last_ip \"프록시 IP 저장\"\n  }\n  asset {\n    uuid id PK\n    uuid agent_id FK\n    varchar hostname\n    varchar serial_no\n    varchar username \"서비스 계정명 수집\"\n    varchar asset_tag \"부분 UNIQUE\"\n    varchar lifecycle_status\n    date warranty_expires_at\n    date next_audit_at\n    boolean bitlocker_enabled\n    varchar antivirus_status\n  }\n  asset_software {\n    bigint id PK\n    uuid asset_id \"인덱스 없음\"\n    varchar name\n    varchar version\n    varchar publisher\n  }\n  software_policy {\n    bigint id PK\n    varchar software_name\n    varchar match_type\n    varchar classification\n  }\n  agent_release {\n    varchar version PK\n    varchar sha256\n  }\n  system_inspection_log {\n    bigint id PK\n    timestamptz period_start UK\n    varchar status\n  }\n  software_policy_sync_log {\n    bigint id PK\n    varchar status\n  }\n```\n\n## 5. API 목록 (실제 소스 기준)\n\n| Method | Path | 인증(실제) | 비고 |\n|---|---|---|---|\n| POST | `/api/v1/agents/register` | 등록 토큰 | 같은 `agentKey`면 **기존 토큰 덮어쓰기** |\n| POST | `/api/v1/agents/heartbeat` | 장치 Bearer | 5분 |\n| POST | `/api/v1/agents/inventory` | 장치 Bearer | 60분, 전체 치환 |\n| GET | `/api/v1/agents/updates/latest`, `/{v}/download` | 장치 Bearer | |\n| POST | `/api/v1/admin/agent-releases` | **X-Update-Token만 (permitAll)** | 관리자 세션 불필요 |\n| GET | `/api/v1/admin/agent-releases`, `/agent-update-history` | 관리자 세션 | |\n| GET | `/api/v1/dashboard`, `/assets`, `/assets/{id}` | 관리자 세션 | `/assets` LIMIT 500 고정 |\n| PATCH | `/api/v1/assets/{id}/management` | 관리자 세션 | 관리정보 + 이력 |\n| GET | `/api/v1/assets-export.csv` | 관리자 세션 | README 미기재 |\n| GET/POST/PUT/DELETE | `/api/v1/admin/software-compliance/**` | 관리자 세션 | PUT/DELETE README 미기재 |\n| GET/POST | `/api/v1/admin/system-inspections`, `/live` | 관리자 세션 | README 미기재 |\n| POST | `/api/v1/auth/login`, `/logout`, GET `/me` | - | |\n\n## 6. 기능 성숙도 평가\n\n| 영역 | 현재 수준 | 평가 |\n|---|---|---|\n| PC 하드웨어/OS 인벤토리 | 단일 NIC·단일 CPU·C: BitLocker만 | ◐ 기본 충족 |\n| 소프트웨어 인벤토리 | HKLM Uninstall만, 매회 전체 치환 | ◐ 사용자 설치/Store 앱 누락, 변경 이력 없음 |\n| 자산 관리정보(태그·상태·보증·실사) | 단일 테이블 필드 | ◐ 마스터 데이터(부서·사용자·위치) 부재 |\n| SW 컴플라이언스 | 이름 LIKE 매칭 | ◐ 라이선스 수량 관리 없음 |\n| 보안 상태 | BitLocker·FW·Defender·TPM·SecureBoot | ◐ 판정 로직 부정확(4장 보안 검토) |\n| 인증/권한 | 단일 InMemory 관리자, CSRF off | ✕ 운영 부적합 |\n| 감사 로그 | 자산 관리정보 변경만 | ✕ 로그인·조회·다운로드·배포 기록 없음 |\n| Agent 자동 업데이트 | 서버 제공 SHA-256 검증 | ✕ 코드서명 검증 없음 |\n| 운영 모니터링 | 일일 점검 + live 조회 | ◐ 알림·메트릭·백업 없음 |\n| 테스트 | 없음 | ✕ |\n\n## 7. 코드 품질 관찰\n\n- **가독성**: `AuthController.java`, `SecurityConfig.java`, `AgentAuth.java`, `Worker.cs`, `UpdateService.cs`가 1~3줄로 압축되어 리뷰·변경 추적이 어렵다. 포매터(google-java-format, dotnet format) 적용 필요.\n- **프런트엔드 단일 파일**: `frontend/src.jsx` 1,771줄에 전 화면이 포함. 라우터 없음(탭 상태만), 빌드 분할 없음.\n- **스키마 관리**: `schema.sql` + `ALTER ... IF NOT EXISTS` 누적 방식, `spring.sql.init.mode: always`. 릴리스 노트까지 `UPDATE`로 시드. 버전 관리형 마이그레이션(Flyway) 부재.\n- **의존성 버전**: `frontend/package.json`에 `react`, `vite`, `@vitejs/plugin-react`가 `latest` — lock 파일이 있으나 재현성과 보안 검토 기준이 흔들린다.\n- **테스트 부재**: `spring-boot-starter-test`만 선언, 테스트 코드 0건. Agent 테스트 프로젝트 없음.\n- **문서와 소스 불일치**: README API 표에 `assets-export.csv`, `system-inspections`, 정책 PUT/DELETE 누락. 로드맵 2~6단계 일부(감사 로그, 자산번호 등)는 부분 구현 상태.\n\n## 8. 검토 문서 구성\n\n| 문서 | 관점 |\n|---|---|\n| [02_IT자산관리_전문가_검토](02_IT자산관리_전문가_검토.md) | 자산 식별·생애주기·라이선스·실사·보고 |\n| [03_보안전문가_검토](03_보안전문가_검토.md) | 공급망·인증·권한·개인정보·취약점 |\n| [04_인프라유지보수_검토](04_인프라유지보수_검토.md) | 가용성·백업·모니터링·성능·배포 |\n| [05_개선기획_로드맵](05_개선기획_로드맵.md) | 통합 백로그·우선순위·일정·목표 아키텍처 |\n"</script>
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js"></script>
+<script>
+  const links = {"README.md":"index.html","01_현황분석.md":"01_현황분석.html","02_IT자산관리_전문가_검토.md":"02_IT자산관리_전문가_검토.html","03_보안전문가_검토.md":"03_보안전문가_검토.html","04_인프라유지보수_검토.md":"04_인프라유지보수_검토.html","05_개선기획_로드맵.md":"05_개선기획_로드맵.html","06_기술검토서.md":"06_기술검토서.html","07_수정요청서.md":"07_수정요청서.html","08_기능추가요청서.md":"08_기능추가요청서.html","09_조치결과보고서_양식.md":"09_조치결과보고서_양식.html"};
+  const main = document.getElementById("content");
+  main.innerHTML = marked.parse(JSON.parse(document.getElementById("md").textContent), { gfm: true });
+  main.querySelectorAll("a[href]").forEach((a) => {
+    const target = decodeURIComponent(a.getAttribute("href"));
+    if (links[target]) a.setAttribute("href", links[target]);
+  });
+  main.querySelectorAll("pre > code.language-mermaid").forEach((code) => {
+    const box = document.createElement("div");
+    box.className = "mermaid";
+    box.textContent = code.textContent;
+    code.parentElement.replaceWith(box);
+  });
+  const foot = document.createElement("div");
+  foot.className = "foot";
+  foot.textContent = "원본: 01_현황분석.md · 생성: build-html.mjs";
+  main.appendChild(foot);
+  mermaid.initialize({ startOnLoad: false, theme: "default", securityLevel: "strict",
+    themeVariables: { darkMode: false, background: "#ffffff", fontFamily: "Pretendard, Malgun Gothic, sans-serif" },
+    flowchart: { htmlLabels: true, curve: "basis" }, gantt: { axisFormat: "%y-%m" } });
+  mermaid.run({ querySelector: ".mermaid" });
+</script>
+</body>
+</html>
