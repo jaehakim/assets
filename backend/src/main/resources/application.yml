@@ -17,11 +17,20 @@ assetflow.admin-password: ${ADMIN_PASSWORD:change-me-now}
 assetflow.software-policy-source-url: ${SOFTWARE_POLICY_SOURCE_URL:}
 assetflow.software-policy-source-name: ${SOFTWARE_POLICY_SOURCE_NAME:공공기관 기초자료}
 assetflow.software-policy-api-key: ${SOFTWARE_POLICY_API_KEY:}
+assetflow.software-policy-allowed-hosts: ${SOFTWARE_POLICY_ALLOWED_HOSTS:}
 assetflow.software-policy-sync-cron: ${SOFTWARE_POLICY_SYNC_CRON:0 20 3 * * *}
 assetflow.system-inspection-cron: ${SYSTEM_INSPECTION_CRON:0 10 6 * * *}
-spring.servlet.multipart.max-file-size: 200MB
-spring.servlet.multipart.max-request-size: 200MB
 server.servlet.session.cookie.http-only: true
 server.servlet.session.cookie.same-site: strict
 server.servlet.session.cookie.secure: ${SESSION_COOKIE_SECURE:false}
-server.servlet.session.timeout: 8h
+server.servlet.session.timeout: 30m
+server.forward-headers-strategy: native
+management.endpoints.web.exposure.include: health
+management.endpoint.health.probes.enabled: true
+management.endpoint.health.group.readiness.include: readinessState,db
+management.endpoint.health.group.liveness.include: livenessState
+management.endpoint.health.show-details: never
+assetflow.software-limit: ${SOFTWARE_LIMIT:2000}
+assetflow.require-strong-secrets: ${REQUIRE_STRONG_SECRETS:true}
+spring.servlet.multipart.max-file-size: 120MB
+spring.servlet.multipart.max-request-size: 120MB

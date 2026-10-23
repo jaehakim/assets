@@ -67,3 +67,16 @@ ALTER TABLE system_inspection_log ADD COLUMN IF NOT EXISTS backend_ready INTEGER
 ALTER TABLE system_inspection_log ADD COLUMN IF NOT EXISTS frontend_ready INTEGER;
 ALTER TABLE system_inspection_log ADD COLUMN IF NOT EXISTS git_sha VARCHAR(100);
 CREATE INDEX IF NOT EXISTS idx_system_inspection_created_at ON system_inspection_log(created_at DESC);
+-- CR-030 인덱스
+CREATE UNIQUE INDEX IF NOT EXISTS idx_agent_token_hash ON agent(token_hash);
+CREATE INDEX IF NOT EXISTS idx_asset_software_asset ON asset_software(asset_id);
+CREATE INDEX IF NOT EXISTS idx_asset_disk_asset ON asset_disk(asset_id);
+CREATE INDEX IF NOT EXISTS idx_agent_update_history_agent ON agent_update_history(agent_id,created_at DESC);
+-- CR-023 소프트웨어 절삭 표시
+ALTER TABLE asset ADD COLUMN IF NOT EXISTS software_count INTEGER;
+ALTER TABLE asset ADD COLUMN IF NOT EXISTS software_truncated BOOLEAN NOT NULL DEFAULT false;
+-- CR-S05 ④ 릴리스 업로드 기록
+ALTER TABLE agent_release ADD COLUMN IF NOT EXISTS uploaded_by VARCHAR(255);
+ALTER TABLE agent_release ADD COLUMN IF NOT EXISTS uploaded_ip VARCHAR(64);
+-- CR-027 ShedLock
+CREATE TABLE IF NOT EXISTS shedlock(name VARCHAR(64) PRIMARY KEY,lock_until TIMESTAMPTZ NOT NULL,locked_at TIMESTAMPTZ NOT NULL,locked_by VARCHAR(255) NOT NULL);

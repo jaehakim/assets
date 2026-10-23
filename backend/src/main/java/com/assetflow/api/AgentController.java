@@ -3,6 +3,7 @@ package com.assetflow.api;
 import com.assetflow.service.AgentAuth;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,7 +17,8 @@ import java.util.*;
 public class AgentController {
   private final JdbcTemplate db;
   private final AgentAuth auth;
-  public AgentController(JdbcTemplate db,AgentAuth auth){this.db=db;this.auth=auth;}
+  private final int softwareLimit; // CR-023
+  public AgentController(JdbcTemplate db,AgentAuth auth,@Value("${assetflow.software-limit:2000}")int softwareLimit){this.db=db;this.auth=auth;this.softwareLimit=softwareLimit;}
 
   @PostMapping("/register")
   public ResponseEntity<?> register(@RequestHeader(value="X-Registration-Token",required=false)String key,@Valid @RequestBody Models.Register x,HttpServletRequest req){
@@ -73,7 +75,10 @@ public class AgentController {
     db.update("DELETE FROM asset_disk WHERE asset_id=?",id);
     if(x.disks()!=null)x.disks().forEach(d->db.update("INSERT INTO asset_disk(asset_id,name,filesystem,total_bytes,free_bytes)VALUES(?,?,?,?,?)",id,d.name(),d.filesystem(),d.totalBytes(),d.freeBytes()));
     db.update("DELETE FROM asset_software WHERE asset_id=?",id);
-    if(x.software()!=null)x.software().stream().limit(2000).forEach(s->db.update("INSERT INTO asset_software(asset_id,name,version,publisher,install_date)VALUES(?,?,?,?,?)",id,s.name(),s.version(),s.publisher(),s.installDate()));
+    int softwareCount=x.software()==null?0:x.software().size();
+    if(x.software()!=null)x.software().stream().limit(softwareLimit).forEach(s->db.update("INSERT INTO asset_software(asset_id,name,version,publisher,install_date)VALUES(?,?,?,?,?)",id,s.name(),s.version(),s.publisher(),s.installDate()));
+    // CR-023: 상한 초과는 무경고 절삭 대신 수집 건수·절삭 여부를 저장한다.
+    db.update("UPDATE asset SET software_count=?,software_truncated=? WHERE id=?",softwareCount,softwareCount>softwareLimit,id);
     db.update("UPDATE agent SET last_seen_at=now() WHERE id=?",agent);
     return ResponseEntity.accepted().body(Map.of("assetId",id));
   }

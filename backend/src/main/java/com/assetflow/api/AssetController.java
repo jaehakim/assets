@@ -24,7 +24,7 @@ public class AssetController {
     int total = count("SELECT count(*) FROM asset");
     int online = count("SELECT count(*) FROM asset s JOIN agent a ON a.id=s.agent_id WHERE GREATEST(s.last_seen_at,a.last_seen_at)>now()-interval '15 minutes'");
     int stale = count("SELECT count(*) FROM asset s JOIN agent a ON a.id=s.agent_id WHERE GREATEST(s.last_seen_at,a.last_seen_at)<now()-interval '7 days'");
-    int bitlocker = count("SELECT count(*) FROM asset WHERE bitlocker_enabled=false");
+    int bitlocker = count("SELECT count(*) FROM asset WHERE bitlocker_enabled IS DISTINCT FROM true");
     int antivirus = count("SELECT count(*) FROM asset WHERE antivirus_status IS DISTINCT FROM 'Healthy'");
     int warranty = count("SELECT count(*) FROM asset WHERE warranty_expires_at BETWEEN current_date AND current_date+90");
     int overdueAudit = count("SELECT count(*) FROM asset WHERE next_audit_at<current_date");
@@ -39,7 +39,7 @@ public class AssetController {
     return db.queryForList("""
         SELECT s.id,s.hostname,s.serial_no,s.manufacturer,s.model,s.username,s.department,s.asset_tag,
                s.lifecycle_status,s.category,s.location,s.assigned_to,s.warranty_expires_at,s.next_audit_at,
-               s.os_name,s.os_version,s.ip_address,a.last_ip server_observed_ip,
+               s.os_name,s.os_version,s.ip_address,s.bitlocker_enabled,s.antivirus_status,s.software_truncated,a.last_ip server_observed_ip,
                GREATEST(s.last_seen_at,a.last_seen_at) last_seen_at,a.version agent_version,
                (GREATEST(s.last_seen_at,a.last_seen_at)>now()-interval '15 minutes') online
         FROM asset s JOIN agent a ON a.id=s.agent_id
@@ -86,7 +86,12 @@ public class AssetController {
     for(var row:rows){int i=0;for(Object value:row.values()){if(i++>0)csv.append(',');csv.append(csv(value));}csv.append('\n');}
     return ResponseEntity.ok().header(HttpHeaders.CONTENT_DISPOSITION,"attachment; filename=assetflow-assets.csv").contentType(new MediaType("text","csv",java.nio.charset.StandardCharsets.UTF_8)).body("\uFEFF"+csv);
   }
-  private String csv(Object value){String s=Objects.toString(value,"");return "\""+s.replace("\"","\"\"")+"\"";}
+  // CR-012: 선행 문자가 수식 트리거(= + - @ 탭 CR)이면 작은따옴표를 붙여 엑셀이 문자열로 읽게 한다.
+  static String csv(Object value) {
+    String s = Objects.toString(value, "");
+    if (!s.isEmpty() && "=+-@\t\r".indexOf(s.charAt(0)) >= 0) s = "'" + s;
+    return "\"" + s.replace("\"", "\"\"") + "\"";
+  }
 
   private int count(String sql) {
     Integer n = db.queryForObject(sql, Integer.class);

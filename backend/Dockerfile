@@ -7,7 +7,7 @@ RUN mvn -q package -DskipTests
 FROM eclipse-temurin:21-jre-alpine
 RUN addgroup -S app && adduser -S app -G app
 WORKDIR /app
-COPY --from=build /build/target/assetflow-api-0.1.0.jar app.jar
+COPY --from=build /build/target/assetflow-api-0.2.0.jar app.jar
 USER app
 EXPOSE 8080
 ENTRYPOINT ["java","-jar","app.jar"]
