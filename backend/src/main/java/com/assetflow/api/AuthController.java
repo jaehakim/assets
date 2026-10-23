@@ -48,9 +48,16 @@ public class AuthController {
       return ResponseEntity.ok(Map.of("username", a.getName()));
     } catch (AuthenticationException e) {
       // CR-S17: 로그인 실패 보안 이벤트 (비밀번호 미기록)
-      security.warn("LOGIN_FAILED user={} ip={}", x.username(), req.getRemoteAddr());
+      security.warn("LOGIN_FAILED user={} ip={}", safeLog(x.username()), req.getRemoteAddr()); // CR-A05: 로그 위조 방지
       return ResponseEntity.status(401).body(Map.of("error", "아이디 또는 비밀번호가 올바르지 않습니다."));
     }
+  }
+
+  /** CR-A05: 사용자 입력에서 제어 문자(CR/LF 등)를 제거해 로그 라인 위조를 막는다. */
+  static String safeLog(String value) {
+    if (value == null) return "-";
+    String cleaned = value.replaceAll("[\\p{Cntrl}]", "?");
+    return cleaned.length() > 64 ? cleaned.substring(0, 64) + "…" : cleaned;
   }
 
   @GetMapping("/me")

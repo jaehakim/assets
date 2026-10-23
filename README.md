@@ -84,18 +84,28 @@ Windows 서비스는 활성 사용자 세션의 트레이 앱을 주기적으로
 | Method | Path | 인증 | 설명 |
 |---|---|---|---|
 | POST | `/api/v1/agents/register` | `X-Registration-Token` | Agent 최초 등록 및 장치 토큰 발급 |
-| POST | `/api/v1/agents/inventory` | `Bearer DEVICE_TOKEN` | 전체 인벤토리 갱신 |
+| POST | `/api/v1/agents/inventory` | `Bearer DEVICE_TOKEN` | 전체 인벤토리 갱신 (SW 상한 초과 시 `software_truncated`) |
 | POST | `/api/v1/agents/heartbeat` | `Bearer DEVICE_TOKEN` | Agent 상태 보고 |
+| GET | `/api/v1/agents/updates/latest` | `Bearer DEVICE_TOKEN` | 최신 Agent 버전 조회 |
+| GET | `/api/v1/agents/updates/{version}/download` | `Bearer DEVICE_TOKEN` | Agent 실행 파일 다운로드 |
+| POST | `/api/v1/auth/login` | 계정 | 관리자 로그인 (세션 ID 재발급, 유휴 30분) |
+| GET | `/api/v1/auth/me` | 관리자 세션 | 현재 세션 확인 |
+| POST | `/api/v1/auth/logout` | 관리자 세션 | 로그아웃 |
 | GET | `/api/v1/dashboard` | 관리자 세션 | 현황 집계 |
-| GET | `/api/v1/assets` | 관리자 세션 | 자산 검색·목록 |
-| GET | `/api/v1/assets/{id}` | 관리자 세션 | 디스크·SW 포함 상세 |
-| POST | `/api/v1/auth/login` | 계정 | 관리자 로그인 |
-| POST | `/api/v1/admin/agent-releases` | X-Update-Token | 신규 Agent EXE 등록 |
-| GET | `/api/v1/agents/updates/latest` | 장치 Bearer | 최신 Agent 버전 조회 |
+| GET | `/api/v1/assets` | 관리자 세션 | 자산 검색·목록 (최대 500건) |
+| GET | `/api/v1/assets/{id}` | 관리자 세션 | 디스크·SW·관리 이력 포함 상세 |
+| PATCH | `/api/v1/assets/{id}/management` | 관리자 세션 | 자산 관리정보(태그·생애주기·담당·보증 등) 변경 |
+| GET | `/api/v1/assets-export.csv` | 관리자 세션 | 전체 자산 CSV (수식 인젝션 이스케이프) |
+| GET | `/api/v1/admin/agent-releases` | 관리자 세션 | 등록된 Agent 버전 목록 |
+| POST | `/api/v1/admin/agent-releases` | 관리자 세션 + `X-Update-Token` | 신규 Agent EXE 등록 (버전 불변, PE 검사, 100MB) |
 | GET | `/api/v1/admin/agent-update-history` | 관리자 세션 | 장비별 Agent 버전 변경 이력 조회 |
 | GET | `/api/v1/admin/software-compliance` | 관리자 세션 | 판정 목록·탐지 장비·동기화 이력 |
 | POST | `/api/v1/admin/software-compliance/policies` | 관리자 세션 | 기관 자체 판정 기준 등록 |
-| POST | `/api/v1/admin/software-compliance/sync` | 관리자 세션 | 공공기관 기초자료 즉시 동기화 |
+| PUT / DELETE | `/api/v1/admin/software-compliance/policies/{id}` | 관리자 세션 | 판정 기준 수정·삭제 |
+| POST | `/api/v1/admin/software-compliance/sync` | 관리자 세션 | 공공기관 기초자료 즉시 동기화 (HTTPS·허용 호스트만) |
+| GET / POST | `/api/v1/admin/system-inspections` | 관리자 세션 | 일일 점검 이력 조회 / 즉시 점검 |
+| GET | `/api/v1/admin/system-inspections/live` | 관리자 세션 | 실시간 k3s·DB 상태 |
+| GET | `/api/v1/health`, `/actuator/health/readiness`, `/actuator/health/liveness` | 없음 | 상태 확인 (readiness는 DB 포함) |
 
 외부 기초자료 연동은 `SOFTWARE_POLICY_SOURCE_URL`에 승인받은 HTTP(S) CSV/JSON 주소를 지정합니다. CSV 헤더는 `id,name,publisher,match_type,classification,source_ref,notes`, JSON은 동일 필드의 배열 또는 `{ "items": [...] }` 형식입니다. 기본 동기화 시각은 매일 03:20(KST)이며 `SOFTWARE_POLICY_SYNC_CRON`으로 변경할 수 있습니다. 한국저작권보호원 점검 DB처럼 공개 API가 아닌 자료는 이용 승인과 제공 URL을 확보한 뒤 연결해야 합니다.
 
@@ -119,7 +129,10 @@ Windows 서비스는 활성 사용자 세션의 트레이 앱을 주기적으로
 
 ## 변경 이력
 
-### 2026-10-23 — Agent 0.2.12 / Backend 0.2.0 (수정요청 1차 반영, 미배포)
+### 2026-10-23 — Agent 0.2.12 / Backend 0.2.0 / Frontend 0.3.0 (수정요청 1차 반영)
+
+- 배포 상태: Backend·Frontend는 커밋 `79df064`로 운영 배포 완료. **Agent 0.2.12는 관리 화면에서 업로드 전까지 운영 PC에 미적용**(PC는 0.2.11)
+- 2차 보완(AF-CR-2026-004): 프록시 뒤 속도 제한 실 IP 키 적용, 컴퓨터 계정 "미식별" 표시, 보안 로그 제어 문자 제거 — [20 추가수정요청서](docs/20_추가수정요청서.md)
 
 - 검토 문서(docs 07·13·15) 수정요청 반영 계획 [16 적용계획서](docs/16_수정요청_적용계획서.md), 추가 요구사항 [17 검토서](docs/17_추가요구사항_검토서.md), 조치 현황 [18 조치결과보고서](docs/18_조치결과보고서_1차.md)
 - Backend: 릴리스 업로드 관리자 세션 필수·버전 불변(409)·PE 헤더 검증·업로드자 기록, 기본 비밀값 기동 차단, 로그인 세션 ID 재발급, CSV 수식 이스케이프, 입력 길이 검증(422), Actuator readiness(DB 포함), ShedLock, 점검 DB 상태 실측, 인덱스 4종, SW 절삭 플래그

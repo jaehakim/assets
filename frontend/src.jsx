@@ -1012,7 +1012,8 @@ const Icon = ({ name }) => {
 };
 const show = (v) => (v === null || v === undefined || v === "" ? "-" : v);
 const UNIDENTIFIED_USER = "미식별";
-const isUnidentifiedUser = (name) => name == null || String(name).trim() === "" || String(name).trim().toUpperCase() === "SYSTEM";
+// CR-A04: Agent 0.2.11 이하는 LocalSystem의 컴퓨터 계정(예: DESKTOP-KJH$)을 보내므로 `$` 계정·NT AUTHORITY 계정도 미식별로 본다.
+const isUnidentifiedUser = (name) => { if (name == null) return true; const n = String(name).trim(); const account = n.includes("\\") ? n.slice(n.lastIndexOf("\\") + 1) : n; return n === "" || account.toUpperCase() === "SYSTEM" || account.endsWith("$") || /^NT (AUTHORITY|SERVICE)\\/i.test(n); };
 const userLabel = (name) => (isUnidentifiedUser(name) ? UNIDENTIFIED_USER : name);
 const date = (v) => (v ? new Date(v).toLocaleString("ko-KR") : "-");
 const bytes = (v) => {
