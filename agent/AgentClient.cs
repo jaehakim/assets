@@ -8,21 +8,23 @@ namespace AssetFlow.Agent;
 
 public sealed class AgentClient
 {
-    public const string Version = "0.2.9";
+    public static string Version => typeof(AgentClient).Assembly.GetName().Version!.ToString(3);
     private readonly HttpClient http;
     private readonly AgentState state;
+    private readonly ILogger<AgentCommunicationHandler> communication;
 
-    public AgentClient(HttpClient http, AgentState state)
+    public AgentClient(HttpClient http, AgentState state, ILogger<AgentCommunicationHandler> communication)
     {
         this.http = http;
         this.state = state;
+        this.communication = communication;
         http.Timeout = TimeSpan.FromMinutes(5);
     }
 
     public async Task EnsureRegistered(CancellationToken ct)
     {
         if (!string.IsNullOrWhiteSpace(state.Options.DeviceToken)) return;
-        var registrationToken = state.Options.RegistrationToken.Trim();
+        var registrationToken = (state.Options.RegistrationToken ?? "").Trim();
         if (string.IsNullOrWhiteSpace(registrationToken) || registrationToken == "change-me")
             throw new InvalidOperationException("Registration token is missing or is the placeholder. Update C:\\ProgramData\\AssetFlow\\agent.json or ASSETFLOW_REGISTRATION_TOKEN.");
 
@@ -35,10 +37,15 @@ public sealed class AgentClient
             throw new InvalidOperationException("Server rejected the registration token (HTTP 401). Set RegistrationToken in C:\\ProgramData\\AssetFlow\\agent.json to the server AGENT_REGISTRATION_TOKEN, then restart AssetFlowAgent.");
         res.EnsureSuccessStatusCode();
         var value = await res.Content.ReadFromJsonAsync<Registered>(cancellationToken: ct) ?? throw new InvalidOperationException("Empty registration response");
-        state.Save(state.Options with { RegistrationToken = registrationToken, DeviceToken = value.DeviceToken, AgentId = value.AgentId });
+        // CR-005: the registration token is no longer needed once a device token exists.
+        state.Save(state.Options with { RegistrationToken = null, DeviceToken = value.DeviceToken, AgentId = value.AgentId });
     }
 
-    public async Task SendInventory(Inventory data, CancellationToken ct) => await Send("inventory", data, ct);
+    public async Task SendInventory(Inventory data, CancellationToken ct)
+    {
+        await Send("inventory", data, ct);
+        communication.LogInformation("INVENTORY_ACK disks={Disks} software={Software}", data.Disks.Count, data.Software.Count);
+    }
     public async Task Heartbeat(CancellationToken ct) => await Send("heartbeat", new { version = Version }, ct);
 
     public async Task<AgentRelease?> LatestRelease(CancellationToken ct)
@@ -58,6 +65,7 @@ public sealed class AgentClient
         await using var input = await res.Content.ReadAsStreamAsync(ct);
         await using var output = new FileStream(target, FileMode.Create, FileAccess.Write, FileShare.None);
         await input.CopyToAsync(output, ct);
+        communication.LogInformation("DOWNLOAD_COMPLETE version={Version} bytes={Bytes}", version, output.Position);
     }
 
     private HttpRequestMessage Authorized(HttpMethod method, string path)

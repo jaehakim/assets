@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net8.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable></PropertyGroup>
+  <ItemGroup><Compile Include="../agent/AgentHealth.cs" Link="AgentHealth.cs" /></ItemGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <Compile Include="../agent/AgentCommunicationHandler.cs" Link="AgentCommunicationHandler.cs" />
+    <Compile Include="../agent/DailyFileLogger.cs" Link="DailyFileLogger.cs" />
+    <Compile Include="../agent/SessionUsers.cs" Link="SessionUsers.cs" />
+    <Compile Include="../agent/ConfigProtection.cs" Link="ConfigProtection.cs" />
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="8.0.0" />
+  </ItemGroup>
+</Project>

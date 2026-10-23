@@ -8,7 +8,7 @@ public sealed class InventoryCollector
 {
     public Task<Inventory> CollectAsync() => Task.Run(() =>
     {
-        var cs = Wmi("Win32_ComputerSystem", "Manufacturer", "Model", "TotalPhysicalMemory", "Domain", "PartOfDomain");
+        var cs = Wmi("Win32_ComputerSystem", "Manufacturer", "Model", "TotalPhysicalMemory", "Domain", "PartOfDomain", "UserName");
         var product = Wmi("Win32_ComputerSystemProduct", "UUID");
         var bios = Wmi("Win32_BIOS", "SerialNumber", "SMBIOSBIOSVersion");
         var os = Wmi("Win32_OperatingSystem", "Caption", "Version", "BuildNumber", "OSArchitecture", "InstallDate", "LastBootUpTime");
@@ -22,7 +22,8 @@ public sealed class InventoryCollector
         var tpm = Tpm();
         return new Inventory(
             Environment.MachineName, S(bios, "SerialNumber"), S(cs, "Manufacturer"), S(cs, "Model"),
-            S(product, "UUID"), S(cs, "Domain"), B(cs, "PartOfDomain"), Environment.UserName, null,
+            S(product, "UUID"), S(cs, "Domain"), B(cs, "PartOfDomain"),
+            SessionUsers.Resolve(S(cs, "UserName"), SessionUsers.ActiveSessionUser), null, // CR-018
             S(os, "Caption") ?? Environment.OSVersion.VersionString, S(os, "Version") ?? "",
             S(os, "BuildNumber"), S(os, "OSArchitecture"), D(os, "InstallDate"), D(os, "LastBootUpTime"),
             S(cpu, "Name"), I(cpu, "NumberOfCores"), I(cpu, "NumberOfLogicalProcessors"), L(cs, "TotalPhysicalMemory"),
@@ -36,7 +37,7 @@ public sealed class InventoryCollector
         catch { return null; }
     }
     private static string? S(ManagementBaseObject? o, string k) => o?[k]?.ToString()?.Trim();
-    private static long L(ManagementBaseObject? o, string k) => long.TryParse(S(o, k), out var v) ? v : 0;
+    private static long? L(ManagementBaseObject? o, string k) => long.TryParse(S(o, k), out var v) ? v : null; // CR-022
     private static int? I(ManagementBaseObject? o, string k) => int.TryParse(S(o, k), out var v) ? v : null;
     private static bool? B(ManagementBaseObject? o, string k) => o?[k] is null ? null : Convert.ToBoolean(o[k]);
     private static DateTimeOffset? D(ManagementBaseObject? o, string k)

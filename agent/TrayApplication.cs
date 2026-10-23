@@ -3,14 +3,25 @@ using System.Drawing;
 using System.Management;
 using System.Net.NetworkInformation;
 using System.Reflection;
-using System.Runtime.InteropServices;
 using System.Windows.Forms;
+using System.Text.Json;
 using Microsoft.Win32;
 
 namespace AssetFlow.Agent;
 
 public static class TrayApplication
 {
+    public static void LogError(Exception error)
+    {
+        try
+        {
+            var directory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AssetFlow", "logs");
+            Directory.CreateDirectory(directory);
+            File.AppendAllText(Path.Combine(directory, $"tray-{DateTime.Now:yyyyMMdd}.log"), $"{DateTimeOffset.Now:O} {error}{Environment.NewLine}");
+        }
+        catch { /* Logging must not crash the interactive session. */ }
+    }
+
     public static void EnsureStartupRegistration()
     {
         try
@@ -37,28 +48,96 @@ public static class TrayApplication
             ContextMenuStrip = menu
         };
         menu.Items.Add($"AssetFlow Agent v{AgentClient.Version}").Enabled = false;
+        var statusItem = menu.Items.Add("서비스 상태 확인 중");
+        statusItem.Enabled = false;
+        var contactItem = menu.Items.Add("마지막 통신: 없음");
+        contactItem.Enabled = false;
+        var errorItem = menu.Items.Add("오류 없음");
+        errorItem.Enabled = false;
+        menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add("PC 정보", null, (_, _) => ShowPcInformation());
         menu.Items.Add("관리 페이지 열기", null, (_, _) => OpenDashboard());
         menu.Items.Add(new ToolStripSeparator());
-        menu.Items.Add("트레이 종료", null, (_, _) => System.Windows.Forms.Application.Exit());
+        menu.Items.Add("서비스·통신 로그 열기", null, (_, _) =>
+        {
+            var directory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "AssetFlow", "logs");
+            if (Directory.Exists(directory)) Process.Start(new ProcessStartInfo(directory) { UseShellExecute = true });
+            else MessageBox.Show("서비스 로그가 아직 생성되지 않았습니다.", "AssetFlow");
+        });
+        menu.Items.Add("트레이 로그 열기", null, (_, _) =>
+        {
+            var directory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AssetFlow", "logs");
+            Directory.CreateDirectory(directory);
+            Process.Start(new ProcessStartInfo(directory) { UseShellExecute = true });
+        });
+        menu.Items.Add("정보 수집은 Windows 서비스에서 실행됩니다").Enabled = false;
         icon.DoubleClick += (_, _) => ShowPcInformation();
-        System.Windows.Forms.Application.Run();
-        icon.Visible = false;
+        var colors = new Dictionary<AgentHealthColor, Icon>();
+        using var timer = new System.Windows.Forms.Timer { Interval = 5000 };
+        AgentHealthColor? currentColor = null;
+        void RefreshStatus()
+        {
+            AgentHealthSnapshot? snapshot = null;
+            try
+            {
+                using var file = new FileStream(AgentHealthService.StatusPath, FileMode.Open, FileAccess.Read,
+                    FileShare.ReadWrite | FileShare.Delete);
+                if (file.Length <= 16384) snapshot = JsonSerializer.Deserialize<AgentHealthSnapshot>(file);
+                if (snapshot?.Operations is null || snapshot.Operations.Values.Any(x => x is null)) snapshot = null;
+            }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException or JsonException)
+            { /* Missing, locked or invalid status must never retain a green icon. */ }
+            var display = AgentHealth.Evaluate(snapshot, DateTimeOffset.UtcNow);
+            if (currentColor != display.Color)
+            {
+                if (!colors.TryGetValue(display.Color, out var colored))
+                {
+                    try { colored = TrayStatusIcon.Create(display.Color); }
+                    catch (Exception e) { LogError(e); colored = (Icon)trayIcon.Clone(); }
+                    colors.Add(display.Color, colored);
+                }
+                icon.Icon = colored;
+                currentColor = display.Color;
+            }
+            icon.Text = $"AssetFlow {AgentClient.Version} · {display.Label}";
+            statusItem.Text = display.Label;
+            contactItem.Text = "마지막 통신: " + (snapshot?.LastContact?.ToLocalTime().ToString("MM-dd HH:mm:ss") ?? "없음");
+            var failures = snapshot?.Operations.Where(x => x.Value.Error is not null)
+                .Select(x => $"{x.Key}: {x.Value.Error}").ToArray();
+            errorItem.Text = failures is { Length: > 0 } ? string.Join(" / ", failures) : "기록된 작업 오류 없음";
+        }
+        try
+        {
+            RefreshStatus();
+            timer.Tick += (_, _) => RefreshStatus();
+            timer.Start();
+            System.Windows.Forms.Application.Run();
+        }
+        finally
+        {
+            timer.Stop();
+            icon.Visible = false;
+            icon.Icon = null;
+            foreach (var colored in colors.Values) colored.Dispose();
+        }
     }
 
     private static Icon LoadTrayIcon()
     {
-        using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("AssetFlow.Agent.TrayIcon.png")
-            ?? throw new InvalidOperationException("Tray icon resource was not found.");
-        using var source = new Bitmap(stream);
-        using var resized = new Bitmap(source, new Size(32, 32));
-        var handle = resized.GetHicon();
-        try { return (Icon)Icon.FromHandle(handle).Clone(); }
-        finally { DestroyIcon(handle); }
+        try
+        {
+            using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("AssetFlow.Agent.TrayIcon.ico")
+                ?? throw new InvalidOperationException("Tray icon resource was not found.");
+            using var source = new Icon(stream, SystemInformation.SmallIconSize);
+            return (Icon)source.Clone();
+        }
+        catch (Exception error)
+        {
+            LogError(error);
+            return (Icon)SystemIcons.Application.Clone();
+        }
     }
 
-    [DllImport("user32.dll")]
-    private static extern bool DestroyIcon(IntPtr handle);
 
     private static void ShowPcInformation()
     {
@@ -88,8 +167,9 @@ public static class TrayApplication
     {
         try
         {
-            var state = new AgentState();
-            Process.Start(new ProcessStartInfo(state.Options.ApiUrl.Trim().TrimEnd('/')) { UseShellExecute = true });
+            // CR-S01 ③: the user-session tray reads only the public tray.json (never agent.json).
+            var url = AgentState.ReadPublicApiUrl() ?? throw new InvalidOperationException("tray.json이 없습니다. 서비스가 실행 중인지 확인하십시오.");
+            Process.Start(new ProcessStartInfo(url.Trim().TrimEnd('/')) { UseShellExecute = true });
         }
         catch (Exception error)
         {

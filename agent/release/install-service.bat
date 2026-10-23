@@ -51,18 +51,27 @@ taskkill.exe /F /IM "AssetFlow.Agent.exe" >nul 2>&1
 
 echo [3/6] Removing the old executable, logs, and device identity...
 if exist "%INSTALL_DIR%" rmdir /s /q "%INSTALL_DIR%"
-if exist "%CONFIG_DIR%\agent.json" del /f /q "%CONFIG_DIR%\agent.json"
+rem CR-S01 (1): never trust a pre-existing ProgramData folder (it may have been created by a standard user).
+if exist "%CONFIG_DIR%" rmdir /s /q "%CONFIG_DIR%"
 if exist "%INSTALL_DIR%" goto :failed
+if exist "%CONFIG_DIR%" goto :failed
 
 echo [4/6] Installing the downloaded Agent...
 mkdir "%INSTALL_DIR%\logs" >nul 2>&1
-mkdir "%CONFIG_DIR%" >nul 2>&1
+mkdir "%CONFIG_DIR%\logs" >nul 2>&1
+icacls "%CONFIG_DIR%" /setowner "*S-1-5-18" >nul
+icacls "%CONFIG_DIR%" /inheritance:r /grant:r "*S-1-5-18:(OI)(CI)F" "*S-1-5-32-544:(OI)(CI)F" "*S-1-5-32-545:(CI)RX" >nul
+if errorlevel 1 goto :failed
+icacls "%CONFIG_DIR%\logs" /grant:r "*S-1-5-32-545:(OI)(CI)RX" >nul
 move /y "%DOWNLOAD_FILE%" "%INSTALL_DIR%\AssetFlow.Agent.exe" >nul
 if errorlevel 1 goto :failed
 
 echo [5/6] Installing the registered device configuration...
 move /y "%DOWNLOAD_CONFIG%" "%CONFIG_DIR%\agent.json" >nul
 if errorlevel 1 goto :failed
+icacls "%CONFIG_DIR%\agent.json" /inheritance:r /grant:r "*S-1-5-18:F" "*S-1-5-32-544:F" >nul
+if errorlevel 1 goto :failed
+rem The service encrypts the device token (DPAPI) and removes the registration token on first start (CR-005).
 set "REGISTRATION_TOKEN="
 set "ASSETFLOW_SETUP_TOKEN="
 
@@ -74,12 +83,14 @@ sc.exe failure "%SERVICE_NAME%" reset= 86400 actions= restart/60000/restart/6000
 sc.exe start "%SERVICE_NAME%" >nul
 if errorlevel 1 goto :failed
 reg.exe add "HKLM\Software\Microsoft\Windows\CurrentVersion\Run" /v "AssetFlowAgentTray" /t REG_SZ /d "\"%INSTALL_DIR%\AssetFlow.Agent.exe\" --tray" /f >nul
-start "" "%INSTALL_DIR%\AssetFlow.Agent.exe" --tray
+rem The service starts the tray as the logged-in user without administrator elevation.
 
 echo.
 echo [OK] A clean Agent service and system tray app were installed and started.
+echo The tray appears in the signed-in user's notification area within 30 seconds.
+echo Windows may place the icon under the hidden-icons arrow.
 echo The device was registered with the supplied token and will connect automatically.
-echo Logs: %INSTALL_DIR%\logs
+echo Logs: %CONFIG_DIR%\logs
 pause
 exit /b 0
 
@@ -91,6 +102,6 @@ set "REGISTRATION_TOKEN="
 set "ASSETFLOW_SETUP_TOKEN="
 echo.
 echo [ERROR] Clean installation failed. Error code: %RESULT%
-echo Check %INSTALL_DIR%\logs and Windows Event Viewer.
+echo Check %CONFIG_DIR%\logs and Windows Event Viewer.
 pause
 exit /b %RESULT%

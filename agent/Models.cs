@@ -5,10 +5,10 @@ public record SoftwareInfo(string Name, string? Version, string? Publisher, stri
 public record Inventory(
     string Hostname, string? SerialNo, string? Manufacturer, string? Model,
     string? DeviceUuid, string? DomainName, bool? DomainJoined,
-    string Username, string? Department,
+    string? Username, string? Department,
     string OsName, string OsVersion, string? OsBuild, string? OsArchitecture,
     DateTimeOffset? OsInstalledAt, DateTimeOffset? LastBootAt,
-    string? CpuName, int? CpuCores, int? CpuLogicalProcessors, long MemoryBytes,
+    string? CpuName, int? CpuCores, int? CpuLogicalProcessors, long? MemoryBytes, // CR-022: null when WMI fails
     string? BiosVersion, string? IpAddress, string? MacAddress,
     bool? BitlockerEnabled, bool? FirewallEnabled, string AntivirusStatus,
     bool? TpmPresent, bool? TpmEnabled, string? TpmVersion, bool? SecureBootEnabled,
