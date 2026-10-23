@@ -5,7 +5,7 @@ services:
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-assetflow}
       POSTGRES_USER: ${POSTGRES_USER:-assetflow}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-assetflow-local-only}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env (CR-007)}
     volumes: ["./deploy/postgres-data:/var/lib/postgresql/data"]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready"]
@@ -18,12 +18,12 @@ services:
     environment:
       DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-assetflow}
       DB_USER: ${POSTGRES_USER:-assetflow}
-      DB_PASSWORD: ${POSTGRES_PASSWORD:-assetflow-local-only}
-      AGENT_REGISTRATION_TOKEN: ${AGENT_REGISTRATION_TOKEN:-change-me}
-      AGENT_UPDATE_TOKEN: ${AGENT_UPDATE_TOKEN:-change-me-too}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env (CR-007)}
+      AGENT_REGISTRATION_TOKEN: ${AGENT_REGISTRATION_TOKEN:?AGENT_REGISTRATION_TOKEN must be set in .env (CR-007)}
+      AGENT_UPDATE_TOKEN: ${AGENT_UPDATE_TOKEN:?AGENT_UPDATE_TOKEN must be set in .env (CR-007)}
       AGENT_RELEASE_DIRECTORY: /app/releases
       ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
-      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-change-me-now}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?ADMIN_PASSWORD must be set in .env (CR-007)}
       SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-false}
       SOFTWARE_POLICY_SOURCE_URL: ${SOFTWARE_POLICY_SOURCE_URL:-}
       SOFTWARE_POLICY_SOURCE_NAME: ${SOFTWARE_POLICY_SOURCE_NAME:-공공기관 기초자료}

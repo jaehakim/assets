@@ -2,6 +2,10 @@ name: Build and deploy to k3s
 on:
   push:
     branches: [main]
+    # CR-S11 ⑤: 문서만 변경된 푸시는 빌드·배포하지 않는다 (2026-10-23 docs 푸시로 운영 UI가 회귀한 사고 재발 방지).
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
   workflow_dispatch:
 permissions:
   contents: read
@@ -21,6 +25,8 @@ jobs:
             context: frontend
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: docker/setup-buildx-action@v3
       - uses: docker/login-action@v3
         with:
@@ -44,12 +50,16 @@ jobs:
   deploy:
     needs: build
     runs-on: [self-hosted, linux, assetflow-production]
+    # CR-S11 ①: GitHub 환경 보호 규칙(필수 승인자)을 저장소 설정에서 지정한다.
+    environment: production
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - name: Configure secrets
         env:
           GHCR_USERNAME: ${{ github.repository_owner }}
-          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GHCR_TOKEN: ${{ secrets.GHCR_PULL_TOKEN || secrets.GITHUB_TOKEN }}
           DB_PASSWORD: ${{ secrets.ASSETFLOW_DB_PASSWORD }}
           REGISTRATION_TOKEN: ${{ secrets.AGENT_REGISTRATION_TOKEN }}
           UPDATE_TOKEN: ${{ secrets.AGENT_UPDATE_TOKEN }}
@@ -57,20 +67,24 @@ jobs:
           ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
         run: |
           kubectl create namespace assetflow --dry-run=client -o yaml | kubectl apply -f -
+          # CR-S12: GHCR_PULL_TOKEN(read:packages 전용 기계 계정 PAT)이 있으면 그것으로 풀 시크릿을 만든다.
+          #         GITHUB_TOKEN은 잡 종료 시 만료되어 Pod 재생성 시 이미지 풀이 실패한다.
+          if [ -z "${{ secrets.GHCR_PULL_TOKEN }}" ]; then echo "::warning::GHCR_PULL_TOKEN secret is not set; ghcr-pull will expire with this job (CR-S12)"; fi
           kubectl -n assetflow create secret docker-registry ghcr-pull --docker-server=ghcr.io --docker-username="$GHCR_USERNAME" --docker-password="$GHCR_TOKEN" --dry-run=client -o yaml | kubectl apply -f -
           kubectl -n assetflow create secret generic assetflow-secrets --from-literal=DB_PASSWORD="$DB_PASSWORD" --from-literal=POSTGRES_PASSWORD="$DB_PASSWORD" --from-literal=AGENT_REGISTRATION_TOKEN="$REGISTRATION_TOKEN" --from-literal=AGENT_UPDATE_TOKEN="$UPDATE_TOKEN" --from-literal=ADMIN_USERNAME="$ADMIN_USERNAME" --from-literal=ADMIN_PASSWORD="$ADMIN_PASSWORD" --dry-run=client -o yaml | kubectl apply -f -
       - name: Rolling deploy immutable images
         env:
           GHCR_USERNAME: ${{ github.repository_owner }}
-          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GHCR_TOKEN: ${{ secrets.GHCR_PULL_TOKEN || secrets.GITHUB_TOKEN }}
+          IMAGE_TAG: sha-${{ github.sha }}
         run: |
+          TAG="sha-${GITHUB_SHA::7}"
+          sudo k3s ctr images pull --user "$GHCR_USERNAME:$GHCR_TOKEN" ghcr.io/${{ github.repository_owner }}/assets-backend:$TAG
+          sudo k3s ctr images pull --user "$GHCR_USERNAME:$GHCR_TOKEN" ghcr.io/${{ github.repository_owner }}/assets-frontend:$TAG
+          # CR-029: kustomization의 images.newTag에 SHA 태그를 주입한 뒤 한 번만 apply → 배포당 ReplicaSet 1개.
+          sed -i "s/newTag: .*/newTag: $TAG/" deploy/k3s/kustomization.yaml
+          sed -i "s|value: set-by-ci|value: $GITHUB_SHA|" deploy/k3s/kustomization.yaml
           kubectl apply -k deploy/k3s
-          sudo k3s ctr images pull --user "$GHCR_USERNAME:$GHCR_TOKEN" ghcr.io/${{ github.repository_owner }}/assets-backend:sha-${GITHUB_SHA::7}
-          sudo k3s ctr images pull --user "$GHCR_USERNAME:$GHCR_TOKEN" ghcr.io/${{ github.repository_owner }}/assets-frontend:sha-${GITHUB_SHA::7}
-          kubectl -n assetflow set image deployment/backend backend=ghcr.io/${{ github.repository_owner }}/assets-backend:sha-${GITHUB_SHA::7}
-          kubectl -n assetflow set image deployment/frontend frontend=ghcr.io/${{ github.repository_owner }}/assets-frontend:sha-${GITHUB_SHA::7}
-          kubectl -n assetflow set env deployment/backend DEPLOY_GIT_SHA="$GITHUB_SHA"
-          kubectl -n assetflow set env deployment/frontend DEPLOY_GIT_SHA="$GITHUB_SHA"
           kubectl -n assetflow rollout status deployment/backend --timeout=5m
           kubectl -n assetflow rollout status deployment/frontend --timeout=5m
   cleanup-ghcr:

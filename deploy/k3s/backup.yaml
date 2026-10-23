@@ -1,0 +1,75 @@
+# CR-025: PostgreSQL 일 1회 논리 백업 (pg_dump -Fc) — 30일 보관
+# 1단계: 노드 로컬 PVC에 보관. 결정 ③(오프노드 저장소) 확정 후 OFFSITE_* 변수를 채우면 rclone으로 복제한다.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-backups
+  namespace: assetflow
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: local-path
+  resources: {requests: {storage: 20Gi}}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-backup-script
+  namespace: assetflow
+data:
+  backup.sh: |
+    #!/bin/sh
+    set -eu
+    STAMP=$(date -u +%Y%m%dT%H%M%SZ)
+    OUT=/backups/assetflow-$STAMP.dump
+    export PGPASSWORD="$POSTGRES_PASSWORD"
+    pg_dump -h postgres -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc -Z 6 -f "$OUT.tmp"
+    pg_restore --list "$OUT.tmp" >/dev/null   # 덤프 무결성 확인
+    mv "$OUT.tmp" "$OUT"
+    sha256sum "$OUT" > "$OUT.sha256"
+    find /backups -name 'assetflow-*.dump*' -mtime +${RETENTION_DAYS:-30} -delete
+    echo "backup ok: $OUT ($(du -h "$OUT" | cut -f1))"
+    if [ -n "${OFFSITE_REMOTE:-}" ]; then
+      # rclone 설정은 postgres-backup-offsite Secret의 rclone.conf 사용 (결정 ③ 이후)
+      rclone --config /offsite/rclone.conf copy /backups "$OFFSITE_REMOTE" --include 'assetflow-*' && echo "offsite copy ok"
+    fi
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: postgres-backup
+  namespace: assetflow
+spec:
+  schedule: "0 18 * * *"          # 03:00 KST (UTC 18:00)
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 5
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      activeDeadlineSeconds: 1800
+      template:
+        spec:
+          restartPolicy: Never
+          securityContext: {runAsNonRoot: true, runAsUser: 70, runAsGroup: 70, fsGroup: 70, seccompProfile: {type: RuntimeDefault}}
+          containers:
+            - name: pg-dump
+              image: postgres:16-alpine
+              command: [sh, /scripts/backup.sh]
+              env:
+                - name: RETENTION_DAYS
+                  value: "30"
+              envFrom:
+                - configMapRef: {name: assetflow-config}
+                - secretRef: {name: assetflow-secrets}
+              securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
+              resources:
+                requests: {cpu: 100m, memory: 128Mi}
+                limits: {cpu: "1", memory: 512Mi}
+              volumeMounts:
+                - {name: backups, mountPath: /backups}
+                - {name: script, mountPath: /scripts}
+          volumes:
+            - name: backups
+              persistentVolumeClaim: {claimName: postgres-backups}
+            - name: script
+              configMap: {name: postgres-backup-script, defaultMode: 0555}

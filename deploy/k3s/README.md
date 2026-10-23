@@ -26,7 +26,7 @@ Follow the official k3s installation method and disable components that conflict
 
 ```bash
 curl -sfL https://get.k3s.io | \
-  INSTALL_K3S_EXEC='server --disable traefik --disable servicelb --write-kubeconfig-mode 644' sh -
+  INSTALL_K3S_EXEC='server --disable traefik --disable servicelb --write-kubeconfig-mode 600' sh -
 kubectl apply -k deploy/k3s
 ```
 
@@ -47,3 +47,12 @@ Rollback uses the previous ReplicaSet and does not require stopping the service:
 kubectl -n assetflow rollout undo deployment/backend
 kubectl -n assetflow rollout undo deployment/frontend
 ```
+
+## 2026-10-23 변경 (수정요청 반영)
+
+- **CI 가드 (CR-S11)**: `docs/**`·`*.md`만 바뀐 푸시는 배포하지 않는다. `deploy` 잡은 GitHub `production` 환경을 사용하므로 저장소 *Settings → Environments → production*에서 **필수 승인자**를 지정해야 보호가 실제로 동작한다. 러너 계정의 sudoers는 `k3s ctr images pull`로 제한한다.
+- **단일 롤아웃 (CR-029)**: 매니페스트에 `:latest`가 없고 `kustomization.yaml`의 `images.newTag`를 CI가 `sha-<7자>`로 치환해 `kubectl apply -k` 한 번으로 배포한다. 수동 배포 시 `newTag`와 `DEPLOY_GIT_SHA`(`set-by-ci`)를 직접 바꾼다.
+- **풀 시크릿 (CR-S12)**: `GHCR_PULL_TOKEN` GitHub Secret(`read:packages` 전용 기계 계정 PAT, 만료 1년)을 등록하면 `ghcr-pull`이 그 토큰으로 생성된다. 없으면 `GITHUB_TOKEN`으로 생성되어 잡 종료 후 만료되며 워크플로가 경고를 남긴다.
+- **헬스체크 (CR-026)**: readiness `/actuator/health/readiness`(DB 포함), liveness `/actuator/health/liveness`.
+- **백업 (CR-025)**: `backup.yaml` CronJob이 매일 03:00 KST에 PVC `postgres-backups`로 덤프한다. 복구·리허설 절차는 [RESTORE.md](RESTORE.md). 오프노드 복제는 `OFFSITE_REMOTE`·`postgres-backup-offsite` Secret 설정 후 동작한다.
+- **기동 조건 (CR-007)**: 등록·업데이트 토큰, 관리자·DB 비밀번호가 32자 미만이거나 기본값이면 backend가 기동하지 않는다. 로컬 개발에서만 `REQUIRE_STRONG_SECRETS=false`를 쓴다.

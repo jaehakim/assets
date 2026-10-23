@@ -45,7 +45,7 @@ spec:
             - secretRef: {name: assetflow-secrets}
       containers:
         - name: backend
-          image: ghcr.io/jaehakim/assets-backend:latest
+          image: ghcr.io/jaehakim/assets-backend
           imagePullPolicy: IfNotPresent
           envFrom:
             - configMapRef: {name: assetflow-config}
@@ -55,12 +55,12 @@ spec:
               valueFrom: {fieldRef: {fieldPath: metadata.namespace}}
           ports: [{containerPort: 8080}]
           readinessProbe:
-            httpGet: {path: /api/v1/health, port: 8080}
+            httpGet: {path: /actuator/health/readiness, port: 8080}
             initialDelaySeconds: 12
             periodSeconds: 5
             failureThreshold: 6
           livenessProbe:
-            httpGet: {path: /api/v1/health, port: 8080}
+            httpGet: {path: /actuator/health/liveness, port: 8080}
             initialDelaySeconds: 35
             periodSeconds: 15
           lifecycle:

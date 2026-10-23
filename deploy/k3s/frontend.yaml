@@ -28,7 +28,7 @@ spec:
       imagePullSecrets: [{name: ghcr-pull}]
       containers:
         - name: frontend
-          image: ghcr.io/jaehakim/assets-frontend:latest
+          image: ghcr.io/jaehakim/assets-frontend
           imagePullPolicy: IfNotPresent
           ports: [{containerPort: 80}]
           readinessProbe:

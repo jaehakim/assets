@@ -8,3 +8,21 @@ resources:
   - backend.yaml
   - frontend.yaml
   - availability.yaml
+  - backup.yaml
+# CR-029: 이미지 태그는 CI가 newTag를 SHA 태그로 치환해 주입한다. 수동 배포 시 아래 값을 직접 지정한다.
+images:
+  - name: ghcr.io/jaehakim/assets-backend
+    newTag: set-by-ci
+  - name: ghcr.io/jaehakim/assets-frontend
+    newTag: set-by-ci
+patches:
+  - target: {kind: Deployment, name: backend}
+    patch: |
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value: {name: DEPLOY_GIT_SHA, value: set-by-ci}
+  - target: {kind: Deployment, name: frontend}
+    patch: |
+      - op: add
+        path: /spec/template/spec/containers/0/env
+        value: [{name: DEPLOY_GIT_SHA, value: set-by-ci}]
