@@ -1,0 +1,157 @@
+/*
+ * AssetFlow 디자인 토큰 — 색·글자·모서리의 단일 기준 (docs/23_디자인_가이드_및_전수검사.md)
+ * 팔레트 이름: --<색 계열>-<밝기 L*(0 어둠~100 밝음)>. 화면 CSS(app.css)는 값 대신 이 토큰만 참조한다.
+ * 의미 토큰(--text-primary, --c-primary 등)은 app.css 앞부분에서 팔레트를 가리킨다.
+ */
+:root {
+  /* 글자 크기 단계 — 11px 미만 금지 */
+  --fs-11: 11px;
+  --fs-12: 12px;
+  --fs-13: 13px;
+  --fs-14: 14px;
+  --fs-16: 16px;
+  --fs-18: 18px;
+  --fs-20: 20px;
+  --fs-24: 24px;
+  --fs-30: 30px;
+  --fs-36: 36px;
+  /* 모서리 */
+  --radius-sm: 4px; /* 버튼·입력 */
+  --radius-md: 8px; /* 카드·패널·탭 */
+  --radius-lg: 12px; /* 큰 카드·로그인 */
+  /* 색상 팔레트 (75색) */
+  --amber-27: #4e3d1b;
+  --amber-36: #665126;
+  --amber-42: #8a5a00; /* 3색 통합 */
+  --amber-56: #bd7429;
+  --amber-65: #c99424;
+  --amber-71: #ed9b3c; /* 2색 통합 */
+  --amber-72: #d8a84d;
+  --amber-77: #e3b76b;
+  --amber-87: #ead8a6; /* 2색 통합 */
+  --amber-90: #f5dfc8;
+  --amber-96: #fff2e4; /* 8색 통합 */
+  --blue-36: #315a74;
+  --blue-45: #397091; /* 2색 통합 */
+  --green-45: #1f7a4d;
+  --green-63: #24ad80; /* 5색 통합 */
+  --green-77: #40d59e;
+  --indigo-5: #09121d;
+  --indigo-12: #172033; /* 9색 통합 */
+  --indigo-21: #263247; /* 34색 통합 */
+  --indigo-23: #1f326e;
+  --indigo-27: #173f76; /* 2색 통합 */
+  --indigo-29: #253e91; /* 2색 통합 */
+  --indigo-29-2: #31465a; /* 4색 통합 */
+  --indigo-30: #35466a; /* 2색 통합 */
+  --indigo-36: #294fae; /* 2색 통합 */
+  --indigo-36-2: #4b5563; /* 10색 통합 */
+  --indigo-39: #315f91; /* 4색 통합 */
+  --indigo-40: #315ca8; /* 7색 통합 */
+  --indigo-45: #3f65c8; /* 7색 통합 */
+  --indigo-45-2: #5268a8; /* 3색 통합 */
+  --indigo-45-3: #536277; /* 29색 통합 — 보조 글자, 대비 확보 위해 묶음 중 진한 값 */
+  --indigo-48: #60709c; /* 3색 통합 */
+  --indigo-49: #5368e8; /* 3색 통합 */
+  --indigo-53: #5d7ad1; /* 3색 통합 */
+  --indigo-54: #6578e8; /* 3색 통합 */
+  --indigo-55: #7c8595; /* 20색 통합 */
+  --indigo-60: #7892b1; /* 5색 통합 */
+  --indigo-62: #8190e9; /* 3색 통합 */
+  --indigo-63: #8095da; /* 2색 통합 */
+  --indigo-65: #8496ff;
+  --indigo-70: #9fadbc; /* 22색 통합 */
+  --indigo-73: #9bb7d7; /* 2색 통합 */
+  --indigo-77: #aebaff;
+  --indigo-78: #b7c1d7; /* 4색 통합 */
+  --indigo-85: #cbd3ff; /* 3색 통합 */
+  --indigo-90: #dce1ff; /* 3색 통합 */
+  --neutral-84: #cbd2d9; /* 31색 통합 */
+  --neutral-93: #e7eaf0; /* 50색 통합 */
+  --neutral-100: #ffffff; /* 64색 통합 */
+  --orange-34: #8d3027;
+  --orange-37: #9a3412;
+  --orange-40: #b42323; /* 2색 통합 */
+  --orange-42: #a34747; /* 3색 통합 */
+  --orange-45: #b9424b; /* 3색 통합 */
+  --orange-47: #b45309;
+  --orange-51: #d44747;
+  --orange-54: #d05c5c;
+  --orange-57: #e45d66;
+  --orange-57-2: #d46b37;
+  --orange-64: #e48347; /* 2색 통합 */
+  --orange-73: #e3a3a3;
+  --orange-80: #e7bebe; /* 3색 통합 */
+  --orange-92: #fee2e2; /* 4색 통합 */
+  --red-55: #bd6b72;
+  --red-59: #db6d76;
+  --teal-31: #315044;
+  --teal-39: #11684f; /* 3색 통합 */
+  --teal-46: #187b5c; /* 2색 통합 */
+  --teal-48: #3d7c69;
+  --teal-58: #2a9c78;
+  --teal-80: #6fd9b3; /* 7색 통합 */
+  --teal-83: #8fe0c2;
+  --teal-83-2: #9fdcc7; /* 4색 통합 */
+  --teal-85: #b8ddcf;
+  --teal-92: #d4eee4; /* 6색 통합 */
+}
+/*
+  의미 토큰 — 화면은 가능하면 이 이름을 쓴다(본문·보조 글자, 실행·위험·성공·주의 색, 버튼 규격, 상태 배지). 기존 화면 CSS 호환 변수(--admin-*, --ui-button-*) 포함 
+ */
+:root {
+  --admin-primary: var(--indigo-49);
+  --admin-navy: var(--indigo-12);
+  --admin-muted: var(--indigo-45-3);
+  --admin-line: var(--neutral-93);
+  --admin-success: var(--green-45);
+  --admin-warning: var(--orange-47);
+  --ctrl-bg: var(--neutral-100);
+  --ctrl-panel: var(--neutral-100);
+  --ctrl-line: var(--neutral-93);
+  --ctrl-ink: var(--indigo-12);
+  --ctrl-navy: var(--indigo-12);
+  --ctrl-blue: var(--indigo-45);
+  --ctrl-green: var(--teal-46);
+  --ctrl-amber: var(--amber-56);
+  --ui-button-padding: 0 12px;
+  --ui-button-radius: 2px;
+  --text-primary: var(--indigo-21);
+  --text-secondary: var(--indigo-45-3);
+  --surface: var(--neutral-100);
+  --line: var(--neutral-93);
+  --accent: var(--indigo-40);
+  --ui-button-height: 36px;
+  --ui-button-font-size: 13px;
+  --ctrl-muted: var(--indigo-45-3);
+  --btn-h: 36px;
+  --btn-radius: 4px;
+  --btn-gap: 6px;
+  --c-primary: var(--indigo-40);
+  --c-primary-hover: var(--indigo-27);
+  --c-danger: var(--orange-40);
+  --c-danger-bg: var(--neutral-100);
+  --c-danger-line: var(--orange-73);
+  --c-success: var(--green-45);
+  --c-success-bg: var(--neutral-100);
+  --c-success-line: var(--teal-83-2);
+  --c-warn: var(--amber-42);
+  --c-line-strong: var(--neutral-84);
+  --badge-ok-bg: #e7f6ef;
+  --badge-ok-text: #11684f;
+  --badge-ok-line: #bfe5d3;
+  --badge-warn-bg: #fff4e5;
+  --badge-warn-text: #9a4a0b;
+  --badge-warn-line: #f2d3a8;
+  --badge-danger-bg: #fdecec;
+  --badge-danger-text: #b42323;
+  --badge-danger-line: #f1c0c0;
+  --badge-neutral-bg: #eef1f4;
+  --badge-neutral-text: #4b5563;
+  --badge-neutral-line: #d6dce4;
+  --badge-info-bg: #e8eefc;
+  --badge-info-text: #294b9a;
+  --badge-info-line: #c9d6f5;
+  /* 어두운 배경(사이드바·터미널) 위 보조 글자 — 4.5:1 이상 */
+  --text-on-dark-muted: #a9b4c7;
+}

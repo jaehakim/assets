@@ -4,18 +4,8 @@ import { createRoot } from "react-dom/client";
 import { AgGridReact } from "ag-grid-react";
 import { AllCommunityModule, ModuleRegistry, themeBalham } from "ag-grid-community";
 import mermaid from "mermaid";
-import "./style.css";
-import "./operations.css";
-import "./asset-detail.css";
-import "./admin-kit.css";
-import "./lifecycle.css";
-import "./login-pro.css";
-import "./control-room.css";
-import "./monitoring.css";
-import "./console-kit.css";
-import "./ag-grid-ext.css";
-import "./design-system.css";
-import "./button-system.css";
+import "./styles/tokens.css";
+import "./styles/app.css";
 ModuleRegistry.registerModules([AllCommunityModule]);
 const assetGridTheme = themeBalham.withParams({
   accentColor: "#2f5f9f",
@@ -142,6 +132,10 @@ function DataGrid({ rows = [], columns, loading = false, empty = "조회된 데�
   function clearGrid(){setQuickFilter("");gridRef.current?.api.setFilterModel(null);onReset?.();}
   function updateCounts({ api }) { setDisplayed(api.getDisplayedRowCount()); setSelected(api.getSelectedRows().length); }
   const pageSizes = useMemo(() => [...new Set([10, 20, 50, 100, pageSize])].sort((a, b) => a - b), [pageSize]);
+  // 디자인 가이드 §6: 데이터가 0건이면 검색·페이지 도구 없이 한 줄 안내만 보인다(큰 빈 표 금지).
+  if (!loading && rows.length === 0 && !quickFilter) return <section className={`x-grid-panel x-grid-empty ${className}`} aria-label={label}>
+    <p className="grid-empty-state" role="status"><Core16Icon name="table" /><span>{empty}</span></p>
+  </section>;
   return <section className={`x-grid-panel ${autoHeight ? "content-grid" : ""} ${className}`} aria-label={label}>
     <div className="x-grid-toolbar">
       <label><Core16Icon name="search"/><input value={quickFilter} onChange={(e)=>setQuickFilter(e.target.value)} placeholder={searchLabel || "현재 목록 검색"} aria-label={searchLabel || `${label} 검색`}/></label>
@@ -236,6 +230,10 @@ const iconPaths = {
   monitor:"M3 4h18v12H3z M8 20h8 M12 16v4", audit:"M5 3h14v18H5z M9 8l2 2 4-4 M9 15h6",
 };
 function Core16Icon({name}){return <svg className="core16-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d={iconPaths[name] || iconPaths.dashboard}/></svg>}
+/** 상태 배지(디자인 가이드 §7): ok 정상·온라인 / warn 확인 필요 / danger 차단·금지 / neutral 오프라인·없음 / info 검토. */
+function StatusBadge({ tone = "neutral", dot = false, icon, children }) {
+  return <em className={`status-badge status-${tone}`}>{dot && <i aria-hidden="true" />}{icon && <Core16Icon name={icon} />}{children}</em>;
+}
 /** 버튼 라벨 = 아이콘 + 글자(디자인 가이드 §4). 아이콘만으로 의미를 전달하지 않는다. trailing은 이동 버튼의 →. */
 function BtnLabel({ icon, children, trailing = false }) {
   return trailing ? <><span>{children}</span><Core16Icon name={icon} /></> : <><Core16Icon name={icon} /><span>{children}</span></>;
@@ -297,11 +295,11 @@ function Login({ onLogin }) {
         </div>
         <div>
           <span className="login-kicker">IT 자산관리</span>
-          <h2>
+          <div className="login-hero-title">
             IT 자산 운영의 기준을
             <br />
             하나의 화면에.
-          </h2>
+          </div>
           <p>
             수집부터 보안, 생애주기와 시스템 운영까지 신뢰할 수 있는 데이터로
             관리하세요.
@@ -453,7 +451,7 @@ function InspectionLog() {
     [busy, setBusy] = useState(false);
   const columns = useMemo(() => [
     { field: "created_at", headerName: "점검 시각", minWidth: 165, pinned: "left", sort: "desc", valueFormatter: ({ value }) => date(value) },
-    { field: "status", headerName: "구분", width: 115, cellRenderer: ({ value }) => <em className={value === "NORMAL" ? "online" : "inspection-warn"}>{value === "NORMAL" ? "정상" : "확인 필요"}</em> },
+    { field: "status", headerName: "구분", width: 115, cellRenderer: ({ value }) => <StatusBadge tone={value === "NORMAL" ? "ok" : "warn"}>{value === "NORMAL" ? "정상" : "확인 필요"}</StatusBadge> },
     { field: "db_status", headerName: "DB", width: 100 },
     { headerName: "온라인 / 전체", width: 130, valueGetter: ({ data }) => `${data.online_assets} / ${data.total_assets}` },
     { field: "stale_assets", headerName: "장기 미접속", width: 120 },
@@ -495,7 +493,7 @@ function InspectionLog() {
     <section>
       <div className="intro">
         <div>
-          <h2>시스템 점검 일지</h2>
+          <h1>시스템 점검 일지</h1>
           <p>
             매일 06:10에 자산 연결, 보안 기준과 데이터베이스 상태를 1회
             기록합니다. 수동 점검은 오늘 기록을 갱신합니다.
@@ -509,9 +507,9 @@ function InspectionLog() {
         <div className="inspection-summary">
           <b>{rows.length ? date(rows[0].created_at) : "-"}</b>
           <span>최근 점검</span>
-          <em className={rows[0]?.status === "NORMAL" ? "normal" : "attention"}>
+          <StatusBadge tone={!rows.length ? "neutral" : rows[0]?.status === "NORMAL" ? "ok" : "warn"}>
             {!rows.length ? "점검 이력 없음" : rows[0]?.status === "NORMAL" ? "정상" : "확인 필요"}
-          </em>
+          </StatusBadge>
         </div>
         {rows[0] && (
           <div className="infra-summary">
@@ -585,7 +583,7 @@ function ServerMonitoring() {
     { field: "total", headerName: "전체", width: 90 },
     { colId: "state", headerName: "상태", width: 110,
       valueGetter: ({ data }) => data.ready >= data.total ? "정상" : "확인 필요",
-      cellRenderer: ({ value }) => <em className={value === "정상" ? "online" : "inspection-warn"}>{value}</em> },
+      cellRenderer: ({ value }) => <StatusBadge tone={value === "정상" ? "ok" : "warn"}>{value}</StatusBadge> },
   ], []);
   const workloads = useMemo(() => data ? [
     { name: "Backend API", detail: "Spring Boot · inventory/admin API", ready: data.backendReady, total: 2 },
@@ -596,7 +594,7 @@ function ServerMonitoring() {
   useEffect(() => { load(); const timer = setInterval(load, 20000); return () => clearInterval(timer); }, []);
   const healthy = !error && data?.nodeReady && !data?.diskPressure && data?.podReady === data?.podTotal && !data?.error;
   const memoryPct = monitorPercent(String(data?.memoryUsage).match(/\(([^)]+)/)?.[1]);
-  return <section className="monitor-page"><div className="intro"><div><h2>서버 상태 모니터링</h2><p>k3s Control Plane과 AssetFlow 워크로드를 20초 간격으로 관제합니다.</p></div><div className="monitor-actions"><span><i className={healthy ? "pulse" : "pulse warn"} />{loading ? "갱신 중" : error ? "갱신 실패 · 상태 미확인" : healthy ? "정상" : "확인 필요"}</span><button onClick={load}><BtnLabel icon="refresh">새로고침</BtnLabel></button></div></div>
+  return <section className="monitor-page"><div className="intro"><div><h1>서버 상태 모니터링</h1><p>k3s Control Plane과 AssetFlow 워크로드를 20초 간격으로 관제합니다.</p></div><div className="monitor-actions"><span><i className={healthy ? "pulse" : "pulse warn"} />{loading ? "갱신 중" : error ? "갱신 실패 · 상태 미확인" : healthy ? "정상" : "확인 필요"}</span><button onClick={load}><BtnLabel icon="refresh">새로고침</BtnLabel></button></div></div>
     {error && <div className="monitor-alert" role="alert">모니터링 API 연결 실패 · {error}{data && " · 아래는 마지막 성공 시점의 데이터입니다."}</div>}
     {data && <><div className="monitor-strip"><div><span>CONTROL PLANE</span><b>{data.nodeReady ? "ONLINE" : "OFFLINE"}</b><small>{data.nodeName} · {data.k3sVersion}</small></div><div><span>DATABASE</span><b>{data.database}</b><small>PostgreSQL connection</small></div><div><span>DEPLOY REVISION</span><b>{data.gitSha?.slice(0, 12) || "LOCAL"}</b><small>Immutable image release</small></div><div><span>LAST POLL</span><b>{new Date(data.checkedAt).toLocaleTimeString("ko-KR")}</b><small>Auto refresh · 20 sec</small></div></div>
       <div className="resource-grid"><MonitorResource label="CPU UTILIZATION" value={data.cpuUsage} percent={monitorPercent(data.cpuUsage)} note="Node compute consumption"/><MonitorResource label="MEMORY UTILIZATION" value={data.memoryUsage} percent={memoryPct} note={`Capacity ${data.memoryCapacity}`}/><article className="panel resource-panel"><div className="resource-head"><span>EPHEMERAL STORAGE</span><b>{data.storageAllocatable}</b></div><div className={`storage-state ${data.diskPressure ? "danger" : ""}`}>{data.diskPressure ? "DISK PRESSURE" : "CAPACITY NORMAL"}</div><small>Total capacity {data.storageCapacity}</small></article></div>
@@ -883,13 +881,13 @@ function AgentOps({ view }) {
     <section>
       <div className="intro">
         <div>
-          <h2>
+          <h1>
             {view === "guide"
               ? "시스템 가이드"
               : view === "history"
                 ? "업데이트 이력"
                 : "Agent 배포"}
-          </h2>
+          </h1>
           <p>
             {view === "guide"
               ? "Linux·k3s 설치 배포와 자료 수집, 자동 업데이트 운영 절차를 단계별로 확인합니다."
@@ -1234,10 +1232,8 @@ function AssetDetailModal({ assetId, onClose: closeModal }) {
                 </p>
               </div>
               <div className="modal-status">
-                <em className={online ? "online" : "offline"}>
-                  ● {online ? "온라인" : "오프라인"}
-                </em>
-                {data.agent_blocked_at && <em className="offline agent-blocked-badge">⊘ Agent 차단됨</em>}
+                <StatusBadge tone={online ? "ok" : "neutral"} dot>{online ? "온라인" : "오프라인"}</StatusBadge>
+                {data.agent_blocked_at && <StatusBadge tone="danger" icon="ban">Agent 차단됨</StatusBadge>}
                 <small>최근 통신 {date(lastContact)}</small>
               </div>
               <button
@@ -1432,7 +1428,7 @@ function AssetTable({ rows, loading, onDetail, paginate = false, query, onQueryC
     { field: "agent_version", headerName: "Agent", width: 105, valueFormatter: ({ value }) => `v${value || "-"}` },
     { field: "ip_address", headerName: "네트워크 / 위치", minWidth: 190, getQuickFilterText: ({ data }) => `${data.ip_address || ""} ${data.server_observed_ip || ""} ${data.location || ""}`, cellRenderer: ({ data }) => <div className="grid-primary"><b>Local {data.ip_address || "-"}</b><small>Server {data.server_observed_ip || "-"} · {data.location || "미지정"}</small></div> },
     { field: "last_seen_at", headerName: "마지막 통신", minWidth: 165, sort: "desc", valueFormatter: ({ value }) => date(value), comparator: (a, b) => new Date(a) - new Date(b) },
-    { field: "online", headerName: "상태", pinned: "right", width: 105, filter: false, cellRenderer: ({ value }) => <em className={value ? "online" : "offline"}>● {value ? "온라인" : "오프라인"}</em> },
+    { field: "online", headerName: "상태", pinned: "right", width: 105, filter: false, cellRenderer: ({ value }) => <StatusBadge tone={value ? "ok" : "neutral"} dot>{value ? "온라인" : "오프라인"}</StatusBadge> },
   ], [onDetail]);
   return <DataGrid label={paginate ? "자산 관리" : "최근 보고 자산"} rows={rows} columns={columns} loading={loading} empty="등록된 자산이 없습니다." pageSize={paginate ? 20 : 10} className={paginate ? "asset-grid full-grid" : "asset-grid compact-grid"} searchValue={query} onSearchChange={onQueryChange} onReset={onReset} searchLabel="장비·사용자·부서 검색" />;
 }
@@ -1482,6 +1478,8 @@ function DesignGuide() {
       <li><b>명도 대비</b>: 본문·보조 문구 4.5:1 이상(회색 보조 문구는 #5f6b7c 이상 진하게).</li>
       <li><b>표</b>: 장치·장비 이름을 첫 열로 고정, 판단에 필요한 열(상태·시각)을 앞에. 참/거짓은 체크박스 대신 "연결됨/과거 연결"처럼 글자로. 결과 0건이면 "✓ … 없습니다" 한 줄.</li>
       <li><b>터치 영역</b>: 모바일에서 버튼·링크 24px 이상.</li>
+      <li><b>CSS 위치</b>: 색·글자·모서리 값은 <code>styles/tokens.css</code>에만 둔다. 화면 CSS(<code>styles/app.css</code>)는 <code>var(--토큰)</code>만 쓴다.</li>
+      <li><b>상태 배지</b>: <StatusBadge tone="ok" dot>온라인</StatusBadge> <StatusBadge tone="warn">확인 필요</StatusBadge> <StatusBadge tone="danger" icon="ban">차단됨</StatusBadge> <StatusBadge tone="neutral" dot>오프라인</StatusBadge> <StatusBadge tone="info">검토 필요</StatusBadge> — <code>StatusBadge</code> 컴포넌트만 쓴다.</li>
     </ul>
   </div>;
 }
@@ -1567,7 +1565,7 @@ function PeripheralInventory({ onDetail }) {
   const ps = peripherals.summary || {}, us = usb.summary || {};
   const monitors = peripherals.rows.filter(r => r.device_type === "MONITOR"), inputs = peripherals.rows.filter(r => r.device_type !== "MONITOR");
   return <section className="compliance-page peripheral-page">
-    <div className="intro"><div><h2>주변기기·USB 현황</h2><p>Agent 0.2.13+가 수집한 모니터·키보드·마우스와 USB 연결 기록을 전체 PC 기준으로 봅니다.</p></div><button onClick={load} disabled={loading}><BtnLabel icon="refresh">새로고침</BtnLabel></button></div>
+    <div className="intro"><div><h1>주변기기·USB 현황</h1><p>Agent 0.2.13+가 수집한 모니터·키보드·마우스와 USB 연결 기록을 전체 PC 기준으로 봅니다.</p></div><button onClick={load} disabled={loading}><BtnLabel icon="refresh">새로고침</BtnLabel></button></div>
     {loadError && <div role="alert" className="notice error">{loadError}<button onClick={load}><BtnLabel icon="refresh">다시 시도</BtnLabel></button></div>}
     <div className="compliance-summary">
       <article><small>모니터</small><b>{ps.monitors ?? 0}</b><span>{ps.assets_with_monitor ?? 0}개 PC에 연결 · 시리얼 미확인 {ps.monitors_without_serial ?? 0}</span></article>
@@ -1651,7 +1649,7 @@ function AssetAudit({ onDetail, onChanged }) {
     { headerName: "조치", width: 110, filter: false, sortable: false, cellRenderer: ({ data }) => <button className="btn-success grid-action" onClick={() => unblock(data)}><BtnLabel icon="unlock">차단 해제</BtnLabel></button> },
   ], [onDetail]);
   return <section className="compliance-page audit-page">
-    <div className="intro"><div><h2>자산 점검</h2><p>대장과 실제 통신 상태가 어긋나는 자산, 중복 등록 의심, 관리 기준정보 누락을 한곳에서 확인합니다.</p></div><button onClick={load} disabled={loading}><BtnLabel icon="refresh">다시 점검</BtnLabel></button></div>
+    <div className="intro"><div><h1>자산 점검</h1><p>대장과 실제 통신 상태가 어긋나는 자산, 중복 등록 의심, 관리 기준정보 누락을 한곳에서 확인합니다.</p></div><button onClick={load} disabled={loading}><BtnLabel icon="refresh">다시 점검</BtnLabel></button></div>
     {loadError && <div role="alert" className="notice error">{loadError}<button onClick={load}><BtnLabel icon="refresh">다시 시도</BtnLabel></button></div>}<Feedback className="notice" text={message} />
     <div className="compliance-summary audit-summary">
       <article className={data.retiredActive.length ? "danger" : undefined}><small>폐기·분실 자산 통신</small><b>{data.retiredActive.length}</b><span>최근 7일 Agent 보고</span></article>
@@ -1680,7 +1678,7 @@ function SoftwareCompliance(){
   async function sync(){setBusy(true);try{const x=await api("/api/v1/admin/software-compliance/sync",{method:"POST"});setMessage(x.status==="NOT_CONFIGURED"?x.message:`${x.importedCount}건을 동기화했습니다.`);await load();}catch(e){setMessage(`동기화 실패: ${e.message}`);}finally{setBusy(false)}}
   const set=(k,v)=>setForm(x=>({...x,[k]:v}));
   const detectionColumns=useMemo(()=>[
-    {field:"classification",headerName:"판정",width:130,pinned:"left",cellRenderer:({value})=><em className={`compliance-badge ${value.toLowerCase()}`}>{complianceLabels[value]}</em>},
+    {field:"classification",headerName:"판정",width:130,pinned:"left",cellRenderer:({value})=><StatusBadge tone={{ PROHIBITED: "danger", LICENSE_REQUIRED: "warn" }[value] || "info"}>{complianceLabels[value]}</StatusBadge>},
     {field:"hostname",headerName:"장비",minWidth:150},
     {headerName:"담당자/부서",minWidth:150,valueGetter:({data})=>data.assigned_to||data.department||"-"},
     {field:"software_name",headerName:"설치 프로그램",minWidth:220,flex:1},
@@ -1696,7 +1694,7 @@ function SoftwareCompliance(){
     {field:"source_name",headerName:"출처",minWidth:180,flex:1},
     {headerName:"관리",width:100,filter:false,sortable:false,cellRenderer:({data})=><button className="danger-button grid-action" onClick={()=>remove(data.id)}><BtnLabel icon="trash">삭제</BtnLabel></button>},
   ],[]);
-  return <section className="compliance-page"><div className="intro"><div><h2>소프트웨어 컴플라이언스</h2><p>판정 목록과 Agent 설치목록을 대조해 확인이 필요한 장비를 표시합니다.</p></div><button className="btn-primary" onClick={sync} disabled={busy}><BtnLabel icon="sync">공공 기초자료 동기화</BtnLabel></button></div>
+  return <section className="compliance-page"><div className="intro"><div><h1>소프트웨어 컴플라이언스</h1><p>판정 목록과 Agent 설치목록을 대조해 확인이 필요한 장비를 표시합니다.</p></div><button className="btn-primary" onClick={sync} disabled={busy}><BtnLabel icon="sync">공공 기초자료 동기화</BtnLabel></button></div>
     {loadError && <div role="alert" className="notice error">{loadError}<button onClick={load}><BtnLabel icon="refresh">다시 시도</BtnLabel></button></div>}<Feedback className="notice" text={message} /><div className="compliance-summary"><article><small>판정 기준</small><b>{data.policies.length}</b><span>활성 목록</span></article><article className="danger"><small>탐지 장비</small><b>{data.affectedAssets}</b><span>관리자 확인 필요</span></article><article><small>탐지 프로그램</small><b>{data.detections.length}</b><span>중복 설치 포함</span></article></div>
     <article className="panel compliance-form"><div className="panel-heading"><div><h3>판정 목록 등록</h3><p>제품명과 게시자를 기준으로 설치 프로그램을 대조합니다.</p></div></div><form onSubmit={add}><label>프로그램명 *<input required value={form.softwareName} onChange={e=>set("softwareName",e.target.value)} placeholder="프로그램명"/></label><label>게시자 (선택)<input value={form.publisher} onChange={e=>set("publisher",e.target.value)} placeholder="게시자(선택)"/></label><label>일치 방식<select value={form.matchType} onChange={e=>set("matchType",e.target.value)}><option value="CONTAINS">이름 포함</option><option value="EXACT">이름 정확히</option><option value="PREFIX">이름 시작</option></select></label><label>판정 분류<select value={form.classification} onChange={e=>set("classification",e.target.value)}><option value="REVIEW_REQUIRED">검토 필요</option><option value="LICENSE_REQUIRED">라이선스 확인</option><option value="PROHIBITED">사용 금지</option></select></label><label>근거 URL/문서<input value={form.sourceRef} onChange={e=>set("sourceRef",e.target.value)} placeholder="근거 URL/문서"/></label><label>판정 메모<input value={form.notes} onChange={e=>set("notes",e.target.value)} placeholder="판정 메모"/></label><button className="btn-primary" disabled={busy}><BtnLabel icon="plus">기준 등록</BtnLabel></button></form></article>
     <article className="panel table"><div className="panel-heading"><div><h3>탐지 장비</h3><p>설치만으로 불법 사용이 확정되지는 않으며 보유 라이선스와 사용권을 확인해야 합니다.</p></div></div><DataGrid label="탐지 장비" loading={loading} rows={data.detections} columns={detectionColumns} empty="현재 판정 목록과 일치하는 설치 프로그램이 없습니다." className="menu-grid" /></article>
@@ -1789,7 +1787,7 @@ function App() {
       {loadError&&<div className="notice error" role="alert">{loadError}{lastLoaded&&" 마지막 성공 시점의 데이터를 표시합니다."}<button onClick={load} disabled={loading}><BtnLabel icon="refresh">다시 시도</BtnLabel></button></div>}
       {(active==="대시보드"||active==="자산 관리")&&<div className="data-freshness" role="status">{loading?"데이터 갱신 중…":lastLoaded?`마지막 성공 조회: ${lastLoaded.toLocaleString("ko-KR")}`:"데이터 조회 대기"}{assets.length>=500&&" · 목록은 최근 500개 자산입니다. 전체 자료는 CSV로 확인하세요."}</div>}
       {active==="Agent 배포"?<AgentOps view="release"/>:active==="업데이트 이력"?<AgentOps view="history"/>:active==="시스템 가이드"?<AgentOps view="guide"/>:active==="점검 일지"?<InspectionLog/>:active==="서버 모니터링"?<ServerMonitoring/>:active==="SW 컴플라이언스"?<SoftwareCompliance/>:active==="주변기기·USB"?<PeripheralInventory onDetail={showDetail}/>:active==="자산 점검"?<AssetAudit onDetail={showDetail} onChanged={load}/>:active==="자산 관리"?<section>
-        <div className="intro"><div><h2>자산 목록</h2><p>장비명을 선택하면 상세 정보와 관리 이력을 확인할 수 있습니다.</p></div><div className="list-metrics"><button onClick={load} disabled={loading}><BtnLabel icon="refresh">새로고침</BtnLabel></button><a className="export-button" href="/api/v1/assets-export.csv"><BtnLabel icon="download">전체 자산 CSV</BtnLabel></a></div></div>
+        <div className="intro"><div><h1>자산 목록</h1><p>장비명을 선택하면 상세 정보와 관리 이력을 확인할 수 있습니다.</p></div><div className="list-metrics"><button onClick={load} disabled={loading}><BtnLabel icon="refresh">새로고침</BtnLabel></button><a className="export-button" href="/api/v1/assets-export.csv"><BtnLabel icon="download">전체 자산 CSV</BtnLabel></a></div></div>
         <div className="filter-bar"><label>조치 상태<select aria-label="조치 상태" value={assetFilter} onChange={e=>navigate({filter:e.target.value},true)}>{Object.entries(assetFilters).map(([key,label])=><option key={key} value={key}>{label}</option>)}</select></label>{(q||assetFilter!=="all")&&<span className="filter-chip">{assetFilters[assetFilter]}{q&&` · 검색: ${q}`}</span>}</div>
         <article className="panel table asset-list-panel"><AssetTable rows={filtered} loading={loading} onDetail={showDetail} paginate query={q} onQueryChange={query=>navigate({query},true)} onReset={()=>navigate({query:"",filter:"all"},true)}/></article>
       </section>:<><Dashboard stats={stats} rows={assets.slice(0,6)} loading={loading} load={load} all={openAssets} onDetail={showDetail} hasData={!!lastLoaded} openView={openWorkspace}/>{lastLoaded&&stats.total===0&&<div className="notice empty-guide">등록된 자산이 없습니다. Agent 설치 후 장비 정보가 표시됩니다.<button onClick={()=>openWorkspace("시스템 가이드")}>설치 안내 보기</button></div>}</>}
@@ -1811,7 +1809,7 @@ function Dashboard({ stats, rows, loading, load, all, onDetail, hasData, openVie
       <section>
         <div className="intro">
           <div>
-            <h2>자산 현황</h2>
+            <h1>자산 현황</h1>
             <p>전체 IT 자산의 상태를 확인하세요.</p>
           </div>
           <button onClick={load}><BtnLabel icon="refresh">새로고침</BtnLabel></button>
