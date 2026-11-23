@@ -101,6 +101,9 @@ Windows 서비스는 활성 사용자 세션의 트레이 앱을 주기적으로
 | GET | `/api/v1/admin/agent-releases` | 관리자 세션 | 등록된 Agent 버전 목록 |
 | POST | `/api/v1/admin/agent-releases` | 관리자 세션 + `X-Update-Token` | 신규 Agent EXE 등록 (버전 불변, PE 검사, 100MB) |
 | GET | `/api/v1/admin/agent-update-history` | 관리자 세션 | 장비별 Agent 버전 변경 이력 조회 |
+| GET | `/api/v1/peripherals`, `/api/v1/usb-devices?days&category` | 관리자 세션 | 전사 주변기기·USB 현황 (CSV: `*-export.csv`) |
+| GET | `/api/v1/admin/asset-audit` | 관리자 세션 | 폐기·분실 통신, 중복 의심, 기준정보 누락, 차단 Agent |
+| POST | `/api/v1/admin/agents/{id}/block`, `/unblock` | 관리자 세션 | Agent 차단(장치 토큰·재등록 거부)·해제 |
 | GET | `/api/v1/admin/software-compliance` | 관리자 세션 | 판정 목록·탐지 장비·동기화 이력 |
 | POST | `/api/v1/admin/software-compliance/policies` | 관리자 세션 | 기관 자체 판정 기준 등록 |
 | PUT / DELETE | `/api/v1/admin/software-compliance/policies/{id}` | 관리자 세션 | 판정 기준 수정·삭제 |
@@ -130,6 +133,15 @@ Windows 서비스는 활성 사용자 세션의 트레이 앱을 주기적으로
 - Agent ID만으로 인증하지 않고 등록 토큰과 장치별 Bearer 토큰을 분리합니다.
 
 ## 변경 이력
+
+### 2026-11-23 — Backend 0.3.0 / Frontend 0.4.0 (ITAM 기능 추가)
+
+- 주변기기·USB 현황 화면(모니터 대장·노후 모니터, 키보드·마우스, USB 연결 기록, CSV)
+- 자산 점검 화면: 폐기·분실 자산 통신 경보(FR-005), 중복 등록 의심(FR-004 탐지), 관리 기준정보 누락(AR-003)
+- Agent 차단·해제(FR-016, Flyway `V6`): 장치 토큰 인증·재등록 거부
+- 관리정보 필드 단위 변경 이력(AR-002)
+- 실데이터 화면 디자인 검토 반영(표 열 순서, 하드웨어 탭 1단, 빈 점검 결과 압축, 요약 타일 가독성, 대시보드 정렬·연결률 색상)
+- 기능추가 누적 기록·분석: [22 기능추가 이력 및 추가기능 검토](docs/22_기능추가_이력_및_추가기능_검토.md)
 
 ### 2026-11-23 — Agent 0.2.16 / Backend 0.2.4 (장치명 보완)
 

@@ -24,7 +24,9 @@ public class AgentController {
   public ResponseEntity<?> register(@RequestHeader(value="X-Registration-Token",required=false)String key,@Valid @RequestBody Models.Register x,HttpServletRequest req){
     if(!auth.registrationValid(key))return ResponseEntity.status(401).body(Map.of("error","invalid registration token"));
     byte[] b=new byte[32];new SecureRandom().nextBytes(b);String token=Base64.getUrlEncoder().withoutPadding().encodeToString(b);
-    var found=db.queryForList("SELECT id,version FROM agent WHERE agent_key=?",x.agentKey());
+    var found=db.queryForList("SELECT id,version,blocked_at FROM agent WHERE agent_key=?",x.agentKey());
+    // FR-016: 차단된 PC는 등록 토큰이 있어도 재등록(새 장치 토큰 발급)할 수 없다.
+    if(!found.isEmpty()&&found.getFirst().get("blocked_at")!=null)return ResponseEntity.status(403).body(Map.of("error","agent blocked"));
     UUID id=found.isEmpty()?UUID.randomUUID():(UUID)found.getFirst().get("id");
     if(found.isEmpty()){
       db.update("INSERT INTO agent(id,agent_key,hostname,version,token_hash,last_ip)VALUES(?,?,?,?,?,?)",id,x.agentKey(),x.hostname(),x.version(),AgentAuth.hash(token),req.getRemoteAddr());

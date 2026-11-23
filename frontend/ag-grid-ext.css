@@ -104,3 +104,25 @@ html,body,#root,button,input,select,textarea,.ag-root-wrapper,.ag-popup,.ag-menu
   .enterprise-grid .ag-paging-page-summary-panel{margin:0}
   .enterprise-grid .ag-paging-page-size{margin:0}
 }
+.compliance-summary.audit-summary{grid-template-columns:repeat(4,minmax(0,1fr))}
+@media(max-width:900px){.compliance-summary.audit-summary{grid-template-columns:1fr 1fr}}
+.agent-blocked-badge{margin-left:6px;color:#b42323!important;background:#fee2e2!important}
+.peripheral-page .detail-sections{margin:0 0 10px}
+.peripheral-page .list-metrics label{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#4b5563}
+.peripheral-page .list-metrics select{border:1px solid #cfd6df;padding:6px 8px;background:#fff}
+/* 2026-11-23 실데이터 화면 검토 반영 */
+.compliance-summary small{font-size:12px!important;font-weight:600;color:#4b5563!important}
+.audit-ok{margin:0;padding:14px 18px;border-top:1px solid #e5e9f0;color:#1f7a4d;font-size:13px;font-weight:600}
+.detail-section-hardware .detail-layout{grid-template-columns:minmax(0,1fr)}
+main>section.panel.table{margin:0 24px 20px}
+@media(max-width:900px){
+  .compliance-summary,.compliance-summary.audit-summary{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .compliance-summary article{padding:12px}
+  .compliance-summary b{font-size:22px}
+  main>section.panel.table{margin:0 12px 16px}
+  .peripheral-page .panel-heading{flex-wrap:wrap;gap:8px}
+  .peripheral-page .panel-heading .list-metrics{width:100%;justify-content:flex-start}
+  .peripheral-page .detail-sections{overflow-x:auto;flex-wrap:nowrap}
+}
+.coverage.coverage-low b{color:#b45309!important}
+.action-list .action-row{padding-top:10px!important;padding-bottom:10px!important}

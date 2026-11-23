@@ -196,6 +196,8 @@ const menuGroups = [
       { name: "대시보드", icon: "dashboard" },
       { name: "자산 관리", icon: "table" },
       { name: "SW 컴플라이언스", icon: "shield" },
+      { name: "주변기기·USB", icon: "monitor" },
+      { name: "자산 점검", icon: "audit" },
     ],
   },
   {
@@ -221,6 +223,7 @@ const iconPaths = {
   book:"M3 4h7l2 2 2-2h7v16h-7l-2 2-2-2H3z M12 6v16", "chart-line":"M3 3v18h18 M6 16l5-6 4 3 6-8",
   checklist:"M9 5h12 M9 12h12 M9 19h12 M2 4l2 2 3-3 M2 11l2 2 3-3 M2 18l2 2 3-3",
   search:"M10 3a7 7 0 1 0 0 14 7 7 0 0 0 0-14 M15 15l6 6", refresh:"M20 10a8 8 0 1 0-2 8 M20 3v7h-7",
+  monitor:"M3 4h18v12H3z M8 20h8 M12 16v4", audit:"M5 3h14v18H5z M9 8l2 2 4-4 M9 15h6",
 };
 function Core16Icon({name}){return <svg className="core16-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d={iconPaths[name] || iconPaths.dashboard}/></svg>}
 async function api(url, options = {}) {
@@ -1142,11 +1145,11 @@ function AssetDetailModal({ assetId, onClose: closeModal }) {
       cellClass: ({ data }) => data?.present ? "ok-text" : undefined },
     { field: "category", headerName: "분류", width: 100, valueFormatter: ({ value }) => usbCategories[value] || value },
     { field: "name", headerName: "장치명", minWidth: 190, flex: 1 },
-    { field: "manufacturer", headerName: "제조사", minWidth: 120, valueFormatter: ({ value }) => show(value) },
-    { colId: "vidpid", headerName: "VID:PID", width: 115, valueGetter: ({ data }) => data.vendor_id && data.product_id ? `${data.vendor_id}:${data.product_id}` : "-" },
-    { field: "serial_no", headerName: "시리얼 번호", minWidth: 150, valueFormatter: ({ value }) => show(value) },
     { field: "last_arrival_at", headerName: "최근 연결", minWidth: 150, valueFormatter: ({ value }) => date(value) },
     { field: "last_removal_at", headerName: "최근 분리", minWidth: 150, valueFormatter: ({ value }) => date(value) },
+    { field: "manufacturer", headerName: "제조사", minWidth: 120, valueFormatter: ({ value }) => show(value) },
+    { field: "serial_no", headerName: "시리얼 번호", minWidth: 150, valueFormatter: ({ value }) => show(value) },
+    { colId: "vidpid", headerName: "VID:PID", width: 115, valueGetter: ({ data }) => data.vendor_id && data.product_id ? `${data.vendor_id}:${data.product_id}` : "-" },
     { field: "first_install_at", headerName: "최초 설치", minWidth: 150, valueFormatter: ({ value }) => date(value) },
   ], []);
   const diskColumns = useMemo(() => [
@@ -1210,6 +1213,7 @@ function AssetDetailModal({ assetId, onClose: closeModal }) {
                 <em className={online ? "online" : "offline"}>
                   ● {online ? "온라인" : "오프라인"}
                 </em>
+                {data.agent_blocked_at && <em className="offline agent-blocked-badge">⊘ Agent 차단됨</em>}
                 <small>최근 통신 {date(lastContact)}</small>
               </div>
               <button
@@ -1249,6 +1253,7 @@ function AssetDetailModal({ assetId, onClose: closeModal }) {
               <div className="detail-layout">
                 <div className="detail-main">
                   <ManagementForm data={data} onSaved={loadDetail} onDirtyChange={setDirty} />
+                  <AgentAccessCard data={data} onChanged={loadDetail} />
                   <article className="detail-card hardware-card">
                     <h3>
                       <Icon name="device" />
@@ -1408,6 +1413,190 @@ function AssetTable({ rows, loading, onDetail, paginate = false, query, onQueryC
   return <DataGrid label={paginate ? "자산 관리" : "최근 보고 자산"} rows={rows} columns={columns} loading={loading} empty="등록된 자산이 없습니다." pageSize={paginate ? 20 : 10} className={paginate ? "asset-grid full-grid" : "asset-grid compact-grid"} searchValue={query} onSearchChange={onQueryChange} onReset={onReset} searchLabel="장비·사용자·부서 검색" />;
 }
 const complianceLabels={PROHIBITED:"사용 금지",LICENSE_REQUIRED:"라이선스 확인",REVIEW_REQUIRED:"검토 필요"};
+/** FR-016: 분실·유출 PC의 Agent 장치 토큰을 폐기하고 재등록을 막는다. */
+function AgentAccessCard({ data, onChanged }) {
+  const [busy, setBusy] = useState(false), [message, setMessage] = useState("");
+  async function block() {
+    const reason = prompt(`${data.hostname} Agent를 차단합니다. 차단 사유를 입력하세요 (예: 분실 신고, 퇴사자 미반납).`);
+    if (!reason || !reason.trim()) return;
+    setBusy(true);
+    try { await api(`/api/v1/admin/agents/${data.agent_id}/block`, { method: "POST", body: JSON.stringify({ reason: reason.trim() }) }); setMessage("Agent를 차단했습니다."); await onChanged(); }
+    catch (e) { setMessage(`차단 실패: ${e.message}`); } finally { setBusy(false); }
+  }
+  async function unblock() {
+    if (!confirm(`${data.hostname} Agent 차단을 해제하시겠습니까? 기존 장치 토큰으로 다시 통신합니다.`)) return;
+    setBusy(true);
+    try { await api(`/api/v1/admin/agents/${data.agent_id}/unblock`, { method: "POST" }); setMessage("차단을 해제했습니다."); await onChanged(); }
+    catch (e) { setMessage(`해제 실패: ${e.message}`); } finally { setBusy(false); }
+  }
+  return <article className="detail-card management-card agent-access-card">
+    <h3><Icon name="shield" />Agent 접속 제어</h3>
+    {data.agent_blocked_at
+      ? <p className="sw-truncated-notice" role="note">차단됨 · {date(data.agent_blocked_at)} · {show(data.agent_blocked_by)} · 사유: {show(data.agent_blocked_reason)}</p>
+      : <p className="usb-history-note">분실·도난·미반납 PC는 Agent를 차단하면 서버 통신과 재등록이 거부됩니다. 수집된 자산 정보와 이력은 유지됩니다.</p>}
+    <div className="management-actions"><small role="status">{message}</small>
+      {data.agent_blocked_at
+        ? <button type="button" disabled={busy} onClick={unblock}>차단 해제</button>
+        : <button type="button" className="danger-button" disabled={busy || !data.agent_id} onClick={block}>Agent 차단</button>}
+    </div>
+  </article>;
+}
+
+const hostColumn = (onDetail, extra = {}) => ({ field: "hostname", headerName: "장비", minWidth: 140, pinned: "left", ...extra,
+  cellRenderer: ({ data }) => <button className="asset-detail-link" onClick={() => onDetail(data.asset_id || data.id)} aria-label={`${data.hostname} 상세 보기`}>{data.hostname}</button> });
+const personColumn = { colId: "person", headerName: "담당·사용자", minWidth: 140, valueGetter: ({ data }) => data.assigned_to || userLabel(data.username) };
+
+/** 전사 주변기기·USB 현황: 모니터 대장(실사)과 USB 저장장치·휴대기기 사용 현황(보안 점검). */
+function PeripheralInventory({ onDetail }) {
+  const [tab, setTab] = useState("MONITOR"), [days, setDays] = useState(30), [category, setCategory] = useState("STORAGE");
+  const [peripherals, setPeripherals] = useState({ rows: [], summary: {} }), [usb, setUsb] = useState({ rows: [], summary: {} });
+  const [loading, setLoading] = useState(true), [loadError, setLoadError] = useState("");
+  const usbQuery = `days=${days}${category ? `&category=${category}` : ""}`;
+  async function load() {
+    setLoading(true);
+    try {
+      const [p, u] = await Promise.all([api("/api/v1/peripherals"), api(`/api/v1/usb-devices?${usbQuery}`)]);
+      setPeripherals({ rows: [], summary: {}, ...p }); setUsb({ rows: [], summary: {}, ...u }); setLoadError("");
+    } catch (e) { setLoadError(`조회 실패: ${e.message}`); } finally { setLoading(false); }
+  }
+  useEffect(() => { load(); }, [usbQuery]);
+  const year = new Date().getFullYear();
+  const monitorColumns = useMemo(() => [
+    { field: "name", headerName: "모니터", minWidth: 160, pinned: "left" },
+    { field: "size_inches", headerName: "크기", width: 82, valueFormatter: ({ value }) => value ? `${value}"` : "-" },
+    { field: "manufacture_year", headerName: "제조연도", width: 118, cellClass: ({ value }) => value && year - value >= 7 ? "warn-text" : undefined,
+      valueFormatter: ({ value }) => value ? `${value}${year - value >= 7 ? " (노후)" : ""}` : "-" },
+    { field: "serial_no", headerName: "시리얼 번호", minWidth: 140, valueFormatter: ({ value }) => show(value) },
+    hostColumn(onDetail, { pinned: undefined }), personColumn,
+    { field: "manufacturer", headerName: "제조사", minWidth: 120, valueFormatter: ({ value }) => show(value) },
+    { field: "connection", headerName: "연결", width: 100, valueFormatter: ({ value }) => value ? connectionLabels[value] || value : "-" },
+    { field: "model", headerName: "모델 코드", minWidth: 100, valueFormatter: ({ value }) => show(value) },
+    { field: "first_seen_at", headerName: "최초 확인", minWidth: 150, flex: 1, valueFormatter: ({ value }) => date(value) },
+  ], [onDetail, year]);
+  const inputColumns = useMemo(() => [
+    { field: "name", headerName: "장치명", minWidth: 170, pinned: "left" },
+    { field: "device_type", headerName: "구분", width: 82, valueFormatter: ({ value }) => peripheralTypes[value] || value },
+    hostColumn(onDetail, { pinned: undefined }), personColumn,
+    { field: "manufacturer", headerName: "제조사", minWidth: 120, valueFormatter: ({ value }) => show(value) },
+    { field: "connection", headerName: "연결", width: 100, valueFormatter: ({ value }) => value ? connectionLabels[value] || value : "-" },
+    { field: "model", headerName: "모델 코드", minWidth: 160, flex: 1, valueFormatter: ({ value }) => show(value) },
+  ], [onDetail]);
+  const usbColumns = useMemo(() => [
+    { field: "name", headerName: "장치명", minWidth: 190, pinned: "left" },
+    { colId: "present", headerName: "상태", width: 96, valueGetter: ({ data }) => data.present ? "연결됨" : "과거 연결", cellClass: ({ data }) => data?.present ? "ok-text" : undefined },
+    { field: "last_arrival_at", headerName: "최근 연결", minWidth: 150, valueFormatter: ({ value }) => date(value) },
+    { field: "last_removal_at", headerName: "최근 분리", minWidth: 150, valueFormatter: ({ value }) => date(value) },
+    hostColumn(onDetail, { pinned: undefined }), personColumn,
+    { field: "category", headerName: "분류", width: 96, valueFormatter: ({ value }) => usbCategories[value] || value },
+    { field: "serial_no", headerName: "시리얼 번호", minWidth: 150, valueFormatter: ({ value }) => show(value) },
+    { field: "manufacturer", headerName: "제조사", minWidth: 120, flex: 1, valueFormatter: ({ value }) => show(value) },
+  ], [onDetail]);
+  const ps = peripherals.summary || {}, us = usb.summary || {};
+  const monitors = peripherals.rows.filter(r => r.device_type === "MONITOR"), inputs = peripherals.rows.filter(r => r.device_type !== "MONITOR");
+  return <section className="compliance-page peripheral-page">
+    <div className="intro"><div><h2>주변기기·USB 현황</h2><p>Agent 0.2.13+가 수집한 모니터·키보드·마우스와 USB 연결 기록을 전체 PC 기준으로 봅니다.</p></div><button onClick={load} disabled={loading}>↻ 새로고침</button></div>
+    {loadError && <div role="alert" className="notice error">{loadError}<button onClick={load}>다시 시도</button></div>}
+    <div className="compliance-summary">
+      <article><small>모니터</small><b>{ps.monitors ?? 0}</b><span>{ps.assets_with_monitor ?? 0}개 PC에 연결 · 시리얼 미확인 {ps.monitors_without_serial ?? 0}</span></article>
+      <article className={ps.aged_monitors ? "danger" : undefined}><small>노후 모니터</small><b>{ps.aged_monitors ?? 0}</b><span>제조 7년 이상 — 교체 계획 대상</span></article>
+      <article className={us.storage_assets ? "danger" : undefined}><small>USB 저장장치 사용 PC (최근 {days}일)</small><b>{us.storage_assets ?? 0}</b><span>저장장치 {us.storage_devices ?? 0}개 · 휴대기기 연결 PC {us.mobile_assets ?? 0}</span></article>
+    </div>
+    <nav className="detail-sections" aria-label="주변기기 구분">{Object.entries({ MONITOR: `모니터 대장 (${monitors.length})`, INPUT: `키보드·마우스 (${inputs.length})`, USB: `USB 연결 기록 (${usb.rows.length})` }).map(([key, label]) =>
+      <button key={key} aria-pressed={tab === key} onClick={() => setTab(key)}>{label}</button>)}</nav>
+    {tab === "MONITOR" && <article className="panel table"><div className="panel-heading"><div><h3>모니터 대장</h3><p>모니터 시리얼로 연결 PC를 찾고 실사·교체 대상을 확인합니다. 노트북 내장 패널 포함.</p></div><a className="export-button" href="/api/v1/peripherals-export.csv?type=MONITOR">모니터 CSV</a></div>
+      <DataGrid label="모니터 대장" autoHeight loading={loading} rows={monitors} columns={monitorColumns} empty="수집된 모니터가 없습니다. Agent 0.2.13 이상으로 업데이트된 PC부터 표시됩니다." className="menu-grid" /></article>}
+    {tab === "INPUT" && <article className="panel table"><div className="panel-heading"><div><h3>키보드·마우스</h3><p>무선 수신기·블루투스·내장 장치 포함.</p></div><a className="export-button" href="/api/v1/peripherals-export.csv">주변기기 CSV</a></div>
+      <DataGrid label="키보드·마우스" autoHeight loading={loading} rows={inputs} columns={inputColumns} empty="수집된 키보드·마우스가 없습니다." className="menu-grid" /></article>}
+    {tab === "USB" && <article className="panel table"><div className="panel-heading"><div><h3>USB 연결 기록</h3><p>현재 연결 장치와 기간 내 연결 기록입니다. 저장장치 사용 자체가 위반은 아니므로 기관 매체 통제 정책과 대조하세요.</p></div>
+      <div className="list-metrics"><label>분류<select aria-label="USB 분류" value={category} onChange={e => setCategory(e.target.value)}><option value="">전체</option>{Object.entries(usbCategories).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
+        <label>기간<select aria-label="USB 기간" value={days} onChange={e => setDays(Number(e.target.value))}>{[7, 30, 90, 365].map(d => <option key={d} value={d}>최근 {d}일</option>)}</select></label>
+        <a className="export-button" href={`/api/v1/usb-devices-export.csv?${usbQuery}`}>USB CSV</a></div></div>
+      <DataGrid label="USB 연결 기록" autoHeight loading={loading} rows={usb.rows} columns={usbColumns} empty="조건에 맞는 USB 연결 기록이 없습니다." className="menu-grid" /></article>}
+  </section>;
+}
+
+const matchLabels = { SERIAL: "시리얼", UUID: "장치 UUID", MAC: "MAC 주소" };
+
+/** 점검 결과가 없으면 큰 빈 표 대신 한 줄로 "이상 없음"을 보여 준다. */
+function AuditGrid({ loading, rows, okText, ...props }) {
+  if (!loading && rows.length === 0) return <p className="audit-ok" role="status">✓ {okText}</p>;
+  return <DataGrid loading={loading} rows={rows} className="menu-grid" autoHeight {...props} />;
+}
+
+/** ITAM 점검: FR-005 폐기·분실 자산 활동, FR-004 중복 자산, AR-003 기준정보 누락, FR-016 차단된 Agent. */
+function AssetAudit({ onDetail, onChanged }) {
+  const [data, setData] = useState({ retiredActive: [], duplicates: [], duplicateGroups: 0, incomplete: [], blockedAgents: [] });
+  const [loading, setLoading] = useState(true), [loadError, setLoadError] = useState(""), [message, setMessage] = useState("");
+  async function load() {
+    setLoading(true);
+    try { const d = await api("/api/v1/admin/asset-audit"); setData({ retiredActive: [], duplicates: [], duplicateGroups: 0, incomplete: [], blockedAgents: [], ...d }); setLoadError(""); }
+    catch (e) { setLoadError(`조회 실패: ${e.message}`); } finally { setLoading(false); }
+  }
+  useEffect(() => { load(); }, []);
+  async function block(row) {
+    const reason = prompt(`${row.hostname} Agent를 차단합니다. 차단 사유를 입력하세요.`, `${lifecycleLabels[row.lifecycle_status] || ""} 처리 자산의 통신`);
+    if (!reason || !reason.trim()) return;
+    try { await api(`/api/v1/admin/agents/${row.agent_id}/block`, { method: "POST", body: JSON.stringify({ reason: reason.trim() }) }); setMessage(`${row.hostname} Agent를 차단했습니다.`); await load(); onChanged?.(); }
+    catch (e) { setMessage(`차단 실패: ${e.message}`); }
+  }
+  async function unblock(row) {
+    if (!confirm(`${row.hostname} Agent 차단을 해제하시겠습니까?`)) return;
+    try { await api(`/api/v1/admin/agents/${row.agent_id}/unblock`, { method: "POST" }); setMessage(`${row.hostname} 차단을 해제했습니다.`); await load(); onChanged?.(); }
+    catch (e) { setMessage(`해제 실패: ${e.message}`); }
+  }
+  const retiredColumns = useMemo(() => [
+    hostColumn(onDetail),
+    { field: "lifecycle_status", headerName: "관리 상태", width: 130, valueFormatter: ({ value }) => lifecycleLabels[value] || value, cellClass: "warn-text" },
+    personColumn,
+    { field: "location", headerName: "위치", minWidth: 120, valueFormatter: ({ value }) => show(value) },
+    { field: "server_observed_ip", headerName: "접속 IP", minWidth: 130, valueFormatter: ({ value }) => show(value) },
+    { field: "last_seen_at", headerName: "최근 통신", minWidth: 150, valueFormatter: ({ value }) => date(value) },
+    { headerName: "조치", width: 120, filter: false, sortable: false, cellRenderer: ({ data }) => data.agent_blocked_at ? <span>차단됨</span>
+      : <button className="danger-button grid-action" onClick={() => block(data)}>Agent 차단</button> },
+  ], [onDetail]);
+  const duplicateColumns = useMemo(() => [
+    { field: "match_type", headerName: "일치 항목", width: 110, pinned: "left", valueFormatter: ({ value }) => matchLabels[value] || value },
+    { field: "match_value", headerName: "값", minWidth: 170 },
+    hostColumn(onDetail, { pinned: undefined }),
+    { field: "lifecycle_status", headerName: "관리 상태", width: 120, valueFormatter: ({ value }) => lifecycleLabels[value] || value },
+    { field: "asset_tag", headerName: "자산태그", minWidth: 110, valueFormatter: ({ value }) => show(value) },
+    { field: "agent_registered_at", headerName: "Agent 등록", minWidth: 150, valueFormatter: ({ value }) => date(value) },
+    { field: "last_seen_at", headerName: "최근 통신", minWidth: 150, valueFormatter: ({ value }) => date(value) },
+  ], [onDetail]);
+  const incompleteColumns = useMemo(() => [
+    hostColumn(onDetail),
+    { field: "missing", headerName: "누락 항목", minWidth: 260, flex: 1, cellClass: "warn-text", wrapText: true, autoHeight: true },
+    personColumn,
+    { field: "serial_no", headerName: "수집 시리얼", minWidth: 140, valueFormatter: ({ value }) => show(value) },
+  ], [onDetail]);
+  const blockedColumns = useMemo(() => [
+    { field: "hostname", headerName: "장비", minWidth: 140, pinned: "left", cellRenderer: ({ data }) => data.asset_id
+      ? <button className="asset-detail-link" onClick={() => onDetail(data.asset_id)} aria-label={`${data.hostname} 상세 보기`}>{data.hostname}</button> : data.hostname },
+    { field: "blocked_reason", headerName: "사유", minWidth: 200, flex: 1 },
+    { field: "blocked_by", headerName: "차단자", width: 110 },
+    { field: "blocked_at", headerName: "차단 시각", minWidth: 150, valueFormatter: ({ value }) => date(value) },
+    { headerName: "조치", width: 110, filter: false, sortable: false, cellRenderer: ({ data }) => <button className="grid-action" onClick={() => unblock(data)}>차단 해제</button> },
+  ], [onDetail]);
+  return <section className="compliance-page audit-page">
+    <div className="intro"><div><h2>자산 점검</h2><p>대장과 실제 통신 상태가 어긋나는 자산, 중복 등록 의심, 관리 기준정보 누락을 한곳에서 확인합니다.</p></div><button onClick={load} disabled={loading}>↻ 다시 점검</button></div>
+    {loadError && <div role="alert" className="notice error">{loadError}<button onClick={load}>다시 시도</button></div>}{message && <p className="notice" role="status">{message}</p>}
+    <div className="compliance-summary audit-summary">
+      <article className={data.retiredActive.length ? "danger" : undefined}><small>폐기·분실 자산 통신</small><b>{data.retiredActive.length}</b><span>최근 7일 Agent 보고</span></article>
+      <article className={data.duplicateGroups ? "danger" : undefined}><small>중복 의심</small><b>{data.duplicateGroups}</b><span>같은 시리얼·UUID·MAC 그룹</span></article>
+      <article><small>기준정보 누락</small><b>{data.incomplete.length}</b><span>사용 중 자산 기준</span></article>
+      <article><small>차단된 Agent</small><b>{data.blockedAgents.length}</b><span>통신·재등록 거부</span></article>
+    </div>
+    <article className="panel table"><div className="panel-heading"><div><h3>폐기·분실 처리 후 통신 중인 자산</h3><p>실제 분실·유출이면 Agent를 차단하고, 처리 오류면 관리 상태를 바로잡으세요.</p></div></div>
+      <AuditGrid label="폐기·분실 자산 통신" loading={loading} rows={data.retiredActive} columns={retiredColumns} okText="폐기·분실 처리 후 통신한 자산이 없습니다." /></article>
+    <article className="panel table"><div className="panel-heading"><div><h3>중복 등록 의심</h3><p>PC 이름 변경·OS 재설치로 같은 장비가 두 번 등록된 경우입니다. BIOS 기본값(예: "Default string")은 제외합니다.</p></div></div>
+      <AuditGrid label="중복 등록 의심" loading={loading} rows={data.duplicates} columns={duplicateColumns} okText="중복 의심 자산이 없습니다." /></article>
+    <article className="panel table"><div className="panel-heading"><div><h3>관리 기준정보 누락</h3><p>사용 중 자산의 자산태그·담당자·위치·다음 실사일과 BIOS 시리얼 상태입니다. 자산 상세의 관리 정보에서 보완하세요.</p></div></div>
+      <AuditGrid label="관리 기준정보 누락" loading={loading} rows={data.incomplete} columns={incompleteColumns} okText="누락된 기준정보가 없습니다." /></article>
+    <article className="panel table"><div className="panel-heading"><div><h3>차단된 Agent</h3><p>차단을 해제하면 기존 장치 토큰으로 다시 통신합니다.</p></div></div>
+      <AuditGrid label="차단된 Agent" loading={loading} rows={data.blockedAgents} columns={blockedColumns} okText="차단된 Agent가 없습니다." /></article>
+  </section>;
+}
+
 function SoftwareCompliance(){
   const empty={softwareName:"",publisher:"",matchType:"CONTAINS",classification:"REVIEW_REQUIRED",sourceName:"관리자 등록",sourceRef:"",notes:"",enabled:true};
   const [data,setData]=useState({policies:[],detections:[],syncLogs:[],affectedAssets:0}),[form,setForm]=useState(empty),[message,setMessage]=useState(""),[busy,setBusy]=useState(false),[loading,setLoading]=useState(true),[loadError,setLoadError]=useState("");
@@ -1526,16 +1715,16 @@ function App() {
       <nav className="workspace-tabs" aria-label="열린 관리자 화면"><div>{openTabs.map(tab=><div className={`workspace-tab ${active===tab?"on":""}`} key={tab}><button aria-current={active===tab?"page":undefined} onClick={()=>openWorkspace(tab)}>{tab}</button>{openTabs.length>1&&<button className="tab-close" aria-label={`${tab} 탭 닫기`} onClick={()=>closeWorkspace(tab)}>×</button>}</div>)}</div></nav>
       {loadError&&<div className="notice error" role="alert">{loadError}{lastLoaded&&" 마지막 성공 시점의 데이터를 표시합니다."}<button onClick={load} disabled={loading}>다시 시도</button></div>}
       {(active==="대시보드"||active==="자산 관리")&&<div className="data-freshness" role="status">{loading?"데이터 갱신 중…":lastLoaded?`마지막 성공 조회: ${lastLoaded.toLocaleString("ko-KR")}`:"데이터 조회 대기"}{assets.length>=500&&" · 목록은 최근 500개 자산입니다. 전체 자료는 CSV로 확인하세요."}</div>}
-      {active==="Agent 배포"?<AgentOps view="release"/>:active==="업데이트 이력"?<AgentOps view="history"/>:active==="시스템 가이드"?<AgentOps view="guide"/>:active==="점검 일지"?<InspectionLog/>:active==="서버 모니터링"?<ServerMonitoring/>:active==="SW 컴플라이언스"?<SoftwareCompliance/>:active==="자산 관리"?<section>
+      {active==="Agent 배포"?<AgentOps view="release"/>:active==="업데이트 이력"?<AgentOps view="history"/>:active==="시스템 가이드"?<AgentOps view="guide"/>:active==="점검 일지"?<InspectionLog/>:active==="서버 모니터링"?<ServerMonitoring/>:active==="SW 컴플라이언스"?<SoftwareCompliance/>:active==="주변기기·USB"?<PeripheralInventory onDetail={showDetail}/>:active==="자산 점검"?<AssetAudit onDetail={showDetail} onChanged={load}/>:active==="자산 관리"?<section>
         <div className="intro"><div><h2>자산 목록</h2><p>장비명을 선택하면 상세 정보와 관리 이력을 확인할 수 있습니다.</p></div><div className="list-metrics"><button onClick={load} disabled={loading}>새로고침</button><a className="export-button" href="/api/v1/assets-export.csv">전체 자산 CSV</a></div></div>
         <div className="filter-bar"><label>조치 상태<select aria-label="조치 상태" value={assetFilter} onChange={e=>navigate({filter:e.target.value},true)}>{Object.entries(assetFilters).map(([key,label])=><option key={key} value={key}>{label}</option>)}</select></label>{(q||assetFilter!=="all")&&<span className="filter-chip">{assetFilters[assetFilter]}{q&&` · 검색: ${q}`}</span>}</div>
         <article className="panel table asset-list-panel"><AssetTable rows={filtered} loading={loading} onDetail={showDetail} paginate query={q} onQueryChange={query=>navigate({query},true)} onReset={()=>navigate({query:"",filter:"all"},true)}/></article>
-      </section>:<><Dashboard stats={stats} rows={assets.slice(0,6)} loading={loading} load={load} all={openAssets} onDetail={showDetail} hasData={!!lastLoaded}/>{lastLoaded&&stats.total===0&&<div className="notice empty-guide">등록된 자산이 없습니다. Agent 설치 후 장비 정보가 표시됩니다.<button onClick={()=>openWorkspace("시스템 가이드")}>설치 안내 보기</button></div>}</>}
+      </section>:<><Dashboard stats={stats} rows={assets.slice(0,6)} loading={loading} load={load} all={openAssets} onDetail={showDetail} hasData={!!lastLoaded} openView={openWorkspace}/>{lastLoaded&&stats.total===0&&<div className="notice empty-guide">등록된 자산이 없습니다. Agent 설치 후 장비 정보가 표시됩니다.<button onClick={()=>openWorkspace("시스템 가이드")}>설치 안내 보기</button></div>}</>}
     </main>
     {detailId&&<AssetDetailModal assetId={detailId} onClose={closeDetail}/>}
   </>;
 }
-function Dashboard({ stats, rows, loading, load, all, onDetail, hasData }) {
+function Dashboard({ stats, rows, loading, load, all, onDetail, hasData, openView }) {
   const securityChecks = stats.total * 2;
   const securityIssues = stats.security.bitlocker + stats.security.antivirus;
   const compliance = securityChecks
@@ -1576,7 +1765,7 @@ function Dashboard({ stats, rows, loading, load, all, onDetail, hasData }) {
             <b>{hasData ? (stats.security.antivirus) : "—"}</b>
             <small>정상 상태가 아닌 장비</small>
           </div>
-          <div className="coverage">
+          <div className={`coverage ${hasData && stats.total && stats.online / stats.total < 0.8 ? "coverage-low" : ""}`} title="업무 시간 외에는 PC 전원이 꺼져 낮게 보일 수 있습니다">
             <span>Agent 연결률</span>
             <b>
               {hasData && stats.total ? `${Math.round((stats.online / stats.total) * 100)}%` : "—"}
@@ -1652,6 +1841,22 @@ function Dashboard({ stats, rows, loading, load, all, onDetail, hasData }) {
                   <small>7일 이상 Agent 보고가 없는 장비</small>
                 </span>
                 <strong>{hasData ? (stats.stale) : "—"}</strong>
+              </button>
+              <button className="action-row" onClick={()=>openView?.("자산 점검")}>
+                <i className="shield-action">!</i>
+                <span>
+                  <b>폐기·분실 자산 통신</b>
+                  <small>폐기·분실 처리 후 7일 내 Agent가 보고한 장비</small>
+                </span>
+                <strong>{hasData ? (stats.audit?.retiredActive ?? 0) : "—"}</strong>
+              </button>
+              <button className="action-row" onClick={()=>openView?.("자산 점검")}>
+                <i className="stale-action">⊘</i>
+                <span>
+                  <b>차단된 Agent</b>
+                  <small>장치 토큰이 폐기된 PC</small>
+                </span>
+                <strong>{hasData ? (stats.audit?.blockedAgents ?? 0) : "—"}</strong>
               </button>
             </div>
           </article>

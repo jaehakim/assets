@@ -29,9 +29,13 @@ public class AssetController {
     int warranty = count("SELECT count(*) FROM asset WHERE warranty_expires_at BETWEEN current_date AND current_date+90");
     int overdueAudit = count("SELECT count(*) FROM asset WHERE next_audit_at<current_date");
     int assigned = count("SELECT count(*) FROM asset WHERE assigned_to IS NOT NULL");
+    // FR-005·FR-016: 폐기·분실 처리 후에도 7일 내 통신한 자산, 차단된 Agent
+    int retiredActive = count("SELECT count(*) FROM asset s JOIN agent a ON a.id=s.agent_id WHERE s.lifecycle_status IN ('LOST','RETIRED','DISPOSED') AND GREATEST(s.last_seen_at,a.last_seen_at)>now()-interval '7 days'");
+    int blocked = count("SELECT count(*) FROM agent WHERE blocked_at IS NOT NULL");
     return Map.of("total", total, "online", online, "offline", total-online, "stale", stale,
         "security", Map.of("bitlocker", bitlocker, "antivirus", antivirus),
-        "management", Map.of("warrantyExpiring",warranty,"overdueAudit",overdueAudit,"assigned",assigned));
+        "management", Map.of("warrantyExpiring",warranty,"overdueAudit",overdueAudit,"assigned",assigned),
+        "audit", Map.of("retiredActive", retiredActive, "blockedAgents", blocked));
   }
 
   @GetMapping("/assets")
@@ -60,7 +64,7 @@ public class AssetController {
   @GetMapping("/assets/{id}")
   public ResponseEntity<?> asset(@PathVariable UUID id) {
     var rows = db.queryForList("""
-        SELECT s.*,a.version agent_version,a.registered_at agent_registered_at,
+        SELECT s.*,a.version agent_version,a.registered_at agent_registered_at,a.blocked_at agent_blocked_at,a.blocked_reason agent_blocked_reason,a.blocked_by agent_blocked_by,
                a.last_seen_at agent_last_seen_at,a.last_ip agent_last_ip,
                GREATEST(s.last_seen_at,a.last_seen_at) effective_last_seen_at
         FROM asset s JOIN agent a ON a.id=s.agent_id WHERE s.id=?
@@ -78,15 +82,56 @@ public class AssetController {
   @PatchMapping("/assets/{id}/management")
   public ResponseEntity<?> management(@PathVariable UUID id,@RequestBody Models.AssetManagement x,Authentication user) {
     if(!Set.of("IN_STOCK","IN_USE","REPAIR","LOST","RETIRED","DISPOSED").contains(Objects.toString(x.lifecycleStatus(),"")))return ResponseEntity.badRequest().body(Map.of("error","invalid lifecycle status"));
+    var before=db.queryForList("SELECT asset_tag,lifecycle_status,category,location,assigned_to,vendor,purchase_date,purchase_cost,warranty_expires_at,eol_at,last_audit_at,next_audit_at,management_notes FROM asset WHERE id=?",id);
+    if(before.isEmpty())return ResponseEntity.notFound().build();
     int updated=db.update("""
         UPDATE asset SET asset_tag=nullif(trim(?),''),lifecycle_status=?,category=nullif(trim(?),''),location=nullif(trim(?),''),
           assigned_to=nullif(trim(?),''),vendor=nullif(trim(?),''),purchase_date=?,purchase_cost=?,warranty_expires_at=?,eol_at=?,
           last_audit_at=?,next_audit_at=?,management_notes=nullif(trim(?),''),updated_at=now() WHERE id=?
         """,x.assetTag(),x.lifecycleStatus(),x.category(),x.location(),x.assignedTo(),x.vendor(),x.purchaseDate(),x.purchaseCost(),x.warrantyExpiresAt(),x.eolAt(),x.lastAuditAt(),x.nextAuditAt(),x.managementNotes(),id);
     if(updated==0)return ResponseEntity.notFound().build();
-    String details=String.format("상태=%s, 담당=%s, 위치=%s, 다음 실사=%s",x.lifecycleStatus(),Objects.toString(x.assignedTo(),"-"),Objects.toString(x.location(),"-"),Objects.toString(x.nextAuditAt(),"-"));
-    db.update("INSERT INTO asset_management_history(asset_id,action,changed_by,details) VALUES(?,'MANAGEMENT_UPDATED',?,?)",id,user.getName(),details);
-    return ResponseEntity.ok(Map.of("status","updated"));
+    // AR-002: 바뀐 필드만 "항목: 이전 → 이후"로 기록한다. 변경이 없으면 이력을 남기지 않는다.
+    String details=changes(before.getFirst(),x);
+    if(details!=null)db.update("INSERT INTO asset_management_history(asset_id,action,changed_by,details) VALUES(?,'MANAGEMENT_UPDATED',?,?)",id,user.getName(),details);
+    return ResponseEntity.ok(Map.of("status",details==null?"unchanged":"updated"));
+  }
+
+  static final Map<String,String> LIFECYCLE_LABELS=Map.of("IN_STOCK","재고","IN_USE","사용 중","REPAIR","수리","LOST","분실","RETIRED","퇴역","DISPOSED","폐기");
+
+  /** AR-002: 관리정보 필드 단위 변경 내역. 문자열은 앞뒤 공백 제거·빈 값=null로 비교(저장 규칙과 동일). */
+  static String changes(Map<String,Object> before,Models.AssetManagement x){
+    var fields=new LinkedHashMap<String,Object[]>();
+    fields.put("자산태그",new Object[]{before.get("asset_tag"),blank(x.assetTag())});
+    fields.put("상태",new Object[]{label(before.get("lifecycle_status")),label(x.lifecycleStatus())});
+    fields.put("분류",new Object[]{before.get("category"),blank(x.category())});
+    fields.put("위치",new Object[]{before.get("location"),blank(x.location())});
+    fields.put("담당자",new Object[]{before.get("assigned_to"),blank(x.assignedTo())});
+    fields.put("공급업체",new Object[]{before.get("vendor"),blank(x.vendor())});
+    fields.put("구매일",new Object[]{before.get("purchase_date"),x.purchaseDate()});
+    fields.put("구매금액",new Object[]{before.get("purchase_cost"),x.purchaseCost()});
+    fields.put("보증만료",new Object[]{before.get("warranty_expires_at"),x.warrantyExpiresAt()});
+    fields.put("EOL",new Object[]{before.get("eol_at"),x.eolAt()});
+    fields.put("최근 실사",new Object[]{before.get("last_audit_at"),x.lastAuditAt()});
+    fields.put("다음 실사",new Object[]{before.get("next_audit_at"),x.nextAuditAt()});
+    fields.put("관리 메모",new Object[]{before.get("management_notes"),blank(x.managementNotes())});
+    var out=new ArrayList<String>();
+    fields.forEach((name,v)->{
+      String a=text(v[0]),b=text(v[1]);
+      if(Objects.equals(a,b))return;
+      out.add("관리 메모".equals(name)?"관리 메모 변경":name+": "+(a==null?"-":a)+" → "+(b==null?"-":b));
+    });
+    if(out.isEmpty())return null;
+    String text=String.join("; ",out);
+    return text.length()>2000?text.substring(0,1997)+"...":text;
+  }
+  static String blank(String v){return v==null||v.trim().isEmpty()?null:v.trim();}
+  static String label(Object v){return v==null?null:LIFECYCLE_LABELS.getOrDefault(v.toString(),v.toString());}
+  /** 날짜·금액을 형식 차이 없이 비교한다(java.sql.Date vs LocalDate, 100.00 vs 100). */
+  static String text(Object v){
+    if(v==null)return null;
+    if(v instanceof java.sql.Date d)return d.toLocalDate().toString();
+    if(v instanceof java.math.BigDecimal n)return n.stripTrailingZeros().toPlainString();
+    return v.toString();
   }
 
   @GetMapping(value="/assets-export.csv",produces="text/csv;charset=UTF-8")
