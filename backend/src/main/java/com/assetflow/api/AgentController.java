@@ -141,8 +141,9 @@ public class AgentController {
 
   static String truncate(String text,int max){return text.length()>max?text.substring(0,max-3)+"...":text;}
 
+  /** 장치 식별: 모델(EDID 코드·VID/PID)+시리얼. 둘 다 없을 때만 이름을 쓴다 — Agent가 표시 이름을 개선해도 가짜 연결/분리 이력이 생기지 않도록(0.2.16). */
   static String peripheralKey(String type,String manufacturer,String model,String serial,String name){
-    return String.join("|",type,Objects.toString(manufacturer,""),Objects.toString(model,""),Objects.toString(serial,""),serial==null?Objects.toString(name,""):"").toLowerCase(Locale.ROOT);
+    return String.join("|",type,Objects.toString(model,""),Objects.toString(serial,""),model==null&&serial==null?Objects.toString(name,""):"").toLowerCase(Locale.ROOT);
   }
   static String describe(String type,String name,String serial){
     String label=switch(Objects.toString(type,"")){case "MONITOR"->"모니터";case "KEYBOARD"->"키보드";case "MOUSE"->"마우스";default->"장치";};

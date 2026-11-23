@@ -218,6 +218,28 @@ Check(periph.Single(x => x.Type == "KEYBOARD") is { Name: "Wired Keyboard 600", 
 Check(periph.Single(x => x.Type == "MOUSE") is { Name: "USB Gaming Mouse", Manufacturer: null }, "mouse named from USB, INF provider Microsoft dropped for non-Microsoft VID");
 Console.WriteLine("PASS: production cases — Samsung bus-driver folding, descriptor failures, placeholders, corrupted names, Korean generic HID names, USB enrichment");
 
+// 0.2.16: NT550 / DESKTOP-KJH follow-ups.
+var mtp = UsbDevices.Build(new[] {
+    new UsbDevices.Raw(@"USB\VID_04E8&PID_6860\CE0317136B0044C3", "SAMSUNG_Android", null, null, "SAMSUNG", "USB", "dg_ssudbus", false, T(9), T(9), T(9)),
+    new UsbDevices.Raw(@"USB\VID_04E8&PID_6860&MI_00\6&1&0&0000", "MTP USB 장치", null, null, "Microsoft", "WPD", "WUDFWpdMtp", false, T(9), T(9), T(9), @"USB\VID_04E8&PID_6860\CE0317136B0044C3"),
+    new UsbDevices.Raw(@"USB\VID_04E8&PID_6860&MI_01\6&2&0&0001", "MTP USB 장치", null, "Galaxy S8+", "Microsoft", "WPD", "WUDFWpdMtp", false, T(9), T(9), T(9), @"USB\VID_04E8&PID_6860\CE0317136B0044C3"),
+});
+Check(mtp.Single() is { Category: "MOBILE", Name: "Galaxy S8+" }, "generic 'MTP USB 장치' skipped, model name from another MTP function (got " + mtp.Single().Name + ")");
+var onlyGeneric = UsbDevices.Build(new[] {
+    new UsbDevices.Raw(@"USB\VID_04E8&PID_6860\R1", "SAMSUNG_Android", null, null, null, "USB", "dg_ssudbus", false, T(9), T(9), T(9)),
+    new UsbDevices.Raw(@"USB\VID_04E8&PID_6860&MI_00\6&1&0&0000", "MTP USB 장치", null, null, null, "WPD", "WUDFWpdMtp", false, T(9), T(9), T(9), @"USB\VID_04E8&PID_6860\R1") });
+Check(onlyGeneric.Single().Name == "SAMSUNG_Android", "no model name: keep the device's own name instead of 'MTP USB 장치'");
+var receiverUsb = UsbDevices.Build(new[] { new UsbDevices.Raw(@"USB\VID_046D&PID_C534\5&1&0&2", "@usb.inf;USB Composite Device", null, "USB Receiver", "(Standard USB Host Controller)", "USB", "usbccgp", true, T(1), T(20), null) });
+var receiver = Peripherals.Enrich(new[] {
+    Peripherals.InputDevice("KEYBOARD", @"HID\VID_046D&PID_C534&MI_00\7&1&0&0000", "알 수 없는 키보드", null, null, true)!,
+    Peripherals.InputDevice("MOUSE", @"HID\VID_046D&PID_C534&MI_01&COL01\7&2&0&0000", "HID-compliant mouse", "Microsoft", null, true)!,
+    Peripherals.InputDevice("KEYBOARD", @"ACPI\SEC0001\4&1&0", "알 수 없는 키보드", null, null, true)!,
+}, receiverUsb);
+Check(receiver.Single(x => x.Type == "KEYBOARD" && x.VendorId == "046D") is { Name: "Logitech USB Receiver", Manufacturer: "Logitech" }, "Logitech receiver keyboard named");
+Check(receiver.Single(x => x.Type == "MOUSE") is { Name: "Logitech USB Receiver", Manufacturer: "Logitech" }, "Logitech receiver mouse named");
+Check(receiver.Single(x => x.Type == "KEYBOARD" && x.VendorId is null) is { Name: "내장 키보드", Connection: "Internal" }, "laptop keyboard keeps internal name");
+Console.WriteLine("PASS: 0.2.16 — generic MTP names skipped, wireless receiver keyboard/mouse named with maker");
+
 sealed class StubHandler(Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> send) : HttpMessageHandler
 {
     protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct) => send(request, ct);

@@ -171,9 +171,14 @@ public static class Peripherals
             if (p.Type == Monitor || p.VendorId is null || p.ProductId is null) return p;
             var match = usb?.Where(u => string.Equals(u.VendorId, p.VendorId, StringComparison.OrdinalIgnoreCase) && string.Equals(u.ProductId, p.ProductId, StringComparison.OrdinalIgnoreCase))
                 .OrderByDescending(u => u.Present == true).FirstOrDefault();
-            var name = IsGenericName(p.Name) && match is not null && !UsbDevices.IsGenericUsbName(match.Name) ? match.Name : p.Name;
             var manufacturer = UsbVendor(p.VendorId) ?? match?.Manufacturer
                 ?? (p.Manufacturer is not null && p.Manufacturer.StartsWith("Microsoft", StringComparison.OrdinalIgnoreCase) && p.VendorId != "045E" ? null : p.Manufacturer);
+            var name = p.Name;
+            if (IsGenericName(p.Name) && match is not null)
+                // 0.2.16: a wireless receiver only reports "USB Receiver" — qualify it with the maker ("Logitech USB Receiver").
+                name = !UsbDevices.IsGenericUsbName(match.Name) ? match.Name
+                    : match.Name.StartsWith("USB ", StringComparison.OrdinalIgnoreCase) && manufacturer is not null
+                        && !match.Name.StartsWith(manufacturer, StringComparison.OrdinalIgnoreCase) ? $"{manufacturer} {match.Name}" : p.Name;
             return p with { Name = name, Manufacturer = manufacturer };
         }).ToList();
         var mice = list.Where(p => p.Type == Mouse && p.VendorId is not null).Select(p => $"{p.VendorId}|{p.ProductId}").ToHashSet(StringComparer.OrdinalIgnoreCase);

@@ -131,7 +131,7 @@ public static class UsbDevices
             var name = candidates.Select(SanitizeName).FirstOrDefault(n => !string.IsNullOrWhiteSpace(n) && !IsGenericUsbName(n))
                 ?? candidates.Select(SanitizeName).FirstOrDefault(n => !string.IsNullOrWhiteSpace(n)) ?? $"USB {vid}:{pid}";
             var mobileName = category == "MOBILE" ? children.Where(c => Category(c.Class, c.Service) == "MOBILE")
-                .Select(c => SanitizeName(CleanDescription(c.FriendlyName) ?? CleanDescription(c.DeviceDesc)))
+                .SelectMany(c => new[] { c.FriendlyName, c.BusReportedName, c.DeviceDesc }.Select(n => SanitizeName(CleanDescription(n))))
                 .FirstOrDefault(n => n is not null && !IsGenericUsbName(n) && !n.Contains("Interface", StringComparison.OrdinalIgnoreCase)) : null;
             if (mobileName is not null) name = mobileName;
             var manufacturer = Peripherals.UsbVendor(vid) ?? CleanManufacturer(d.Manufacturer, vid);
@@ -148,7 +148,9 @@ public static class UsbDevices
             .ToList();
     }
 
-    static readonly string[] GenericUsbNames = { "USB Composite Device", "USB Input Device", "USB Mass Storage Device", "USB-Massenspeichergerät", "USB 대용량 저장 장치", "USB 컴포지트 장치", "USB 입력 장치", "Unknown USB Device", "WinUsb Device", "USB Device" };
+    static readonly string[] GenericUsbNames = { "USB Composite Device", "USB Input Device", "USB Mass Storage Device", "USB-Massenspeichergerät", "USB 대용량 저장 장치", "USB 컴포지트 장치", "USB 입력 장치", "Unknown USB Device", "WinUsb Device", "USB Device",
+        // 0.2.16: generic MTP function names (English / Korean Windows)
+        "MTP USB Device", "MTP USB 장치", "USB MTP 장치", "Portable Device", "휴대용 장치" };
     public static bool IsGenericUsbName(string? name) =>
         string.IsNullOrWhiteSpace(name) || Peripherals.IsGenericName(name) || GenericUsbNames.Any(g => name.Trim().StartsWith(g, StringComparison.OrdinalIgnoreCase));
 

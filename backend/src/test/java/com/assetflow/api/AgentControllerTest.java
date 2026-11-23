@@ -113,7 +113,9 @@ class AgentControllerTest {
 
   @Test void serialIdentifiesMonitorEvenWhenNameChanges() {
     assertEquals(AgentController.peripheralKey("MONITOR", "Dell", "DEL4123", "SN1", "DELL P2419H"), AgentController.peripheralKey("MONITOR", "Dell", "DEL4123", "SN1", "Dell 4123"));
-    assertNotEquals(AgentController.peripheralKey("MOUSE", "Logitech", "VID", null, "A"), AgentController.peripheralKey("MOUSE", "Logitech", "VID", null, "B"));
+    assertEquals(AgentController.peripheralKey("KEYBOARD", null, "VID_046D&PID_C534", null, "알 수 없는 키보드"), AgentController.peripheralKey("KEYBOARD", "Logitech", "VID_046D&PID_C534", null, "Logitech USB Receiver"));
+    assertNotEquals(AgentController.peripheralKey("KEYBOARD", null, null, null, "내장 키보드"), AgentController.peripheralKey("KEYBOARD", null, null, null, "USB Keyboard"));
+    assertNotEquals(AgentController.peripheralKey("MOUSE", "Logitech", "VID_046D&PID_C534", null, "A"), AgentController.peripheralKey("MOUSE", "Logitech", "VID_046D&PID_C08B", null, "A"));
     assertEquals("모니터 DELL (S/N 1)", AgentController.describe("MONITOR", "DELL", "1"));
     assertEquals("키보드 K", AgentController.describe("KEYBOARD", "K", null));
   }
