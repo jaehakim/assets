@@ -7,6 +7,8 @@
     <Compile Include="../agent/DailyFileLogger.cs" Link="DailyFileLogger.cs" />
     <Compile Include="../agent/SessionUsers.cs" Link="SessionUsers.cs" />
     <Compile Include="../agent/ConfigProtection.cs" Link="ConfigProtection.cs" />
+    <Compile Include="../agent/Models.cs" Link="Models.cs" />
+    <Compile Include="../agent/Peripherals.cs" Link="Peripherals.cs" />
     <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="8.0.0" />
   </ItemGroup>
 </Project>

@@ -34,6 +34,7 @@ Windows PC                    Docker Server
 - 호스트명, 제조사, 모델, 시리얼, BIOS, CPU, RAM, OS 수집
 - IP, MAC, 고정 디스크 및 설치 프로그램 수집
 - BitLocker, Firewall, Defender 상태 수집
+- 연결된 모니터(제조사·모델·시리얼·크기·제조연도·연결 방식)와 키보드·마우스(제조사·VID/PID·USB/블루투스/내장 구분) 수집 — Agent 0.2.13+
 - 15분 기준 온라인/오프라인, 7일 기준 장기 미접속 집계
 - 자산 검색, 최근 접속 장비 및 보안 경고 대시보드
 - 기관 판정목록과 설치 프로그램 자동 대조, 탐지 장비 표시
@@ -128,6 +129,13 @@ Windows 서비스는 활성 사용자 세션의 트레이 앱을 주기적으로
 - Agent ID만으로 인증하지 않고 등록 토큰과 장치별 Bearer 토큰을 분리합니다.
 
 ## 변경 이력
+
+### 2026-11-23 — Agent 0.2.13 / Backend 0.2.1 / Frontend 0.3.1 (주변기기 수집)
+
+- Agent 0.2.13: 모니터(`root\wmi` WmiMonitorID·BasicDisplayParams·ConnectionParams), 키보드(`Win32_Keyboard`), 마우스(`Win32_PointingDevice`) 수집. RDP·Hyper-V 가상 장치 제외, 한 장치의 HID 컬렉션 중복 제거, 실패 시 `null` 전송(서버는 기존 목록 유지). 키 입력·포인터 이동은 수집하지 않음. 0.2.12 변경분 포함
+- Backend 0.2.1: Flyway `V3__asset_peripheral`, 인벤토리 `peripherals` 필드(최대 64건, 형식 검증 422), 계속 연결된 장치의 최초 확인 시각 유지, 연결·분리 시 관리 이력 `PERIPHERAL_CHANGED`, 자산 검색 API에 주변기기 장치명·시리얼 포함
+- Frontend 0.3.1: 자산 상세(요약·하드웨어 탭)에 "주변기기" 표
+- 검토·시험 결과: [21 주변기기 수집 검토·시험 보고서](docs/21_주변기기수집_검토시험보고서.md)
 
 ### 2026-10-23 — Agent 0.2.12 / Backend 0.2.0 / Frontend 0.3.0 (수정요청 1차 반영)
 

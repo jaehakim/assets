@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>21. 주변기기(모니터·키보드·마우스) 수집 기능 검토·시험 보고서 | AssetFlow 검토</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<style>
+:root{--bg:#ffffff;--panel:#f7f8fa;--text:#1f2937;--muted:#6b7280;--line:#e5e7eb;--accent:#3b5bdb;--accent-soft:#edf2ff;--code:#f3f4f6}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);color-scheme:light}
+body{font-family:"Pretendard","Malgun Gothic","Apple SD Gothic Neo",system-ui,sans-serif;font-size:15px;line-height:1.7;display:flex;min-height:100vh}
+nav{width:270px;flex:none;background:var(--panel);border-right:1px solid var(--line);padding:24px 16px;position:sticky;top:0;height:100vh;overflow:auto}
+nav .brand{font-weight:800;font-size:17px;margin:0 8px 4px}
+nav .sub{color:var(--muted);font-size:12px;margin:0 8px 18px}
+nav a{display:block;padding:8px 10px;border-radius:8px;color:var(--text);text-decoration:none;font-size:14px;margin-bottom:2px}
+nav a:hover{background:#eceff3}
+nav a.active{background:var(--accent-soft);color:var(--accent);font-weight:700}
+main{flex:1;min-width:0;padding:40px 48px 80px;max-width:1180px}
+h1{font-size:28px;margin:0 0 12px;padding-bottom:12px;border-bottom:2px solid var(--line)}
+h2{font-size:21px;margin:40px 0 12px;padding-left:10px;border-left:4px solid var(--accent)}
+h3{font-size:17px;margin:28px 0 10px}
+a{color:var(--accent)}
+blockquote{margin:12px 0;padding:10px 16px;background:var(--accent-soft);border-left:4px solid var(--accent);border-radius:0 8px 8px 0;color:#374151}
+blockquote p{margin:4px 0}
+table{border-collapse:collapse;width:100%;margin:12px 0 20px;font-size:13.5px;display:block;overflow-x:auto}
+th,td{border:1px solid var(--line);padding:7px 10px;text-align:left;vertical-align:top}
+th{background:var(--panel);font-weight:700;white-space:nowrap}
+tr:nth-child(even) td{background:#fbfbfc}
+code{background:var(--code);padding:1px 5px;border-radius:4px;font-family:"D2Coding",Consolas,monospace;font-size:.9em}
+pre{background:#f6f8fa;border:1px solid var(--line);border-radius:8px;padding:14px;overflow:auto}
+pre code{background:none;padding:0}
+.mermaid{background:#fff;border:1px solid var(--line);border-radius:10px;padding:16px;margin:14px 0 22px;text-align:center;overflow-x:auto}
+.foot{margin-top:56px;color:var(--muted);font-size:12px;border-top:1px solid var(--line);padding-top:12px}
+@media (max-width:860px){body{display:block}nav{position:static;width:auto;height:auto;border-right:0;border-bottom:1px solid var(--line)}main{padding:24px 16px 60px}}
+@media print{nav{display:none}main{max-width:none;padding:0}}
+</style>
+</head>
+<body>
+<nav>
+  <div class="brand">AssetFlow 검토</div>
+  <div class="sub">IT자산관리 · 보안 · 인프라 · 디자인 · 웹</div>
+  <a href="index.html">개요 (README)</a>
+  <a href="01_현황분석.html">01. AssetFlow 소스 현황 분석</a>
+  <a href="02_IT자산관리_전문가_검토.html">02. IT 자산관리 전문가 관점 검토</a>
+  <a href="03_보안전문가_검토.html">03. 보안 전문가 관점 검토</a>
+  <a href="04_인프라유지보수_검토.html">04. 인프라 유지보수 관리 관점 검토</a>
+  <a href="05_개선기획_로드맵.html">05. 통합 개선 기획 및 로드맵</a>
+  <a href="06_기술검토서.html">06. 기술검토서</a>
+  <a href="07_수정요청서.html">07. 수정요청서 (결함 시정 요청)</a>
+  <a href="08_기능추가요청서.html">08. 기능추가요청서 (신규 기능 요구)</a>
+  <a href="09_조치결과보고서_양식.html">09. 조치결과보고서 (양식)</a>
+  <a href="10_디자인전문가_UI검토.html">10. 디자인 전문가 UI 검토 — 화면 대비·타이포그래피·그리드 헤더 메뉴</a>
+  <a href="11_웹전문가_프런트엔드검토.html">11. 웹 전문가 프런트엔드 검토 — AG Grid 컬럼 메뉴 기능 검증·접근성·성능</a>
+  <a href="12_IT자산관리전문가_화면검토.html">12. IT자산관리 전문가 화면 검토 — 자산 목록 그리드 구성·컬럼 옵션의 업무 적합성</a>
+  <a href="13_수정요청서_UI.html">13. 수정요청서 (화면·UI)</a>
+  <a href="14_보안웹취약점_점검보고서.html">14. 보안·웹 취약점 점검 보고서</a>
+  <a href="15_수정요청서_보안웹취약점.html">15. 수정요청서 (보안·웹 취약점)</a>
+  <a href="16_수정요청_적용계획서.html">16. 수정요청 적용계획서 (07·13·15 통합)</a>
+  <a href="17_추가요구사항_검토서.html">17. 추가 요구사항 검토서</a>
+  <a href="18_조치결과보고서_1차.html">18. 조치결과보고서 (1차)</a>
+  <a href="19_전문가_검토_프롬프트.html">19. IT 자산관리 시스템 전문가 검토·기획·분석·테스팅 프롬프트</a>
+  <a href="20_추가수정요청서.html">20. 추가수정요청서 (프롬프트 기준 적용·누락 비교)</a>
+  <a href="21_주변기기수집_검토시험보고서.html" class="active">21. 주변기기(모니터·키보드·마우스) 수집 기능 검토·시험 보고서</a>
+  <a href="windows-agent-communication-status.html">Agent 0.2.11 통신 상태와 로그</a>
+  <a href="windows-agent-removal-protection-plan.html">Windows 정보 수집 에이전트 임의 삭제 방지 적용 계획</a>
+  <a href="windows-agent-tray-validation.html">Agent 0.2.10 트레이 변경 및 Windows 검증</a>
+</nav>
+<main id="content"></main>
+<script id="md" type="application/json">"# 21. 주변기기(모니터·키보드·마우스) 수집 기능 검토·시험 보고서\n\n| 항목 | 내용 |\n|---|---|\n| 문서번호 | AF-FR-2026-002 |\n| 요청 | Windows Agent가 PC에 연결된 모니터·마우스·키보드 정보를 수집하도록 기능 개선 → 검토·분석·시험 후 버전업·운영 배포 |\n| 작성일 | 2026-11-23 |\n| 대상 버전 | Agent 0.2.12 → **0.2.13**, Backend 0.2.0 → **0.2.1**, Frontend 0.3.0 → **0.3.1** |\n| 산출물 | `agent/release/AssetFlow.Agent.exe` (SHA-256 `343ef31a2806c90d4043d7f890e6076ccfffa78acf258755d1b51d475be091c7`), Flyway `V3__asset_peripheral.sql` |\n\n## 1. 검토 (요구사항·ITAM 관점)\n\n| 관점 | 판단 |\n|---|---|\n| 자산관리 가치 | 모니터는 단가가 높고 이동이 잦은 별도 자산이다. **모니터 시리얼로 \"어느 PC에 연결돼 있는가\"**를 추적할 수 있어 실사·분실 확인에 직접 쓰인다. 키보드·마우스는 소모품 성격이지만 USB/블루투스·제조사 현황과 비인가 장치 파악에 유용하다. |\n| 개인정보·보안 | 장치 **메타데이터만** 수집한다(이름·제조사·모델 코드·시리얼·연결 방식). 키 입력, 포인터 이동, 화면 내용은 수집하지 않는다(README 보안 원칙 유지). 신규 권한·포트·원격 실행 없음. |\n| 하위 호환 | 운영 PC 4대는 Agent 0.2.11이다. 구버전은 `peripherals` 필드를 보내지 않으므로 서버는 **필드가 없으면 기존 목록을 건드리지 않는다**. 화면은 \"Agent 0.2.13 이상으로 업데이트되면 수집됩니다\"로 안내한다. |\n| 범위 제외 | 모니터 해상도(서비스는 세션 0에서 실행돼 사용자 화면 배치를 정확히 알 수 없음), 프린터·USB 저장장치(별도 정책 필요), 모니터를 독립 자산으로 등록·배정하는 기능(FR 후속 과제) |\n\n## 2. 분석 (수집 방식)\n\n| 장치 | WMI 소스 | 수집 항목 | 비고 |\n|---|---|---|---|\n| 모니터 | `root\\wmi` `WmiMonitorID` | 제조사 코드(EDID 3자 → 이름 매핑), 제품 코드, 시리얼, 모델명, 제조연도 | `Active=false`(과거 연결) 제외. 시리얼 `0`·`0000`은 EDID 자리표시자라 null |\n| | `WmiMonitorBasicDisplayParams` | 가로·세로 cm → 대각선 인치 | TV·프로젝터는 0 → null |\n| | `WmiMonitorConnectionParams` | 연결 방식(HDMI·DisplayPort·DVI·VGA·내장) | 노트북 패널(eDP/LVDS/내장) = `Internal` |\n| 키보드 | `Win32_Keyboard` | 이름, PNP ID → VID/PID·연결 방식 | |\n| 마우스 | `Win32_PointingDevice` | 동일 | 터치패드 포함 |\n| 공통 | `Win32_PnPEntity.GetDeviceProperties` | HID 제품 문자열(`DEVPKEY_Device_BusReportedDeviceDesc`, 없으면 부모 USB 노드) | \"HID Keyboard Device\" 같은 일반 명칭 대신 \"MX Keys\" 등 실제 제품명 |\n| 공통 | `Win32_SystemEnclosure.ChassisTypes` | 노트북 여부 | ACPI(i8042) 장치: 노트북=`Internal`, 데스크톱=`PS/2` |\n\n```mermaid\nflowchart LR\n  W[\"WMI (root\\\\wmi, root\\\\cimv2)\"] --> P[\"Peripherals.cs\u003cbr/>파싱·가상장치 제외·중복 제거\"]\n  P -->|\"peripherals[] (최대 64)\"| API[\"POST /agents/inventory\"]\n  API -->|\"null: 유지 / 배열: 교체\"| T[(\"asset_peripheral\")]\n  API -->|\"연결·분리 변경\"| H[(\"asset_management_history\u003cbr/>PERIPHERAL_CHANGED\")]\n  T --> UI[\"자산 상세 · 주변기기 표\"]\n```\n\n설계 결정:\n\n- **가상 장치 제외**: `TERMINPUT_BUS\\`·`ROOT\\RDP_*`(원격 데스크톱), `VMBUS\\`(Hyper-V), `SWD\\`, VMware·VirtualBox. RDP로 접속할 때마다 키보드·마우스가 생겼다 사라지는 오탐을 막는다.\n- **중복 제거**: 키보드 한 대가 HID 컬렉션 2~3개로 보이므로 `종류+VID+PID` 단위로 1건(VID가 없으면 PNP ID 단위). 일반 명칭보다 구체 명칭을 남긴다.\n- **실패 처리**: 예기치 않은 WMI 오류 시 `peripherals=null`을 보내 서버가 기존 목록을 유지한다(부분 수집으로 \"분리\" 이력이 잘못 쌓이는 것 방지). 모니터 클래스가 없는 헤드리스 서버·VM은 \"모니터 0대\"로 처리한다. 주변기기 수집 실패는 인벤토리 전송을 막지 않는다.\n- **최초 확인 시각**: 목록은 매번 교체하되, 같은 장치(모니터는 종류+제조사+모델+시리얼, 시리얼이 없으면 이름)가 계속 연결돼 있으면 `first_seen_at`을 유지한다.\n- **변경 이력**: 두 번째 보고부터 연결·분리를 관리 이력(`changed_by=agent`)에 기록한다. 최초 보고(0.2.13 업데이트 직후)는 이력을 남기지 않는다.\n\n## 3. 변경 내역\n\n| 구성 | 파일 | 내용 |\n|---|---|---|\n| Agent | `agent/Peripherals.cs` (신규) | WMI 비의존 파싱 규칙(EDID 문자 디코딩, 인치, 연결 방식, VID/PID, 가상 장치, 중복 제거) — Linux에서 단위 시험 가능 |\n| | `agent/PeripheralCollector.cs` (신규) | WMI 조회 |\n| | `Models.cs`, `InventoryCollector.cs`, csproj | `PeripheralInfo`, `Inventory.Peripherals`, 버전 0.2.13 |\n| Backend | `V3__asset_peripheral.sql` | `asset_peripheral` 테이블(유형 CHECK, asset 삭제 시 CASCADE, 시리얼 인덱스), `asset.peripherals_collected_at` |\n| | `Models.java` | `Peripheral` 검증(유형 `MONITOR|KEYBOARD|MOUSE`, 길이, 연도 1990~2100, 인치 0~999.9, 최대 64건 → 위반 시 422) |\n| | `AgentController.java` | 주변기기 동기화·최초 확인 유지·변경 이력 |\n| | `AssetController.java` | 상세 응답 `peripherals`, 검색 API에 주변기기 이름·시리얼 포함 |\n| Frontend | `src.jsx` | 자산 상세 요약·하드웨어 탭의 \"주변기기\" 표(구분·장치명·제조사·모델 코드·시리얼·연결·크기/제조연도·최초 확인) |\n\n## 4. 시험 결과\n\n| 구분 | 시험 | 결과 |\n|---|---|---|\n| Agent 단위 | `agent-tests` 콘솔 시험 4묶음(기존 3 + 주변기기 30여 단언: EDID 디코딩, 시리얼 자리표시자, 인치, 연결 방식, USB·BT Classic·BLE VID/PID, ACPI 노트북/데스크톱, I2C 터치패드, RDP·Hyper-V 제외, 중복 제거, 64건 상한, camelCase JSON 계약) | **통과** |\n| Agent 빌드 | `dotnet build`·`publish -r win-x64` 단일 파일(경고 0, PE 헤더·FileVersion 0.2.13.0 확인) | **통과** |\n| Backend 단위 | JUnit 20건(신규 `AgentControllerTest` 5건: 구버전 무변경, 최초 보고 이력 없음, 모니터 교체 이력·최초 확인 유지, 이력 2000자 절삭, 시리얼 기준 식별) | **통과** |\n| DB 마이그레이션 | **운영 DB 덤프 복제본**(PostgreSQL 16)에 Flyway V3 적용 | **성공** (v2 → v3) |\n| API 종단 간 | 실제 Agent 직렬화 JSON으로: ① 구버전 페이로드 202·행 0 ② 최초 보고 4건·이력 0 ③ 동일 재보고 이력 0·최초 확인 4/4 유지 ④ 모니터 교체 시 \"연결/분리\" 이력 1건 ⑤ 수집 후 구버전 페이로드는 4건 유지 ⑥ 잘못된 유형 422 ⑦ 65건 이상 422 ⑧ 토큰 없음 401 ⑨ 상세 응답·모니터 시리얼 검색 | **통과** |\n| Frontend | Vite 빌드, Playwright 회귀 25/25(신규: 하드웨어 탭 주변기기 표·건수·연결 라벨·크기/연도) | **통과** |\n\n**미시험(위험)**: 실제 Windows PC에서 WMI 조회는 이 환경(Linux aarch64)에서 실행할 수 없었다. 모든 WMI 호출은 예외를 흡수하고 실패 시 `null`(서버 기존값 유지)이므로 최악의 경우 \"주변기기 미수집\"에 그치며 인벤토리·하트비트·업데이트에는 영향이 없다. 배포 후 운영 PC 1대에서 아래를 확인한다.\n\n## 5. 배포·확인 절차\n\n1. `main` 푸시 → CI 시험 게이트 → Backend·Frontend 이미지 → k3s 롤링 배포(Flyway V3 자동 적용).\n2. 관리 화면 **Agent 배포**에서 `0.2.13` 등록 → 운영 PC가 5분 주기 업데이트 확인에서 자동 교체.\n3. 확인: `agent_update_history`에 `0.2.11 → 0.2.13`, 자산 상세 하드웨어 탭 주변기기 표, PC의 `%ProgramData%\\AssetFlow\\logs\\agent-*.log`에 인벤토리 성공.\n4. **0.2.12 변경분 동반 적용 주의**: 운영 PC는 0.2.11이므로 이번 업데이트로 0.2.12의 DPAPI 토큰·ProgramData ACL 검증이 함께 적용된다(CR-A13). 업데이트 스크립트가 시작 전에 소유자를 SYSTEM으로 교정한다. 업데이트 후 15분 내 하트비트가 끊긴 PC가 있으면 해당 PC에서 `scripts\\fix-acl.ps1` 실행 또는 재설치한다.\n5. 롤백: Agent는 이전 버전을 상위 번호로 재빌드해 등록(릴리스 버전 불변 정책). 서버는 이전 이미지 태그로 롤백해도 V3 테이블은 무해하다(구 코드는 참조하지 않음).\n"</script>
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js"></script>
+<script>
+  const links = {"README.md":"index.html","01_현황분석.md":"01_현황분석.html","02_IT자산관리_전문가_검토.md":"02_IT자산관리_전문가_검토.html","03_보안전문가_검토.md":"03_보안전문가_검토.html","04_인프라유지보수_검토.md":"04_인프라유지보수_검토.html","05_개선기획_로드맵.md":"05_개선기획_로드맵.html","06_기술검토서.md":"06_기술검토서.html","07_수정요청서.md":"07_수정요청서.html","08_기능추가요청서.md":"08_기능추가요청서.html","09_조치결과보고서_양식.md":"09_조치결과보고서_양식.html","10_디자인전문가_UI검토.md":"10_디자인전문가_UI검토.html","11_웹전문가_프런트엔드검토.md":"11_웹전문가_프런트엔드검토.html","12_IT자산관리전문가_화면검토.md":"12_IT자산관리전문가_화면검토.html","13_수정요청서_UI.md":"13_수정요청서_UI.html","14_보안웹취약점_점검보고서.md":"14_보안웹취약점_점검보고서.html","15_수정요청서_보안웹취약점.md":"15_수정요청서_보안웹취약점.html","16_수정요청_적용계획서.md":"16_수정요청_적용계획서.html","17_추가요구사항_검토서.md":"17_추가요구사항_검토서.html","18_조치결과보고서_1차.md":"18_조치결과보고서_1차.html","19_전문가_검토_프롬프트.md":"19_전문가_검토_프롬프트.html","20_추가수정요청서.md":"20_추가수정요청서.html","21_주변기기수집_검토시험보고서.md":"21_주변기기수집_검토시험보고서.html","windows-agent-communication-status.md":"windows-agent-communication-status.html","windows-agent-removal-protection-plan.md":"windows-agent-removal-protection-plan.html","windows-agent-tray-validation.md":"windows-agent-tray-validation.html"};
+  const main = document.getElementById("content");
+  main.innerHTML = marked.parse(JSON.parse(document.getElementById("md").textContent), { gfm: true });
+  main.querySelectorAll("a[href]").forEach((a) => {
+    const target = decodeURIComponent(a.getAttribute("href"));
+    if (links[target]) a.setAttribute("href", links[target]);
+  });
+  main.querySelectorAll("pre > code.language-mermaid").forEach((code) => {
+    const box = document.createElement("div");
+    box.className = "mermaid";
+    box.textContent = code.textContent;
+    code.parentElement.replaceWith(box);
+  });
+  const foot = document.createElement("div");
+  foot.className = "foot";
+  foot.textContent = "원본: 21_주변기기수집_검토시험보고서.md · 생성: build-html.mjs";
+  main.appendChild(foot);
+  mermaid.initialize({ startOnLoad: false, theme: "default", securityLevel: "strict",
+    themeVariables: { darkMode: false, background: "#ffffff", fontFamily: "Pretendard, Malgun Gothic, sans-serif" },
+    flowchart: { htmlLabels: true, curve: "basis" }, gantt: { axisFormat: "%y-%m" } });
+  mermaid.run({ querySelector: ".mermaid" });
+</script>
+</body>
+</html>

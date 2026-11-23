@@ -28,7 +28,8 @@ public sealed class InventoryCollector
             S(os, "BuildNumber"), S(os, "OSArchitecture"), D(os, "InstallDate"), D(os, "LastBootUpTime"),
             S(cpu, "Name"), I(cpu, "NumberOfCores"), I(cpu, "NumberOfLogicalProcessors"), L(cs, "TotalPhysicalMemory"),
             S(bios, "SMBIOSBIOSVersion"), ip, nic?.GetPhysicalAddress().ToString(),
-            BitLocker(), Firewall(), Defender(), tpm.Present, tpm.Enabled, tpm.Version, SecureBoot(), disks, Software());
+            BitLocker(), Firewall(), Defender(), tpm.Present, tpm.Enabled, tpm.Version, SecureBoot(), disks, Software(),
+            PeripheralCollector.Collect());
     });
 
     private static ManagementBaseObject? Wmi(string name, params string[] fields)

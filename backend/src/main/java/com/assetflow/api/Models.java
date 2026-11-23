@@ -1,7 +1,12 @@
 package com.assetflow.api;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -18,6 +23,11 @@ public final class Models {
   public record Heartbeat(@NotBlank @Size(max = 30) String version) {}
   public record Disk(@Size(max = 100) String name, @Size(max = 50) String filesystem, long totalBytes, long freeBytes) {}
   public record Software(@NotBlank @Size(max = 500) String name, @Size(max = 100) String version, @Size(max = 255) String publisher, @Size(max = 20) String installDate) {}
+  /** Agent 0.2.13: 모니터·키보드·마우스. model은 모니터 EDID 제품코드 또는 VID/PID. */
+  public record Peripheral(
+      @NotBlank @Pattern(regexp = "MONITOR|KEYBOARD|MOUSE") String type, @NotBlank @Size(max = 255) String name,
+      @Size(max = 255) String manufacturer, @Size(max = 100) String model, @Size(max = 100) String serialNo, @Size(max = 50) String connection,
+      @Size(max = 8) String vendorId, @Size(max = 8) String productId, @Min(1990) @Max(2100) Integer manufactureYear, @DecimalMin("0.0") @DecimalMax("999.9") BigDecimal sizeInches, @Size(max = 500) String deviceId) {}
   public record Inventory(
       @NotBlank @Size(max = 255) String hostname, @Size(max = 255) String serialNo, @Size(max = 255) String manufacturer, @Size(max = 255) String model,
       @Size(max = 100) String deviceUuid, @Size(max = 255) String domainName, Boolean domainJoined,
@@ -30,7 +40,8 @@ public final class Models {
       Boolean bitlockerEnabled, Boolean firewallEnabled, @Size(max = 50) String antivirusStatus,
       Boolean tpmPresent, Boolean tpmEnabled, @Size(max = 50) String tpmVersion, Boolean secureBootEnabled,
       @Size(max = 64) List<@Valid Disk> disks, // CR-S07: 디스크 64개 상한
-      List<@Valid Software> software) {}
+      List<@Valid Software> software,
+      @Size(max = 64) List<@Valid Peripheral> peripherals) {} // null = 구버전 Agent 또는 수집 실패 → 기존 목록 유지
   public record AssetManagement(
       @Size(max = 100) String assetTag, @Size(max = 30) String lifecycleStatus, @Size(max = 100) String category, @Size(max = 255) String location,
       @Size(max = 255) String assignedTo, @Size(max = 255) String vendor, LocalDate purchaseDate, BigDecimal purchaseCost,

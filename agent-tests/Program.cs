@@ -104,6 +104,46 @@ if (ConfigProtection.GrantsWrite(true, "S-1-5-32-544", FC)) throw new Exception(
 if (ConfigProtection.GrantsWrite(false, "S-1-5-32-545", FC)) throw new Exception("Deny ACEs are not write grants");
 Console.WriteLine("PASS: logged-on user resolution and data-folder owner policy");
 
+// 0.2.13: monitor / keyboard / mouse parsing rules.
+void Check(bool ok, string what) { if (!ok) throw new Exception("Peripheral: " + what); }
+Check(Peripherals.DecodeWmiChars(new ushort[] { 68, 69, 76, 0, 0 }) == "DEL", "uint16[] chars stop at NUL");
+Check(Peripherals.DecodeWmiChars(new ushort[] { 0, 0 }) == null && Peripherals.DecodeWmiChars(null) == null && Peripherals.DecodeWmiChars("x") == null, "empty/unknown char arrays");
+Check(Peripherals.NormalizeSerial("0") == null && Peripherals.NormalizeSerial("0000") == null && Peripherals.NormalizeSerial(" CN0ABC123 ") == "CN0ABC123", "EDID serial placeholders");
+Check(Peripherals.DiagonalInches(53, 30) == 24.0m && Peripherals.DiagonalInches(31, 17) == 13.9m, "diagonal inches");
+Check(Peripherals.DiagonalInches(0, 0) == null && Peripherals.DiagonalInches(null, 30) == null, "TV/projector size unknown");
+Check(Peripherals.VideoOutput(5) == "HDMI" && Peripherals.VideoOutput(10) == "DisplayPort" && Peripherals.VideoOutput(0x80000000L) == "Internal"
+    && Peripherals.VideoOutput(11) == "Internal" && Peripherals.VideoOutput(0) == "VGA" && Peripherals.VideoOutput(4294967294L) == "Other" && Peripherals.VideoOutput(null) == null, "video output technology");
+var mon = Peripherals.MonitorDevice(@"DISPLAY\DEL4123\5&2a7b1&0&UID4353_0", "DEL", "4123", "CN0ABC123", "DELL P2419H", 2021, 53, 30, 10);
+Check(mon is { Type: "MONITOR", Name: "DELL P2419H", Manufacturer: "Dell", Model: "DEL4123", SerialNo: "CN0ABC123", Connection: "DisplayPort", ManufactureYear: 2021, SizeInches: 24.0m }, "external monitor");
+var panel = Peripherals.MonitorDevice(@"DISPLAY\LGD0611\4&1a&0&UID8388688_0", null, null, "0", null, 0, 31, 17, 0x80000000L);
+Check(panel is { Name: "LG Display 0611", Manufacturer: "LG Display", Model: "LGD0611", SerialNo: null, Connection: "Internal", ManufactureYear: null }, "laptop panel from instance name");
+Check(Peripherals.MonitorDevice(null, "ZZZ", null, null, null, null, null, null, null).Manufacturer == "ZZZ", "unknown EDID vendor kept");
+Check(Peripherals.IsVirtual(@"TERMINPUT_BUS\UMB\2&1"), "RDP keyboard is virtual");
+Check(Peripherals.IsVirtual(@"ROOT\RDP_MOU\0000") && Peripherals.IsVirtual(@"VMBUS\{F8615163}") && Peripherals.IsVirtual(null), "RDP/Hyper-V/null are virtual");
+Check(!Peripherals.IsVirtual(@"HID\VID_046D&PID_C52B&MI_00\7&1&0&0000"), "USB keyboard is physical");
+Check(Peripherals.ParseInputDeviceId(@"HID\VID_046D&PID_C52B&MI_01&COL01\7&2B&0&0000", false) == ("046D", "C52B", "USB"), "USB VID/PID");
+Check(Peripherals.ParseInputDeviceId(@"HID\{00001124-0000-1000-8000-00805F9B34FB}_VID&0002046D_PID&B023&COL01\9&1&0&0000", false) == ("046D", "B023", "Bluetooth"), "Bluetooth classic VID/PID");
+Check(Peripherals.ParseInputDeviceId(@"HID\{00001812-0000-1000-8000-00805F9B34FB}_DEV_VID&02046D_PID&B01A_REV&0003_F1\A&1&0&0000", false) == ("046D", "B01A", "Bluetooth"), "BLE VID/PID");
+Check(Peripherals.ParseInputDeviceId(@"ACPI\PNP0303\4&1&0", true).Connection == "Internal" && Peripherals.ParseInputDeviceId(@"ACPI\PNP0303\4&1&0", false).Connection == "PS/2", "ACPI keyboard: laptop internal vs desktop PS/2");
+Check(Peripherals.ParseInputDeviceId(@"HID\VEN_SYNA&DEV_7DB5&COL01\5&1&0&0000", true) == (null, null, "Internal"), "I2C touchpad");
+Check(Peripherals.IsPortableChassis(new[] { 10 }) && !Peripherals.IsPortableChassis(new[] { 3 }) && !Peripherals.IsPortableChassis(null), "chassis");
+var kb1 = Peripherals.InputDevice("KEYBOARD", @"HID\VID_046D&PID_C52B&MI_00\7&1&0&0000", "HID Keyboard Device", "(Standard keyboards)", "USB Receiver", false)!;
+var kb2 = Peripherals.InputDevice("KEYBOARD", @"HID\VID_046D&PID_C52B&MI_01&COL01\7&2&0&0000", "HID Keyboard Device", "(Standard keyboards)", "MX Keys", false)!;
+Check(kb1 is { Manufacturer: "Logitech", Model: "VID_046D&PID_C52B", Connection: "USB", Name: "USB Receiver" }, "keyboard vendor from VID");
+var ms = Peripherals.InputDevice("MOUSE", @"HID\VID_1A2C&PID_9999\7&3&0&0000", "HID-compliant mouse", "Microsoft", null, false)!;
+Check(ms is { Name: "HID-compliant mouse", Manufacturer: "China Resource Semico" }, "generic name kept when nothing better");
+var internalKb = Peripherals.InputDevice("KEYBOARD", @"ACPI\PNP0303\4&1&0", "Standard PS/2 Keyboard", "(Standard keyboards)", null, true)!;
+Check(internalKb is { Name: "내장 키보드", Manufacturer: null, Model: null, Connection: "Internal" }, "laptop keyboard naming");
+Check(Peripherals.InputDevice("MOUSE", @"TERMINPUT_BUS\UMB\2&1", "Terminal Server Mouse Driver", null, null, false) == null, "RDP mouse dropped");
+var dedup = Peripherals.Deduplicate(new[] { kb1, kb2, ms, mon, panel });
+Check(dedup.Count == 4 && dedup[0].Type == "MONITOR" && dedup[1].Type == "MONITOR" && dedup.Count(x => x.Type == "KEYBOARD") == 1, "HID collections of one keyboard collapse to one entry");
+Check(dedup.Single(x => x.Type == "KEYBOARD").Name == "MX Keys", "dedupe keeps the specific name over the receiver name");
+var many = Enumerable.Range(0, 100).Select(i => Peripherals.InputDevice("MOUSE", $@"HID\VID_{i:X4}&PID_0001\x", "m", null, null, false)!);
+Check(Peripherals.Deduplicate(many).Count == 64, "server limit of 64 entries");
+var json = JsonSerializer.Serialize(mon, new JsonSerializerOptions(JsonSerializerDefaults.Web));
+Check(json.Contains("\"serialNo\":\"CN0ABC123\"") && json.Contains("\"sizeInches\":24.0") && json.Contains("\"type\":\"MONITOR\""), "camelCase JSON matches server contract");
+Console.WriteLine("PASS: monitor EDID decoding, input device VID/PID/connection, virtual device filter, dedupe, JSON contract");
+
 sealed class StubHandler(Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> send) : HttpMessageHandler
 {
     protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct) => send(request, ct);

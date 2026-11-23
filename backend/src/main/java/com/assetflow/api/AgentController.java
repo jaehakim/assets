@@ -79,7 +79,52 @@ public class AgentController {
     if(x.software()!=null)x.software().stream().limit(softwareLimit).forEach(s->db.update("INSERT INTO asset_software(asset_id,name,version,publisher,install_date)VALUES(?,?,?,?,?)",id,s.name(),s.version(),s.publisher(),s.installDate()));
     // CR-023: 상한 초과는 무경고 절삭 대신 수집 건수·절삭 여부를 저장한다.
     db.update("UPDATE asset SET software_count=?,software_truncated=? WHERE id=?",softwareCount,softwareCount>softwareLimit,id);
+    if(x.peripherals()!=null)syncPeripherals(id,x.peripherals());
     db.update("UPDATE agent SET last_seen_at=now() WHERE id=?",agent);
     return ResponseEntity.accepted().body(Map.of("assetId",id));
+  }
+
+  /** Agent 0.2.13: 주변기기 목록을 교체하되 계속 연결된 장치의 최초 확인 시각을 유지하고, 추가·제거를 관리 이력에 남긴다. */
+  private void syncPeripherals(UUID assetId,List<Models.Peripheral> list){
+    var previous=db.queryForList("SELECT device_type,name,manufacturer,model,serial_no,first_seen_at FROM asset_peripheral WHERE asset_id=?",assetId);
+    boolean collectedBefore=Boolean.TRUE.equals(db.queryForObject("SELECT peripherals_collected_at IS NOT NULL FROM asset WHERE id=?",Boolean.class,assetId));
+    Map<String,Object> firstSeen=new HashMap<>();Map<String,String> before=new LinkedHashMap<>();
+    for(var r:previous){
+      String k=peripheralKey((String)r.get("device_type"),(String)r.get("manufacturer"),(String)r.get("model"),(String)r.get("serial_no"),(String)r.get("name"));
+      firstSeen.putIfAbsent(k,r.get("first_seen_at"));
+      before.put(k,describe((String)r.get("device_type"),(String)r.get("name"),(String)r.get("serial_no")));
+    }
+    Map<String,String> after=new LinkedHashMap<>();
+    db.update("DELETE FROM asset_peripheral WHERE asset_id=?",assetId);
+    for(var p:list){
+      String k=peripheralKey(p.type(),p.manufacturer(),p.model(),p.serialNo(),p.name());
+      after.put(k,describe(p.type(),p.name(),p.serialNo()));
+      db.update("""
+          INSERT INTO asset_peripheral(asset_id,device_type,name,manufacturer,model,serial_no,connection,vendor_id,product_id,manufacture_year,size_inches,device_id,first_seen_at)
+          VALUES(?,?,?,?,?,?,?,?,?,?,?,?,coalesce(?::timestamptz,now()))
+          """,assetId,p.type(),p.name(),p.manufacturer(),p.model(),p.serialNo(),p.connection(),p.vendorId(),p.productId(),p.manufactureYear(),p.sizeInches(),p.deviceId(),firstSeen.get(k));
+    }
+    String details=changeDetails(before,after);
+    if(collectedBefore&&details!=null)db.update("INSERT INTO asset_management_history(asset_id,action,changed_by,details) VALUES(?,'PERIPHERAL_CHANGED','agent',?)",assetId,details);
+    db.update("UPDATE asset SET peripherals_collected_at=now() WHERE id=?",assetId);
+  }
+
+  static String peripheralKey(String type,String manufacturer,String model,String serial,String name){
+    return String.join("|",type,Objects.toString(manufacturer,""),Objects.toString(model,""),Objects.toString(serial,""),serial==null?Objects.toString(name,""):"").toLowerCase(Locale.ROOT);
+  }
+  static String describe(String type,String name,String serial){
+    String label=switch(Objects.toString(type,"")){case "MONITOR"->"모니터";case "KEYBOARD"->"키보드";case "MOUSE"->"마우스";default->"장치";};
+    return label+" "+name+(serial==null?"":" (S/N "+serial+")");
+  }
+  /** 추가·제거된 장치 설명. 변경이 없으면 null. */
+  static String changeDetails(Map<String,String> before,Map<String,String> after){
+    var added=after.entrySet().stream().filter(e->!before.containsKey(e.getKey())).map(Map.Entry::getValue).toList();
+    var removed=before.entrySet().stream().filter(e->!after.containsKey(e.getKey())).map(Map.Entry::getValue).toList();
+    if(added.isEmpty()&&removed.isEmpty())return null;
+    var parts=new ArrayList<String>();
+    if(!added.isEmpty())parts.add("주변기기 연결: "+String.join(", ",added));
+    if(!removed.isEmpty())parts.add("주변기기 분리: "+String.join(", ",removed));
+    String text=String.join(" / ",parts);
+    return text.length()>2000?text.substring(0,1997)+"...":text;
   }
 }

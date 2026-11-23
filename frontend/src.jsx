@@ -1011,6 +1011,8 @@ const Icon = ({ name }) => {
   );
 };
 const show = (v) => (v === null || v === undefined || v === "" ? "-" : v);
+const peripheralTypes = { MONITOR: "모니터", KEYBOARD: "키보드", MOUSE: "마우스" };
+const connectionLabels = { Internal: "내장", USB: "USB", Bluetooth: "블루투스", "PS/2": "PS/2", HDMI: "HDMI", DisplayPort: "DisplayPort", DVI: "DVI", VGA: "VGA", Miracast: "무선(Miracast)", Other: "기타" };
 const UNIDENTIFIED_USER = "미식별";
 // CR-A04: Agent 0.2.11 이하는 LocalSystem의 컴퓨터 계정(예: DESKTOP-KJH$)을 보내므로 `$` 계정·NT AUTHORITY 계정도 미식별로 본다.
 const isUnidentifiedUser = (name) => { if (name == null) return true; const n = String(name).trim(); const account = n.includes("\\") ? n.slice(n.lastIndexOf("\\") + 1) : n; return n === "" || account.toUpperCase() === "SYSTEM" || account.endsWith("$") || /^NT (AUTHORITY|SERVICE)\\/i.test(n); };
@@ -1122,6 +1124,17 @@ function AssetDetailModal({ assetId, onClose: closeModal }) {
     { field: "version", headerName: "버전", minWidth: 130 },
     { field: "publisher", headerName: "게시자", minWidth: 180 },
     { field: "install_date", headerName: "설치일", minWidth: 120 },
+  ], []);
+  const peripheralColumns = useMemo(() => [
+    { field: "device_type", headerName: "구분", width: 90, valueFormatter: ({ value }) => peripheralTypes[value] || value },
+    { field: "name", headerName: "장치명", minWidth: 170, flex: 1 },
+    { field: "manufacturer", headerName: "제조사", minWidth: 120, valueFormatter: ({ value }) => show(value) },
+    { field: "model", headerName: "모델 코드", minWidth: 150, valueFormatter: ({ value }) => show(value) },
+    { field: "serial_no", headerName: "시리얼 번호", minWidth: 140, valueFormatter: ({ value }) => show(value) },
+    { field: "connection", headerName: "연결", width: 110, valueFormatter: ({ value }) => value ? connectionLabels[value] || value : "-" },
+    { colId: "spec", headerName: "크기 / 제조연도", minWidth: 130,
+      valueGetter: ({ data }) => [data.size_inches ? `${data.size_inches}"` : null, data.manufacture_year].filter(Boolean).join(" / ") || "-" },
+    { field: "first_seen_at", headerName: "최초 확인", minWidth: 150, valueFormatter: ({ value }) => date(value) },
   ], []);
   const diskColumns = useMemo(() => [
     { field: "name", headerName: "볼륨", width: 105 },
@@ -1272,6 +1285,15 @@ function AssetDetailModal({ assetId, onClose: closeModal }) {
                       저장장치 <small>{data.disks?.length || 0}개 볼륨</small>
                     </h3>
                     <DataGrid label="저장장치" rows={data.disks || []} columns={diskColumns} empty="수집된 저장장치가 없습니다." pageSize={10} autoHeight />
+                  </article>
+                  <article className="detail-card hardware-card peripheral-card">
+                    <h3>
+                      <Icon name="device" />
+                      주변기기{" "}
+                      <small>{["MONITOR", "KEYBOARD", "MOUSE"].map(t => `${peripheralTypes[t]} ${(data.peripherals || []).filter(p => p.device_type === t).length}`).join(" · ")}</small>
+                    </h3>
+                    {!data.peripherals_collected_at && <p className="sw-truncated-notice" role="note">Agent 0.2.13 이상으로 업데이트되면 모니터·키보드·마우스 정보가 수집됩니다.</p>}
+                    <DataGrid label="주변기기" rows={data.peripherals || []} columns={peripheralColumns} empty={data.peripherals_collected_at ? "연결된 모니터·키보드·마우스가 없습니다." : "아직 수집되지 않았습니다."} pageSize={10} autoHeight />
                   </article>
                   <article className="detail-card software-card">
                     <h3>
