@@ -122,7 +122,8 @@ function DataGrid({ rows = [], columns, loading = false, empty = "조회된 데�
   const setQuickFilter = onSearchChange ?? setLocalSearch;
   const [displayed, setDisplayed] = useState(rows.length);
   const [selected, setSelected] = useState(0);
-  const [compact, setCompact] = useState(false);
+  // 디자인 가이드 §6: 표 기본 행 간격은 조밀(38px). 보통(48px)은 화면에서 전환.
+  const [compact, setCompact] = useState(true);
 
   const localeText = useMemo(() => ({
     pageSizeSelectorLabel: "페이지당", page: "페이지", to: "–", of: "/", more: "더보기", next: "다음", last: "마지막",
@@ -142,7 +143,7 @@ function DataGrid({ rows = [], columns, loading = false, empty = "조회된 데�
       <span role="status" aria-live="polite"><b>{displayed}</b> / {rows.length}건</span>
       {selected>0&&<span>선택 <b>{selected}</b>건</span>}
       <div className="x-grid-toolbar-actions">
-        <button type="button" onClick={()=>setCompact((value)=>!value)} aria-pressed={!compact} title="행 높이 전환"><Core16Icon name="table"/>{compact?"보통 간격으로":"조밀 간격으로"}</button>
+        <button type="button" onClick={()=>setCompact((value)=>!value)} title={compact ? "행 높이 48px로 넓히기" : "행 높이 38px로 좁히기"}><Core16Icon name="table"/>{compact?"보통 간격으로":"조밀 간격으로"}</button>
         <button type="button" onClick={clearGrid}><Core16Icon name="refresh"/>필터 초기화</button>
       </div>
     </div>
@@ -1476,6 +1477,7 @@ function DesignGuide() {
       <li><b>글자 크기</b>: 11px(배지·보조) · 12px(표 머리·라벨) · 13px(표 본문) · 14px(본문) · 16px(카드 제목) · 18~20px(수치) · 24~30px(화면 제목). <b>11px 미만 금지.</b></li>
       <li><b>모서리</b>: 버튼·입력 4px, 카드·패널 8px, 상태 점·아바타만 원형.</li>
       <li><b>명도 대비</b>: 본문·보조 문구 4.5:1 이상(회색 보조 문구는 #5f6b7c 이상 진하게).</li>
+      <li><b>표 행 간격</b>: 기본 <b>조밀 38px</b>(머리 36px) — 한 화면에 더 많은 행. 필요하면 표 도구의 "보통 간격으로"(48px)로 넓힌다.</li>
       <li><b>표</b>: 장치·장비 이름을 첫 열로 고정, 판단에 필요한 열(상태·시각)을 앞에. 참/거짓은 체크박스 대신 "연결됨/과거 연결"처럼 글자로. 결과 0건이면 "✓ … 없습니다" 한 줄.</li>
       <li><b>터치 영역</b>: 모바일에서 버튼·링크 24px 이상.</li>
       <li><b>CSS 위치</b>: 색·글자·모서리 값은 <code>styles/tokens.css</code>에만 둔다. 화면 CSS(<code>styles/app.css</code>)는 <code>var(--토큰)</code>만 쓴다.</li>

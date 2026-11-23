@@ -6543,3 +6543,10 @@ code, pre, kbd, samp {
 .sidebar-collapsed .profile > button > span { display: none; }
 .sidebar-collapsed .profile > button > .core16-icon { width: 18px; height: 18px; }
 #primary-navigation .nav-pictogram, #primary-navigation .brand, #primary-navigation .nav-health, #primary-navigation .profile { flex-shrink: 0; }
+
+/* 표 기본 조밀 간격(38px): 두 줄 셀(장비명+시리얼, 태그+생애주기)이 잘리지 않게
+ * 행 높이 자체가 터치 간격(24px 이상)을 확보하므로 셀 안 링크는 글자 높이로 둔다. */
+.ag-cell:has(> .grid-primary), .ag-cell-wrapper:has(.grid-primary) { display: flex; align-items: center; }
+.grid-primary { line-height: 1.25; }
+.grid-primary .asset-detail-link { min-height: 0; line-height: 1.25; }
+.grid-primary small { margin-top: 1px; font-size: var(--fs-11); }
