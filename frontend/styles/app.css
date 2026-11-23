@@ -6535,3 +6535,11 @@ code, pre, kbd, samp {
 /* 시스템 가이드 매뉴얼 머리글: 패널 공통 밝은 배경에 맞춘 글자 색(기존 1.7~2.3:1 → 4.5:1 이상) */
 .manual-heading > div > small { color: var(--c-primary) !important; }
 .manual-heading > div > p { color: var(--text-secondary) !important; }
+
+/* 왼쪽 메뉴 보정(실브라우저 확인 2026-11-23)
+ * - 접힌 메뉴: 로그아웃은 아이콘만(이름은 title·aria-label). 글자가 한 글자씩 세로로 쌓이던 문제
+ * - 모바일 메뉴: 상단 "IT 자산관리" 카드가 세로 공간 부족 시 눌려 글자가 잘리던 문제 */
+.sidebar-collapsed .profile > button { display: inline-flex !important; align-items: center; justify-content: center; width: 40px; height: 36px; padding: 0 !important; }
+.sidebar-collapsed .profile > button > span { display: none; }
+.sidebar-collapsed .profile > button > .core16-icon { width: 18px; height: 18px; }
+#primary-navigation .nav-pictogram, #primary-navigation .brand, #primary-navigation .nav-health, #primary-navigation .profile { flex-shrink: 0; }
