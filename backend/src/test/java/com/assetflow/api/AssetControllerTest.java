@@ -21,7 +21,7 @@ class AssetControllerTest {
     var rows = List.<Map<String,Object>>of(Map.of("hostname","PC-01","bitlocker_enabled",false,"antivirus_status","Unknown"));
     when(db.queryForList(anyString(), any(Object[].class))).thenReturn(rows);
     assertEquals(rows, new AssetController(db).assets("PC"));
-    verify(db).queryForList(contains("s.bitlocker_enabled,s.antivirus_status"), eq("%PC%"), eq("%PC%"), eq("%PC%"), eq("%PC%"), eq("%PC%"), eq("%PC%"), eq("%PC%"));
+    verify(db).queryForList(contains("s.bitlocker_enabled,s.antivirus_status"), eq("%PC%"), eq("%PC%"), eq("%PC%"), eq("%PC%"), eq("%PC%"), eq("%PC%"), eq("%PC%"), eq("%PC%"), eq("%PC%"));
   }
   // CR-A10
   @Test void searchEscapesLikeWildcards() {

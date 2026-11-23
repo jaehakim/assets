@@ -44,7 +44,9 @@ public sealed class AgentClient
     public async Task SendInventory(Inventory data, CancellationToken ct)
     {
         await Send("inventory", data, ct);
-        communication.LogInformation("INVENTORY_ACK disks={Disks} software={Software}", data.Disks.Count, data.Software.Count);
+        communication.LogInformation("INVENTORY_ACK disks={Disks} software={Software} peripherals={Peripherals} usb={Usb} errors={Errors}",
+            data.Disks.Count, data.Software.Count, data.Peripherals?.Count.ToString() ?? "failed", data.UsbDevices?.Count.ToString() ?? "failed",
+            data.CollectionErrors is null ? "-" : string.Join(" | ", data.CollectionErrors));
     }
     public async Task Heartbeat(CancellationToken ct) => await Send("heartbeat", new { version = Version }, ct);
 

@@ -144,6 +144,47 @@ var json = JsonSerializer.Serialize(mon, new JsonSerializerOptions(JsonSerialize
 Check(json.Contains("\"serialNo\":\"CN0ABC123\"") && json.Contains("\"sizeInches\":24.0") && json.Contains("\"type\":\"MONITOR\""), "camelCase JSON matches server contract");
 Console.WriteLine("PASS: monitor EDID decoding, input device VID/PID/connection, virtual device filter, dedupe, JSON contract");
 
+// 0.2.14: USB devices (present + previously connected) via SetupAPI.
+Check(Peripherals.ErrorNote("peripherals", new InvalidOperationException("secret path C:\\x")) == "peripherals: InvalidOperationException", "error note carries no message text");
+Check(UsbDevices.CleanDescription("@usb.inf,%usb.composite.devicedesc%;USB Composite Device") == "USB Composite Device" && UsbDevices.CleanDescription("SanDisk; Ultra") == "SanDisk; Ultra" && UsbDevices.CleanDescription(" ") == null, "INF description cleanup");
+var utf16 = System.Text.Encoding.Unicode.GetBytes("Ultra Fit\0");
+Check(UsbDevices.DecodeString(utf16, utf16.Length) == "Ultra Fit" && UsbDevices.DecodeString(null, 0) == null, "DEVPROP string");
+var ft = BitConverter.GetBytes(new DateTime(2026, 11, 20, 1, 2, 3, DateTimeKind.Utc).ToFileTimeUtc());
+Check(UsbDevices.DecodeFileTime(ft, 8) == new DateTimeOffset(2026, 11, 20, 1, 2, 3, TimeSpan.Zero) && UsbDevices.DecodeFileTime(new byte[8], 8) == null && UsbDevices.DecodeFileTime(ft, 4) == null, "DEVPROP FILETIME");
+Check(UsbDevices.ParseInstanceId(@"USB\VID_0781&PID_5581\4C530001231122115172") == ("0781", "5581", "4C530001231122115172", null), "storage serial from instance");
+Check(UsbDevices.ParseInstanceId(@"USB\VID_046D&PID_C52B&MI_01\7&2B&0&0001") == ("046D", "C52B", null, "01"), "interface entry, generated instance has no serial");
+Check(UsbDevices.StorageSerial(@"USBSTOR\Disk&Ven_SanDisk&Prod_Ultra&Rev_1.00\4C530001231122115172&0") == "4C530001231122115172" && UsbDevices.StorageSerial(@"USBSTOR\Disk&Ven_X\7&1&0") == null, "USBSTOR serial");
+Check(UsbDevices.Category("USB", "USBSTOR") == "STORAGE" && UsbDevices.Category("WPD", "WUDFRd") == "MOBILE" && UsbDevices.Category("Camera", "usbvideo") == "CAMERA"
+    && UsbDevices.Category("Media", "usbaudio") == "AUDIO" && UsbDevices.Category("Net", "rndis") == "NETWORK" && UsbDevices.Category("USB", "usbprint") == "PRINTER"
+    && UsbDevices.Category("SmartCardReader", "WUDFRd") == "SMARTCARD" && UsbDevices.Category("Ports", "usbser") == "SERIAL" && UsbDevices.Category("HIDClass", "HidUsb") == "INPUT"
+    && UsbDevices.Category("USB", "usbccgp") == "OTHER", "categories");
+DateTimeOffset T(int day) => new(2026, 11, day, 9, 0, 0, TimeSpan.Zero);
+var raw = new[] {
+    new UsbDevices.Raw(@"USB\ROOT_HUB30\4&1&0&0", "USB Root Hub (USB 3.0)", null, null, null, "USB", "USBHUB3", true, T(1), T(1), null),
+    new UsbDevices.Raw(@"USB\VID_05E3&PID_0610\5&1&0&1", "Generic USB Hub", null, "USB2.0 Hub", null, "USB", "USBHUB3", true, T(1), T(1), null),
+    new UsbDevices.Raw(@"USB\VID_0781&PID_5581\4C530001231122115172", "@usb.inf;USB Mass Storage Device", null, " SanDisk 3.2Gen1", "Compatible USB storage device", "USB", "USBSTOR", false, T(2), T(10), T(11)),
+    new UsbDevices.Raw(@"USB\VID_046D&PID_085B\8B2D4C1F", "@usb.inf;USB Composite Device", null, "Logitech Webcam C925e", "(Standard USB Host Controller)", "USB", "usbccgp", true, T(3), T(20), null),
+    new UsbDevices.Raw(@"USB\VID_046D&PID_085B&MI_00\7&1&0&0000", "USB Video Device", null, "Logitech Webcam C925e", null, "Camera", "usbvideo", true, T(3), T(21), null),
+    new UsbDevices.Raw(@"USB\VID_046D&PID_085B&MI_02\7&1&0&0002", "USB Audio Device", null, null, null, "Media", "usbaudio", true, T(3), T(21), null),
+    new UsbDevices.Raw(@"USB\VID_04E8&PID_6860\R5CT1234ABC", "@usb.inf;USB Composite Device", null, "SAMSUNG_Android", "Samsung", "USB", "usbccgp", false, T(4), T(5), T(5)),
+    new UsbDevices.Raw(@"USB\VID_04E8&PID_6860&MI_00\7&9&0&0000", "Galaxy S23", "Galaxy S23", null, null, "WPD", "WUDFRd", false, T(4), T(5), T(5)),
+    new UsbDevices.Raw(@"USB\VID_ABCD&PID_1234\6&3&0&4", null, null, null, null, null, null, null, null, null, null),
+};
+var usb = UsbDevices.Build(raw, new Dictionary<string, string> { ["4C530001231122115172"] = "SanDisk Ultra Fit USB Device" });
+Check(usb.Count == 4, "hubs dropped, interfaces folded into parents (got " + usb.Count + ")");
+Check(usb[0] is { Category: "CAMERA", Name: "Logitech Webcam C925e", Manufacturer: "Logitech", Present: true, SerialNo: "8B2D4C1F" } && usb[0].LastArrivalAt == T(21), "composite webcam: camera wins over audio, newest interface arrival");
+var stick = usb.Single(x => x.VendorId == "0781");
+Check(stick is { Category: "STORAGE", Name: "SanDisk Ultra Fit USB Device", Present: false, SerialNo: "4C530001231122115172", Manufacturer: "SanDisk" } && stick.LastRemovalAt == T(11) && stick.FirstInstallAt == T(2), "past USB stick with USBSTOR name and history times");
+var phone = usb.Single(x => x.VendorId == "04E8");
+Check(phone is { Category: "MOBILE", Name: "SAMSUNG_Android", Manufacturer: "Samsung", Present: false }, "past phone via MTP interface");
+Check(usb.Last() is { Name: "USB ABCD:1234", Category: "OTHER", Present: null, SerialNo: null }, "unknown device keeps VID:PID name");
+Check(usb.IndexOf(stick) < usb.IndexOf(phone), "past devices ordered by last arrival");
+var bulk = Enumerable.Range(0, 400).Select(i => new UsbDevices.Raw($@"USB\VID_1111&PID_{i:X4}\S{i}", "Dev", null, null, null, "USB", "x", false, null, T(1), null));
+Check(UsbDevices.Build(bulk).Count == UsbDevices.Limit, "300 device limit");
+var usbJson = JsonSerializer.Serialize(usb[0], new JsonSerializerOptions(JsonSerializerDefaults.Web));
+Check(usbJson.Contains("\"deviceId\":") && usbJson.Contains("\"lastArrivalAt\":\"2026-11-21T09:00:00+00:00\"") && usbJson.Contains("\"present\":true"), "USB JSON contract");
+Console.WriteLine("PASS: USB present/past devices — instance parsing, categories, composite folding, hub filter, USBSTOR names, history times, ordering, limit, JSON");
+
 sealed class StubHandler(Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> send) : HttpMessageHandler
 {
     protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct) => send(request, ct);

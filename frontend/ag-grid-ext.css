@@ -52,6 +52,7 @@ main{min-height:100vh;background:#eef1f5;padding-bottom:18px}
 .sw-truncated{display:inline-block;margin-left:6px;padding:0 4px;border:1px solid #e3b76b;border-radius:2px;background:#fff6e5;color:#b45309;font-size:10px;line-height:15px;vertical-align:middle;white-space:nowrap}
 .grid-primary small.sw-truncated{display:inline-block;margin-top:0;color:#b45309}
 .sw-truncated-notice{margin:0 0 8px;padding:6px 10px;border:1px solid #e3b76b;border-radius:2px;background:#fff6e5;color:#b45309;font-size:12px}
+.usb-history-note{margin:0 0 8px;color:#4b5563;font-size:12px}
 .grid-empty{color:#7d8796;padding:24px}
 .grid-action{height:24px!important;min-height:24px!important;padding:0 9px!important;margin:0;font-size:10px!important}
 .asset-list-panel{overflow:hidden}

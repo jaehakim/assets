@@ -46,8 +46,9 @@ public class AssetController {
         WHERE s.hostname ILIKE ? OR coalesce(s.username,'') ILIKE ? OR coalesce(s.asset_tag,'') ILIKE ?
           OR coalesce(s.assigned_to,'') ILIKE ? OR coalesce(s.location,'') ILIKE ?
           OR EXISTS(SELECT 1 FROM asset_peripheral p WHERE p.asset_id=s.id AND (coalesce(p.serial_no,'') ILIKE ? OR p.name ILIKE ?))
+          OR EXISTS(SELECT 1 FROM asset_usb_device u WHERE u.asset_id=s.id AND (coalesce(u.serial_no,'') ILIKE ? OR u.name ILIKE ?))
         ORDER BY GREATEST(s.last_seen_at,a.last_seen_at) DESC LIMIT 500
-        """, like(q), like(q), like(q), like(q), like(q), like(q), like(q));
+        """, like(q), like(q), like(q), like(q), like(q), like(q), like(q), like(q), like(q));
   }
 
   /** CR-A10: 검색어의 LIKE 와일드카드(% _ \\)를 문자 그대로 취급한다. */
@@ -68,6 +69,7 @@ public class AssetController {
     var out = new LinkedHashMap<>(rows.getFirst());
     out.put("disks", db.queryForList("SELECT name,filesystem,total_bytes,free_bytes FROM asset_disk WHERE asset_id=?", id));
     out.put("peripherals", db.queryForList("SELECT device_type,name,manufacturer,model,serial_no,connection,vendor_id,product_id,manufacture_year,size_inches,first_seen_at,last_seen_at FROM asset_peripheral WHERE asset_id=? ORDER BY CASE device_type WHEN 'MONITOR' THEN 0 WHEN 'KEYBOARD' THEN 1 ELSE 2 END,name", id));
+    out.put("usbDevices", db.queryForList("SELECT category,name,manufacturer,vendor_id,product_id,serial_no,device_class,present,first_install_at,last_arrival_at,last_removal_at,first_reported_at,last_reported_at FROM asset_usb_device WHERE asset_id=? ORDER BY present DESC,coalesce(last_arrival_at,first_install_at,first_reported_at) DESC NULLS LAST LIMIT 1000", id));
     out.put("software", db.queryForList("SELECT name,version,publisher,install_date FROM asset_software WHERE asset_id=? ORDER BY name", id));
     out.put("managementHistory", db.queryForList("SELECT id,action,changed_by,details,created_at FROM asset_management_history WHERE asset_id=? ORDER BY created_at DESC LIMIT 30", id));
     return ResponseEntity.ok(out);

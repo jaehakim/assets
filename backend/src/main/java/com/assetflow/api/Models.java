@@ -28,6 +28,13 @@ public final class Models {
       @NotBlank @Pattern(regexp = "MONITOR|KEYBOARD|MOUSE") String type, @NotBlank @Size(max = 255) String name,
       @Size(max = 255) String manufacturer, @Size(max = 100) String model, @Size(max = 100) String serialNo, @Size(max = 50) String connection,
       @Size(max = 8) String vendorId, @Size(max = 8) String productId, @Min(1990) @Max(2100) Integer manufactureYear, @DecimalMin("0.0") @DecimalMax("999.9") BigDecimal sizeInches, @Size(max = 500) String deviceId) {}
+  /** Agent 0.2.14: USB 열거자에 기록된 장치. present=false는 과거 연결. */
+  public record UsbDevice(
+      @NotBlank @Size(max = 500) String deviceId,
+      @NotBlank @Pattern(regexp = "STORAGE|MOBILE|CAMERA|PRINTER|NETWORK|SMARTCARD|AUDIO|SERIAL|BLUETOOTH|INPUT|OTHER") String category,
+      @NotBlank @Size(max = 255) String name, @Size(max = 255) String manufacturer, @Size(max = 8) String vendorId, @Size(max = 8) String productId,
+      @Size(max = 255) String serialNo, @Size(max = 100) String deviceClass, @Size(max = 100) String service, Boolean present,
+      OffsetDateTime firstInstallAt, OffsetDateTime lastArrivalAt, OffsetDateTime lastRemovalAt) {}
   public record Inventory(
       @NotBlank @Size(max = 255) String hostname, @Size(max = 255) String serialNo, @Size(max = 255) String manufacturer, @Size(max = 255) String model,
       @Size(max = 100) String deviceUuid, @Size(max = 255) String domainName, Boolean domainJoined,
@@ -41,7 +48,9 @@ public final class Models {
       Boolean tpmPresent, Boolean tpmEnabled, @Size(max = 50) String tpmVersion, Boolean secureBootEnabled,
       @Size(max = 64) List<@Valid Disk> disks, // CR-S07: 디스크 64개 상한
       List<@Valid Software> software,
-      @Size(max = 64) List<@Valid Peripheral> peripherals) {} // null = 구버전 Agent 또는 수집 실패 → 기존 목록 유지
+      @Size(max = 64) List<@Valid Peripheral> peripherals, // null = 구버전 Agent 또는 수집 실패 → 기존 목록 유지
+      @Size(max = 300) List<@Valid UsbDevice> usbDevices, // null = 구버전 Agent 또는 수집 실패 → 기존 목록 유지
+      @Size(max = 10) List<@Size(max = 300) String> collectionErrors) {}
   public record AssetManagement(
       @Size(max = 100) String assetTag, @Size(max = 30) String lifecycleStatus, @Size(max = 100) String category, @Size(max = 255) String location,
       @Size(max = 255) String assignedTo, @Size(max = 255) String vendor, LocalDate purchaseDate, BigDecimal purchaseCost,

@@ -20,6 +20,9 @@ public sealed class InventoryCollector
         var disks = DriveInfo.GetDrives().Where(d => d.IsReady && d.DriveType == DriveType.Fixed)
             .Select(d => new DiskInfo(d.Name, d.DriveFormat, d.TotalSize, d.AvailableFreeSpace)).ToList();
         var tpm = Tpm();
+        var errors = new List<string>();
+        var peripherals = PeripheralCollector.Collect(errors);
+        var usb = UsbCollector.Collect(errors);
         return new Inventory(
             Environment.MachineName, S(bios, "SerialNumber"), S(cs, "Manufacturer"), S(cs, "Model"),
             S(product, "UUID"), S(cs, "Domain"), B(cs, "PartOfDomain"),
@@ -29,7 +32,7 @@ public sealed class InventoryCollector
             S(cpu, "Name"), I(cpu, "NumberOfCores"), I(cpu, "NumberOfLogicalProcessors"), L(cs, "TotalPhysicalMemory"),
             S(bios, "SMBIOSBIOSVersion"), ip, nic?.GetPhysicalAddress().ToString(),
             BitLocker(), Firewall(), Defender(), tpm.Present, tpm.Enabled, tpm.Version, SecureBoot(), disks, Software(),
-            PeripheralCollector.Collect());
+            peripherals, usb, errors.Count == 0 ? null : errors);
     });
 
     private static ManagementBaseObject? Wmi(string name, params string[] fields)

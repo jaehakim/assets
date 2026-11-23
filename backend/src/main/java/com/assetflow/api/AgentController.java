@@ -80,6 +80,9 @@ public class AgentController {
     // CR-023: 상한 초과는 무경고 절삭 대신 수집 건수·절삭 여부를 저장한다.
     db.update("UPDATE asset SET software_count=?,software_truncated=? WHERE id=?",softwareCount,softwareCount>softwareLimit,id);
     if(x.peripherals()!=null)syncPeripherals(id,x.peripherals());
+    if(x.usbDevices()!=null)syncUsbDevices(id,x.usbDevices());
+    // 0.2.14: 수집 실패 사유(원격 진단). 정상 수집이면 지운다.
+    db.update("UPDATE asset SET collection_errors=? WHERE id=?",x.collectionErrors()==null||x.collectionErrors().isEmpty()?null:truncate(String.join(" | ",x.collectionErrors()),2000),id);
     db.update("UPDATE agent SET last_seen_at=now() WHERE id=?",agent);
     return ResponseEntity.accepted().body(Map.of("assetId",id));
   }
@@ -109,6 +112,35 @@ public class AgentController {
     db.update("UPDATE asset SET peripherals_collected_at=now() WHERE id=?",assetId);
   }
 
+  /**
+   * Agent 0.2.14: USB 장치를 (자산, 장치 인스턴스 ID) 기준으로 누적한다. 이번 보고에 없는 장치는 삭제하지 않고 present=false로 남겨
+   * PC에서 과거 기록이 정리된 뒤에도 서버 이력이 유지된다. 이전에 USB를 보고한 자산에서 처음 보는 저장장치·휴대폰은 관리 이력에 남긴다.
+   */
+  private void syncUsbDevices(UUID assetId,List<Models.UsbDevice> list){
+    boolean collectedBefore=Boolean.TRUE.equals(db.queryForObject("SELECT usb_collected_at IS NOT NULL FROM asset WHERE id=?",Boolean.class,assetId));
+    db.update("UPDATE asset_usb_device SET present=false WHERE asset_id=?",assetId);
+    var added=new ArrayList<String>();
+    for(var u:list){
+      Boolean inserted=db.queryForObject("""
+          INSERT INTO asset_usb_device(asset_id,device_id,category,name,manufacturer,vendor_id,product_id,serial_no,device_class,service,present,first_install_at,last_arrival_at,last_removal_at)
+          VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+          ON CONFLICT(asset_id,device_id) DO UPDATE SET category=excluded.category,name=excluded.name,manufacturer=excluded.manufacturer,
+            vendor_id=excluded.vendor_id,product_id=excluded.product_id,serial_no=excluded.serial_no,device_class=excluded.device_class,service=excluded.service,
+            present=excluded.present,first_install_at=coalesce(asset_usb_device.first_install_at,excluded.first_install_at),
+            last_arrival_at=coalesce(excluded.last_arrival_at,asset_usb_device.last_arrival_at),last_removal_at=coalesce(excluded.last_removal_at,asset_usb_device.last_removal_at),
+            last_reported_at=now()
+          RETURNING (xmax=0)
+          """,Boolean.class,assetId,u.deviceId(),u.category(),u.name(),u.manufacturer(),u.vendorId(),u.productId(),u.serialNo(),u.deviceClass(),u.service(),
+          Boolean.TRUE.equals(u.present()),u.firstInstallAt(),u.lastArrivalAt(),u.lastRemovalAt());
+      if(collectedBefore&&Boolean.TRUE.equals(inserted)&&("STORAGE".equals(u.category())||"MOBILE".equals(u.category())))
+        added.add(("STORAGE".equals(u.category())?"USB 저장장치 ":"휴대기기 ")+u.name()+(u.serialNo()==null?"":" (S/N "+u.serialNo()+")"));
+    }
+    if(!added.isEmpty())db.update("INSERT INTO asset_management_history(asset_id,action,changed_by,details) VALUES(?,'USB_DEVICE_FIRST_SEEN','agent',?)",assetId,truncate("새 USB 장치 연결 기록: "+String.join(", ",added),2000));
+    db.update("UPDATE asset SET usb_collected_at=now() WHERE id=?",assetId);
+  }
+
+  static String truncate(String text,int max){return text.length()>max?text.substring(0,max-3)+"...":text;}
+
   static String peripheralKey(String type,String manufacturer,String model,String serial,String name){
     return String.join("|",type,Objects.toString(manufacturer,""),Objects.toString(model,""),Objects.toString(serial,""),serial==null?Objects.toString(name,""):"").toLowerCase(Locale.ROOT);
   }
@@ -125,6 +157,6 @@ public class AgentController {
     if(!added.isEmpty())parts.add("주변기기 연결: "+String.join(", ",added));
     if(!removed.isEmpty())parts.add("주변기기 분리: "+String.join(", ",removed));
     String text=String.join(" / ",parts);
-    return text.length()>2000?text.substring(0,1997)+"...":text;
+    return truncate(text,2000);
   }
 }

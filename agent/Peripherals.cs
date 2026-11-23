@@ -27,7 +27,14 @@ public static class Peripherals
         ["1532"] = "Razer", ["04F2"] = "Chicony", ["093A"] = "PixArt", ["258A"] = "Sino Wealth", ["1A2C"] = "China Resource Semico",
         ["04D9"] = "Holtek", ["0461"] = "Primax", ["046A"] = "Cherry", ["1BCF"] = "Sunplus", ["04CA"] = "Lite-On", ["0458"] = "KYE (Genius)",
         ["1EA7"] = "SHARKOON", ["0B05"] = "ASUS", ["1038"] = "SteelSeries", ["1B1C"] = "Corsair", ["3434"] = "Keychron", ["04E8"] = "Samsung",
-        ["24AE"] = "Rapoo", ["0951"] = "HyperX", ["0E8F"] = "GreenAsia", ["1C4F"] = "SiGma Micro", ["2EA8"] = "Abko",
+        ["24AE"] = "Rapoo", ["0951"] = "Kingston", ["0E8F"] = "GreenAsia", ["1C4F"] = "SiGma Micro", ["2EA8"] = "Abko",
+        // 0.2.14: common USB storage, phone, camera, printer and adapter vendors
+        ["0781"] = "SanDisk", ["090C"] = "Silicon Motion", ["13FE"] = "Phison", ["058F"] = "Alcor Micro", ["8564"] = "Transcend", ["0930"] = "Toshiba",
+        ["1058"] = "Western Digital", ["0BC2"] = "Seagate", ["152D"] = "JMicron", ["174C"] = "ASMedia", ["18D1"] = "Google", ["22B8"] = "Motorola",
+        ["2717"] = "Xiaomi", ["12D1"] = "Huawei", ["054C"] = "Sony", ["04A9"] = "Canon", ["04B8"] = "Epson", ["04F9"] = "Brother", ["0BDA"] = "Realtek",
+        ["8087"] = "Intel", ["0A5C"] = "Broadcom", ["0CF3"] = "Qualcomm Atheros", ["0B95"] = "ASIX", ["2109"] = "VIA Labs", ["05E3"] = "Genesys Logic",
+        ["1004"] = "LG Electronics", ["2A70"] = "OnePlus", ["0FCE"] = "Sony Mobile", ["0E8D"] = "MediaTek", ["067B"] = "Prolific", ["0403"] = "FTDI",
+        ["10C4"] = "Silicon Labs", ["1A86"] = "QinHeng (CH340)", ["076B"] = "OmniKey", ["072F"] = "ACS", ["0BB4"] = "HTC",
     };
 
     static readonly Regex Vid = new(@"VID[_&](?:0002)?([0-9A-F]{4,6})", RegexOptions.IgnoreCase | RegexOptions.Compiled);
@@ -156,5 +163,13 @@ public static class Peripherals
         .Take(64) // server limit
         .ToList();
 
-    static string? Truncate(string? value, int max) => value is null || value.Length <= max ? value : value[..max];
+    /// <summary>Short, credential-free failure note for the server ("peripherals: ManagementException InvalidQuery").</summary>
+    public static string ErrorNote(string area, Exception e)
+    {
+        var detail = e is System.Runtime.InteropServices.ExternalException x ? $"0x{x.ErrorCode:X8}" : "";
+        var code = e.GetType().GetProperty("ErrorCode")?.GetValue(e)?.ToString();
+        return Truncate($"{area}: {e.GetType().Name} {code ?? detail}".Trim(), 300)!;
+    }
+
+    internal static string? Truncate(string? value, int max) => value is null || value.Length <= max ? value : value[..max];
 }

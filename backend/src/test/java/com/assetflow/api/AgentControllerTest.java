@@ -6,6 +6,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
+import java.time.OffsetDateTime;
 import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -17,10 +18,14 @@ class AgentControllerTest {
   static final Models.Peripheral MONITOR = new Models.Peripheral("MONITOR", "DELL P2419H", "Dell", "DEL4123", "CN0ABC123", "DisplayPort", null, null, 2021, new BigDecimal("24.0"), "DISPLAY\\DEL4123\\1");
   static final Models.Peripheral MOUSE = new Models.Peripheral("MOUSE", "G502 HERO", "Logitech", "VID_046D&PID_C08B", null, "USB", "046D", "C08B", null, null, "HID\\VID_046D&PID_C08B\\1");
 
-  static Models.Inventory inventory(List<Models.Peripheral> peripherals) {
+  static Models.Inventory inventory(List<Models.Peripheral> peripherals) { return inventory(peripherals, null, null); }
+  static Models.Inventory inventory(List<Models.Peripheral> peripherals, List<Models.UsbDevice> usb, List<String> errors) {
     return new Models.Inventory("PC-01", null, null, null, null, null, null, null, null, "Windows 11", "10.0", null, null, null, null,
-        null, null, null, null, null, null, null, null, null, "Healthy", null, null, null, null, List.of(), List.of(), peripherals);
+        null, null, null, null, null, null, null, null, null, "Healthy", null, null, null, null, List.of(), List.of(), peripherals, usb, errors);
   }
+  static final OffsetDateTime T = OffsetDateTime.parse("2026-11-20T09:00:00Z");
+  static final Models.UsbDevice STICK = new Models.UsbDevice("USB\\VID_0781&PID_5581\\4C53", "STORAGE", "SanDisk Ultra Fit", "SanDisk", "0781", "5581", "4C53", "USB", "USBSTOR", false, T, T, T);
+  static final Models.UsbDevice CAM = new Models.UsbDevice("USB\\VID_046D&PID_085B\\8B2D", "CAMERA", "Logitech C925e", "Logitech", "046D", "085B", "8B2D", "USB", "usbccgp", true, T, T, null);
 
   @SuppressWarnings("unchecked")
   static JdbcTemplate db(List<Map<String, Object>> previous, boolean collectedBefore) {
@@ -64,6 +69,38 @@ class AgentControllerTest {
     controller(db).inventory("Bearer t", inventory(List.of(MONITOR, MOUSE)));
     verify(db).update(contains("INSERT INTO asset_peripheral"), eq(ASSET), eq("MOUSE"), eq("G502 HERO"), any(), any(), isNull(), any(), any(), any(), isNull(), isNull(), any(), eq(since));
     verify(db).update(contains("PERIPHERAL_CHANGED"), eq(ASSET), eq("주변기기 연결: 모니터 DELL P2419H (S/N CN0ABC123) / 주변기기 분리: 모니터 LG 24MK430H (S/N OLD123)"));
+  }
+
+  @Test void usbDevicesAreUpsertedNeverDeletedAndNewStorageIsRecorded() {
+    JdbcTemplate db = db(List.of(), true);
+    when(db.queryForObject(contains("usb_collected_at IS NOT NULL"), eq(Boolean.class), eq(ASSET))).thenReturn(true);
+    when(db.queryForObject(contains("INSERT INTO asset_usb_device"), eq(Boolean.class), any(Object[].class))).thenReturn(true, false);
+    controller(db).inventory("Bearer t", inventory(null, List.of(STICK, CAM), null));
+    verify(db).update("UPDATE asset_usb_device SET present=false WHERE asset_id=?", ASSET);
+    verify(db, never()).update(startsWith("DELETE FROM asset_usb_device"), any(Object[].class));
+    verify(db).queryForObject(contains("ON CONFLICT(asset_id,device_id)"), eq(Boolean.class), eq(ASSET), eq("USB\\VID_0781&PID_5581\\4C53"), eq("STORAGE"), eq("SanDisk Ultra Fit"),
+        eq("SanDisk"), eq("0781"), eq("5581"), eq("4C53"), eq("USB"), eq("USBSTOR"), eq(false), eq(T), eq(T), eq(T));
+    verify(db).update(contains("USB_DEVICE_FIRST_SEEN"), eq(ASSET), eq("새 USB 장치 연결 기록: USB 저장장치 SanDisk Ultra Fit (S/N 4C53)"));
+    verify(db).update("UPDATE asset SET usb_collected_at=now() WHERE id=?", ASSET);
+    verify(db).update("UPDATE asset SET collection_errors=? WHERE id=?", null, ASSET);
+  }
+
+  @Test void firstUsbReportDoesNotFloodHistoryAndOldAgentKeepsUsbRows() {
+    JdbcTemplate db = db(List.of(), false);
+    when(db.queryForObject(contains("usb_collected_at IS NOT NULL"), eq(Boolean.class), eq(ASSET))).thenReturn(false);
+    when(db.queryForObject(contains("INSERT INTO asset_usb_device"), eq(Boolean.class), any(Object[].class))).thenReturn(true);
+    controller(db).inventory("Bearer t", inventory(null, List.of(STICK), null));
+    verify(db, never()).update(contains("USB_DEVICE_FIRST_SEEN"), any(Object[].class));
+    JdbcTemplate old = db(List.of(), true);
+    controller(old).inventory("Bearer t", inventory(null));
+    verify(old, never()).update(contains("asset_usb_device"), any(Object[].class));
+    verify(old, never()).queryForObject(contains("asset_usb_device"), eq(Boolean.class), any(Object[].class));
+  }
+
+  @Test void collectionErrorsAreStoredForRemoteDiagnosis() {
+    JdbcTemplate db = db(List.of(), true);
+    controller(db).inventory("Bearer t", inventory(null, null, List.of("peripherals: ManagementException InvalidQuery", "usb: Win32Exception 5")));
+    verify(db).update("UPDATE asset SET collection_errors=? WHERE id=?", "peripherals: ManagementException InvalidQuery | usb: Win32Exception 5", ASSET);
   }
 
   @Test void changeDetailsIgnoresUnchangedAndTruncates() {

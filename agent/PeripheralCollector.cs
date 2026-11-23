@@ -10,7 +10,8 @@ public static class PeripheralCollector
 {
     const string BusReportedName = "DEVPKEY_Device_BusReportedDeviceDesc", Parent = "DEVPKEY_Device_Parent";
 
-    public static List<PeripheralInfo>? Collect()
+    /// <summary>On failure the reason is appended to <paramref name="errors"/> (sent to the server for remote diagnosis).</summary>
+    public static List<PeripheralInfo>? Collect(List<string> errors)
     {
         try
         {
@@ -18,8 +19,9 @@ public static class PeripheralCollector
                 .SelectMany(o => o["ChassisTypes"] is ushort[] t ? t.Select(x => (int)x) : Enumerable.Empty<int>()));
             var items = new List<PeripheralInfo>();
             items.AddRange(Monitors());
-            foreach (var (type, cls) in new[] { (Peripherals.Keyboard, "Win32_Keyboard"), (Peripherals.Mouse, "Win32_PointingDevice") })
-                foreach (var o in Query(@"root\cimv2", $"SELECT Name,Manufacturer,PNPDeviceID FROM {cls}").Take(32))
+            // 0.2.14: Win32_Keyboard has no Manufacturer property — selecting it made the whole query fail in 0.2.13.
+            foreach (var (type, wql) in new[] { (Peripherals.Keyboard, "SELECT Name,PNPDeviceID FROM Win32_Keyboard"), (Peripherals.Mouse, "SELECT Name,Manufacturer,PNPDeviceID FROM Win32_PointingDevice") })
+                foreach (var o in Query(@"root\cimv2", wql).Take(32))
                 {
                     var id = o["PNPDeviceID"]?.ToString();
                     if (Peripherals.IsVirtual(id)) continue;
@@ -28,7 +30,7 @@ public static class PeripheralCollector
                 }
             return Peripherals.Deduplicate(items);
         }
-        catch { return null; }
+        catch (Exception e) { errors.Add(Peripherals.ErrorNote("peripherals", e)); return null; }
     }
 
     static IEnumerable<PeripheralInfo> Monitors()
@@ -91,6 +93,6 @@ public static class PeripheralCollector
         catch (ManagementException e) when (e.ErrorCode is ManagementStatus.NotSupported or ManagementStatus.NotFound or ManagementStatus.InvalidClass) { return []; }
     }
 
-    static string? Prop(ManagementBaseObject o, string name) => o[name]?.ToString();
+    static string? Prop(ManagementBaseObject o, string name) { try { return o[name]?.ToString(); } catch (ManagementException) { return null; } }
     static int? Int(object? value) { try { return value is null ? null : Convert.ToInt32(value); } catch { return null; } }
 }

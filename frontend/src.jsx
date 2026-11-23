@@ -1012,6 +1012,7 @@ const Icon = ({ name }) => {
 };
 const show = (v) => (v === null || v === undefined || v === "" ? "-" : v);
 const peripheralTypes = { MONITOR: "모니터", KEYBOARD: "키보드", MOUSE: "마우스" };
+const usbCategories = { STORAGE: "저장장치", MOBILE: "휴대기기", CAMERA: "카메라", PRINTER: "프린터", NETWORK: "네트워크", SMARTCARD: "스마트카드", AUDIO: "오디오", SERIAL: "시리얼", BLUETOOTH: "블루투스", INPUT: "입력장치", OTHER: "기타" };
 const connectionLabels = { Internal: "내장", USB: "USB", Bluetooth: "블루투스", "PS/2": "PS/2", HDMI: "HDMI", DisplayPort: "DisplayPort", DVI: "DVI", VGA: "VGA", Miracast: "무선(Miracast)", Other: "기타" };
 const UNIDENTIFIED_USER = "미식별";
 // CR-A04: Agent 0.2.11 이하는 LocalSystem의 컴퓨터 계정(예: DESKTOP-KJH$)을 보내므로 `$` 계정·NT AUTHORITY 계정도 미식별로 본다.
@@ -1135,6 +1136,18 @@ function AssetDetailModal({ assetId, onClose: closeModal }) {
     { colId: "spec", headerName: "크기 / 제조연도", minWidth: 130,
       valueGetter: ({ data }) => [data.size_inches ? `${data.size_inches}"` : null, data.manufacture_year].filter(Boolean).join(" / ") || "-" },
     { field: "first_seen_at", headerName: "최초 확인", minWidth: 150, valueFormatter: ({ value }) => date(value) },
+  ], []);
+  const usbColumns = useMemo(() => [
+    { colId: "present", headerName: "상태", width: 100, valueGetter: ({ data }) => data.present ? "연결됨" : "과거 연결",
+      cellClass: ({ data }) => data?.present ? "ok-text" : undefined },
+    { field: "category", headerName: "분류", width: 100, valueFormatter: ({ value }) => usbCategories[value] || value },
+    { field: "name", headerName: "장치명", minWidth: 190, flex: 1 },
+    { field: "manufacturer", headerName: "제조사", minWidth: 120, valueFormatter: ({ value }) => show(value) },
+    { colId: "vidpid", headerName: "VID:PID", width: 115, valueGetter: ({ data }) => data.vendor_id && data.product_id ? `${data.vendor_id}:${data.product_id}` : "-" },
+    { field: "serial_no", headerName: "시리얼 번호", minWidth: 150, valueFormatter: ({ value }) => show(value) },
+    { field: "last_arrival_at", headerName: "최근 연결", minWidth: 150, valueFormatter: ({ value }) => date(value) },
+    { field: "last_removal_at", headerName: "최근 분리", minWidth: 150, valueFormatter: ({ value }) => date(value) },
+    { field: "first_install_at", headerName: "최초 설치", minWidth: 150, valueFormatter: ({ value }) => date(value) },
   ], []);
   const diskColumns = useMemo(() => [
     { field: "name", headerName: "볼륨", width: 105 },
@@ -1292,8 +1305,19 @@ function AssetDetailModal({ assetId, onClose: closeModal }) {
                       주변기기{" "}
                       <small>{["MONITOR", "KEYBOARD", "MOUSE"].map(t => `${peripheralTypes[t]} ${(data.peripherals || []).filter(p => p.device_type === t).length}`).join(" · ")}</small>
                     </h3>
-                    {!data.peripherals_collected_at && <p className="sw-truncated-notice" role="note">Agent 0.2.13 이상으로 업데이트되면 모니터·키보드·마우스 정보가 수집됩니다.</p>}
+                    {data.collection_errors && <p className="sw-truncated-notice" role="alert">최근 수집 일부 실패 — 이전 값을 유지합니다: {data.collection_errors}</p>}
+                    {!data.peripherals_collected_at && !data.collection_errors && <p className="sw-truncated-notice" role="note">Agent 0.2.13 이상으로 업데이트되면 모니터·키보드·마우스 정보가 수집됩니다.</p>}
                     <DataGrid label="주변기기" rows={data.peripherals || []} columns={peripheralColumns} empty={data.peripherals_collected_at ? "연결된 모니터·키보드·마우스가 없습니다." : "아직 수집되지 않았습니다."} pageSize={10} autoHeight />
+                  </article>
+                  <article className="detail-card hardware-card usb-card">
+                    <h3>
+                      <Icon name="disk" />
+                      USB 장치{" "}
+                      <small>연결됨 {(data.usbDevices || []).filter(u => u.present).length} · 과거 연결 {(data.usbDevices || []).filter(u => !u.present).length}</small>
+                    </h3>
+                    {!data.usb_collected_at && <p className="sw-truncated-notice" role="note">Agent 0.2.14 이상으로 업데이트되면 현재·과거 USB 연결 기록이 수집됩니다.</p>}
+                    {data.usb_collected_at && <p className="usb-history-note">PC에 남아 있는 연결 기록(일반적으로 최근 30일 내 분리 장치까지)과 서버에 누적된 기록을 함께 표시합니다. 허브는 제외합니다.</p>}
+                    <DataGrid label="USB 장치" rows={data.usbDevices || []} columns={usbColumns} empty={data.usb_collected_at ? "기록된 USB 장치가 없습니다." : "아직 수집되지 않았습니다."} pageSize={10} autoHeight />
                   </article>
                   <article className="detail-card software-card">
                     <h3>
