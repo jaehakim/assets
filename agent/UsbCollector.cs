@@ -47,7 +47,8 @@ public static class UsbCollector
                         Text(set, ref data, DeviceDesc), Text(set, ref data, FriendlyName), Text(set, ref data, BusReportedDeviceDesc),
                         Text(set, ref data, Manufacturer), Text(set, ref data, Class), Text(set, ref data, Service),
                         Bool(set, ref data, IsPresent),
-                        Time(set, ref data, FirstInstallDate), Time(set, ref data, LastArrivalDate), Time(set, ref data, LastRemovalDate)));
+                        Time(set, ref data, FirstInstallDate), Time(set, ref data, LastArrivalDate), Time(set, ref data, LastRemovalDate),
+                        Text(set, ref data, Parent) ?? Text(set, ref data, LastKnownParent)));
                 }
                 catch { /* one unreadable device must not hide the rest */ }
             }
@@ -76,7 +77,8 @@ public static class UsbCollector
         Install = new("83da6326-97a6-4088-9453-a1923f573b29");
     static readonly DEVPROPKEY DeviceDesc = new(General, 2), Service = new(General, 6), Class = new(General, 9), Manufacturer = new(General, 13),
         FriendlyName = new(General, 14), BusReportedDeviceDesc = new(Bus, 4), IsPresent = new(Bus, 5),
-        FirstInstallDate = new(Install, 101), LastArrivalDate = new(Install, 102), LastRemovalDate = new(Install, 103);
+        FirstInstallDate = new(Install, 101), LastArrivalDate = new(Install, 102), LastRemovalDate = new(Install, 103),
+        Parent = new(new Guid("4340a6c5-93fa-4706-972c-7b648008a5a7"), 8), LastKnownParent = new(Install, 10);
 
     [StructLayout(LayoutKind.Sequential)]
     struct SP_DEVINFO_DATA { public uint cbSize; public Guid ClassGuid; public uint DevInst; public IntPtr Reserved; }

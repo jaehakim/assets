@@ -21,8 +21,8 @@ public sealed class InventoryCollector
             .Select(d => new DiskInfo(d.Name, d.DriveFormat, d.TotalSize, d.AvailableFreeSpace)).ToList();
         var tpm = Tpm();
         var errors = new List<string>();
-        var peripherals = PeripheralCollector.Collect(errors);
         var usb = UsbCollector.Collect(errors);
+        var peripherals = PeripheralCollector.Collect(errors, usb); // 0.2.15: USB product names enrich keyboards/mice
         return new Inventory(
             Environment.MachineName, S(bios, "SerialNumber"), S(cs, "Manufacturer"), S(cs, "Model"),
             S(product, "UUID"), S(cs, "Domain"), B(cs, "PartOfDomain"),

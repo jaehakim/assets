@@ -176,7 +176,7 @@ Check(usb[0] is { Category: "CAMERA", Name: "Logitech Webcam C925e", Manufacture
 var stick = usb.Single(x => x.VendorId == "0781");
 Check(stick is { Category: "STORAGE", Name: "SanDisk Ultra Fit USB Device", Present: false, SerialNo: "4C530001231122115172", Manufacturer: "SanDisk" } && stick.LastRemovalAt == T(11) && stick.FirstInstallAt == T(2), "past USB stick with USBSTOR name and history times");
 var phone = usb.Single(x => x.VendorId == "04E8");
-Check(phone is { Category: "MOBILE", Name: "SAMSUNG_Android", Manufacturer: "Samsung", Present: false }, "past phone via MTP interface");
+Check(phone is { Category: "MOBILE", Name: "Galaxy S23", Manufacturer: "Samsung", Present: false }, "past phone named by its MTP function");
 Check(usb.Last() is { Name: "USB ABCD:1234", Category: "OTHER", Present: null, SerialNo: null }, "unknown device keeps VID:PID name");
 Check(usb.IndexOf(stick) < usb.IndexOf(phone), "past devices ordered by last arrival");
 var bulk = Enumerable.Range(0, 400).Select(i => new UsbDevices.Raw($@"USB\VID_1111&PID_{i:X4}\S{i}", "Dev", null, null, null, "USB", "x", false, null, T(1), null));
@@ -184,6 +184,39 @@ Check(UsbDevices.Build(bulk).Count == UsbDevices.Limit, "300 device limit");
 var usbJson = JsonSerializer.Serialize(usb[0], new JsonSerializerOptions(JsonSerializerDefaults.Web));
 Check(usbJson.Contains("\"deviceId\":") && usbJson.Contains("\"lastArrivalAt\":\"2026-11-21T09:00:00+00:00\"") && usbJson.Contains("\"present\":true"), "USB JSON contract");
 Console.WriteLine("PASS: USB present/past devices — instance parsing, categories, composite folding, hub filter, USBSTOR names, history times, ordering, limit, JSON");
+
+// 0.2.15: cases observed on production PC DESKTOP-KJH (2026-11-23).
+Check(Peripherals.NormalizeSerial("16843009") == null && Peripherals.NormalizeSerial("____________") == null && Peripherals.NormalizeSerial("GPUJCHA057271") == "GPUJCHA057271"
+    && Peripherals.NormalizeSerial("1111") == null && Peripherals.NormalizeSerial("A") == "A", "serial placeholders (LG 0x01010101, label printer underscores)");
+Check(UsbDevices.SanitizeName("Wired Keyboard ࠶00") == "Wired Keyboard 600" && UsbDevices.SanitizeName("갤럭시 탭") == "갤럭시 탭" && UsbDevices.SanitizeName("Pro\u0001 X") == "Pro X", "corrupted high byte restored, Hangul kept");
+var samsung = new[] {
+    new UsbDevices.Raw(@"USB\VID_04E8&PID_6860\R5KL807BR7L", "SAMSUNG_Android", null, null, "SAMSUNG Electronics Co., Ltd.", "USB", "dg_ssudbus", false, T(19), T(19), T(19), @"USB\VID_05E3&PID_0610\5&1&0&1"),
+    new UsbDevices.Raw(@"USB\VID_04E8&PID_6860&Modem\6&A&0&0000", "SAMSUNG Mobile USB Modem #25", null, null, "SAMSUNG", "Modem", "Modem", false, T(19), T(19), T(19), @"USB\VID_04E8&PID_6860\R5KL807BR7L"),
+    new UsbDevices.Raw(@"USB\VID_04E8&PID_6860&MI_01\6&B&0&0001", "Galaxy Tab A11+", "Galaxy Tab A11+", null, "Samsung", "WPD", "WUDFWpdMtp", false, T(19), T(19), T(19), @"USB\VID_04E8&PID_6860\R5KL807BR7L"),
+    new UsbDevices.Raw(@"USB\VID_04E8&PID_6860&ADB\6&C&0&0002", "ADB Interface", null, null, "Samsung", "AndroidUsbDeviceClass", "WINUSB", false, T(19), T(19), T(19), @"USB\VID_04E8&PID_6860\R5KL807BR7L"),
+    new UsbDevices.Raw(@"USB\VID_05E3&PID_0610\5&1&0&1", "Generic USB Hub", null, null, null, "USB", "USBHUB3", true, T(1), T(1), null, @"USB\ROOT_HUB30\4&1&0&0"),
+    new UsbDevices.Raw(@"USB\VID_0000&PID_0002\5&9&0&3", "Unknown USB Device (Device Descriptor Request Failed)", null, null, null, "USB", null, false, T(7), T(7), T(7)),
+    new UsbDevices.Raw(@"USB\VID_08A6&PID_0053\____________", "TOSHIBA B-EX4T1-T", null, null, "Microsoft", "USB", "usbprint", false, T(4), T(4), T(4)),
+    new UsbDevices.Raw(@"USB\VID_045E&PID_07F8\6&1&0&2", "@usb.inf;USB Composite Device", null, "Wired Keyboard ࠶00", "(Standard USB Host Controller)", "USB", "usbccgp", true, T(1), T(11), null),
+    new UsbDevices.Raw(@"USB\VID_12C9&PID_1017\6&2&0&3", "@usb.inf;USB Composite Device", null, "USB Gaming Mouse", null, "USB", "usbccgp", true, T(1), T(11), null),
+    new UsbDevices.Raw(@"USB\VID_12C9&PID_1017&MI_00\7&3&0&0000", "USB Input Device", null, null, null, "HIDClass", "HidUsb", true, T(1), T(11), null, @"USB\VID_12C9&PID_1017\6&2&0&3"),
+};
+var real = UsbDevices.Build(samsung);
+var tab = real.SingleOrDefault(x => x.VendorId == "04E8");
+Check(tab is { Category: "MOBILE", Name: "Galaxy Tab A11+", Manufacturer: "Samsung", SerialNo: "R5KL807BR7L", Present: false }, "Samsung modem/MTP/ADB functions fold into one phone row (got " + real.Count(x => x.VendorId == "04E8") + ")");
+Check(real.All(x => x.VendorId != "0000"), "descriptor-failed devices dropped");
+Check(real.Single(x => x.VendorId == "08A6") is { Category: "PRINTER", Manufacturer: "Toshiba TEC", SerialNo: null }, "printer: INF provider Microsoft ignored, placeholder serial dropped");
+Check(real.Single(x => x.VendorId == "045E").Name == "Wired Keyboard 600", "keyboard name restored");
+Check(real.Single(x => x.VendorId == "12C9") is { Category: "INPUT", Name: "USB Gaming Mouse" } && real.Count == 4, "gaming mouse interface folded via parent");
+var periph = Peripherals.Enrich(new[] {
+    Peripherals.InputDevice("KEYBOARD", @"HID\VID_045E&PID_07F8&MI_00\7&1&0&0000", "알 수 없는 키보드", null, null, false)!,
+    Peripherals.InputDevice("KEYBOARD", @"HID\VID_12C9&PID_1017&MI_01&COL01\7&2&0&0000", "알 수 없는 키보드", null, null, false)!,
+    Peripherals.InputDevice("MOUSE", @"HID\VID_12C9&PID_1017&MI_00\7&3&0&0000", "HID 규격 마우스", "Microsoft", null, false)!,
+}, real);
+Check(periph.Count == 2, "gaming mouse's keyboard collection dropped (got " + periph.Count + ")");
+Check(periph.Single(x => x.Type == "KEYBOARD") is { Name: "Wired Keyboard 600", Manufacturer: "Microsoft" }, "keyboard named from USB product");
+Check(periph.Single(x => x.Type == "MOUSE") is { Name: "USB Gaming Mouse", Manufacturer: null }, "mouse named from USB, INF provider Microsoft dropped for non-Microsoft VID");
+Console.WriteLine("PASS: production cases — Samsung bus-driver folding, descriptor failures, placeholders, corrupted names, Korean generic HID names, USB enrichment");
 
 sealed class StubHandler(Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> send) : HttpMessageHandler
 {

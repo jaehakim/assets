@@ -35,12 +35,15 @@ public static class Peripherals
         ["8087"] = "Intel", ["0A5C"] = "Broadcom", ["0CF3"] = "Qualcomm Atheros", ["0B95"] = "ASIX", ["2109"] = "VIA Labs", ["05E3"] = "Genesys Logic",
         ["1004"] = "LG Electronics", ["2A70"] = "OnePlus", ["0FCE"] = "Sony Mobile", ["0E8D"] = "MediaTek", ["067B"] = "Prolific", ["0403"] = "FTDI",
         ["10C4"] = "Silicon Labs", ["1A86"] = "QinHeng (CH340)", ["076B"] = "OmniKey", ["072F"] = "ACS", ["0BB4"] = "HTC",
+        ["125F"] = "ADATA", ["08A6"] = "Toshiba TEC", ["0A12"] = "Cambridge Silicon Radio", ["1F75"] = "Innostor", ["048D"] = "ITE", ["0C45"] = "Sonix",
     };
 
     static readonly Regex Vid = new(@"VID[_&](?:0002)?([0-9A-F]{4,6})", RegexOptions.IgnoreCase | RegexOptions.Compiled);
     static readonly Regex Pid = new(@"PID[_&]([0-9A-F]{4})", RegexOptions.IgnoreCase | RegexOptions.Compiled);
     static readonly Regex DisplayProduct = new(@"^DISPLAY\\([A-Z]{3})([0-9A-F]{4})\\", RegexOptions.IgnoreCase | RegexOptions.Compiled);
-    static readonly string[] GenericNames = { "HID Keyboard Device", "HID-compliant mouse", "USB Input Device", "HID-compliant device", "Standard PS/2 Keyboard", "PS/2 Compatible Mouse", "Generic PnP Monitor", "USB Receiver" };
+    static readonly string[] GenericNames = { "HID Keyboard Device", "HID-compliant mouse", "USB Input Device", "HID-compliant device", "Standard PS/2 Keyboard", "PS/2 Compatible Mouse", "Generic PnP Monitor", "USB Receiver",
+        // 0.2.15: Korean Windows display names (seen on production PCs)
+        "HID 키보드 장치", "HID 규격 마우스", "HID 규격 장치", "USB 입력 장치", "표준 PS/2 키보드", "PS/2 호환 마우스", "일반 PnP 모니터", "알 수 없는 키보드", "알 수 없는 마우스" };
 
     /// <summary>WmiMonitorID string fields are uint16[] of characters padded with 0.</summary>
     public static string? DecodeWmiChars(object? value)
@@ -61,7 +64,9 @@ public static class Peripherals
     public static string? NormalizeSerial(string? value)
     {
         var s = value?.Trim();
-        if (string.IsNullOrEmpty(s) || s.All(c => c == '0') || s.Equals("Default string", StringComparison.OrdinalIgnoreCase)) return null;
+        // 0.2.15: "16843009" is 0x01010101 (EDID placeholder seen on LG monitors); "____________" on label printers.
+        if (string.IsNullOrEmpty(s) || s.All(c => c == s[0] && !char.IsLetter(c)) || !s.Any(char.IsLetterOrDigit)
+            || s is "16843009" or "0x01010101" || s.Equals("Default string", StringComparison.OrdinalIgnoreCase)) return null;
         return s;
     }
 
@@ -153,6 +158,27 @@ public static class Peripherals
         var model = manufacturerCode is not null && productCode is not null ? $"{manufacturerCode.ToUpperInvariant()}{productCode.ToUpperInvariant()}" : productCode;
         return new PeripheralInfo(Monitor, Truncate(name, 255)!, Truncate(manufacturer, 255), Truncate(model, 100), Truncate(NormalizeSerial(serial), 100),
             VideoOutput(videoOutput), null, null, year is > 1990 and < 2100 ? year : null, DiagonalInches(horizontalCm, verticalCm), Truncate(instanceName, 500));
+    }
+
+    /// <summary>
+    /// 0.2.15: HID names on Windows are usually generic and Win32_PointingDevice.Manufacturer is the INF provider ("Microsoft").
+    /// Take the product name / maker from the USB device with the same VID/PID, and drop the keyboard collection that gaming mice expose.
+    /// </summary>
+    public static List<PeripheralInfo> Enrich(IEnumerable<PeripheralInfo> items, IReadOnlyCollection<UsbDeviceInfo>? usb)
+    {
+        var list = items.Select(p =>
+        {
+            if (p.Type == Monitor || p.VendorId is null || p.ProductId is null) return p;
+            var match = usb?.Where(u => string.Equals(u.VendorId, p.VendorId, StringComparison.OrdinalIgnoreCase) && string.Equals(u.ProductId, p.ProductId, StringComparison.OrdinalIgnoreCase))
+                .OrderByDescending(u => u.Present == true).FirstOrDefault();
+            var name = IsGenericName(p.Name) && match is not null && !UsbDevices.IsGenericUsbName(match.Name) ? match.Name : p.Name;
+            var manufacturer = UsbVendor(p.VendorId) ?? match?.Manufacturer
+                ?? (p.Manufacturer is not null && p.Manufacturer.StartsWith("Microsoft", StringComparison.OrdinalIgnoreCase) && p.VendorId != "045E" ? null : p.Manufacturer);
+            return p with { Name = name, Manufacturer = manufacturer };
+        }).ToList();
+        var mice = list.Where(p => p.Type == Mouse && p.VendorId is not null).Select(p => $"{p.VendorId}|{p.ProductId}").ToHashSet(StringComparer.OrdinalIgnoreCase);
+        return list.Where(p => !(p.Type == Keyboard && p.VendorId is not null && mice.Contains($"{p.VendorId}|{p.ProductId}")
+            && p.Name.Contains("mouse", StringComparison.OrdinalIgnoreCase))).ToList();
     }
 
     /// <summary>One physical keyboard exposes several HID collections; keep one entry per type+VID+PID (or per device ID when unknown).</summary>

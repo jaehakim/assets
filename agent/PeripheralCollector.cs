@@ -11,7 +11,7 @@ public static class PeripheralCollector
     const string BusReportedName = "DEVPKEY_Device_BusReportedDeviceDesc", Parent = "DEVPKEY_Device_Parent";
 
     /// <summary>On failure the reason is appended to <paramref name="errors"/> (sent to the server for remote diagnosis).</summary>
-    public static List<PeripheralInfo>? Collect(List<string> errors)
+    public static List<PeripheralInfo>? Collect(List<string> errors, IReadOnlyCollection<UsbDeviceInfo>? usb = null)
     {
         try
         {
@@ -28,7 +28,7 @@ public static class PeripheralCollector
                     var item = Peripherals.InputDevice(type, id, o["Name"]?.ToString(), Prop(o, "Manufacturer"), BusName(id!), portable);
                     if (item is not null) items.Add(item);
                 }
-            return Peripherals.Deduplicate(items);
+            return Peripherals.Deduplicate(Peripherals.Enrich(items, usb));
         }
         catch (Exception e) { errors.Add(Peripherals.ErrorNote("peripherals", e)); return null; }
     }

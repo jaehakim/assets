@@ -12,9 +12,10 @@ public static class UsbDevices
     // Category priority when a composite device exposes several interfaces (e.g. webcam = camera + audio).
     static readonly string[] Priority = { "STORAGE", "MOBILE", "CAMERA", "PRINTER", "NETWORK", "SMARTCARD", "AUDIO", "SERIAL", "BLUETOOTH", "INPUT", "OTHER" };
 
-    /// <summary>One raw SetupAPI entry under the USB enumerator.</summary>
+    /// <summary>One raw SetupAPI entry under the USB enumerator. Parent is DEVPKEY_Device_Parent, or LastKnownParent for non-present devices.</summary>
     public sealed record Raw(string InstanceId, string? DeviceDesc, string? FriendlyName, string? BusReportedName, string? Manufacturer,
-        string? Class, string? Service, bool? Present, DateTimeOffset? FirstInstall, DateTimeOffset? LastArrival, DateTimeOffset? LastRemoval);
+        string? Class, string? Service, bool? Present, DateTimeOffset? FirstInstall, DateTimeOffset? LastArrival, DateTimeOffset? LastRemoval,
+        string? Parent = null);
 
     /// <summary>INF descriptions look like "@usb.inf,%usb.composite.devicedesc%;USB Composite Device".</summary>
     public static string? CleanDescription(string? value)
@@ -78,7 +79,7 @@ public static class UsbDevices
         if (c is "WPD" or "ANDROIDUSBDEVICECLASS" || s is "WINUSB" && c == "ADB") return "MOBILE";
         if (c is "IMAGE" or "CAMERA") return "CAMERA";
         if (c == "PRINTER" || s == "USBPRINT") return "PRINTER";
-        if (c == "NET") return "NETWORK";
+        if (c is "NET" or "MODEM") return "NETWORK";
         if (c is "SMARTCARDREADER" or "SMARTCARD" || s == "USBCCID") return "SMARTCARD";
         if (c is "MEDIA" or "AUDIOENDPOINT") return "AUDIO";
         if (c == "PORTS" || s is "USBSER" or "SERENUM") return "SERIAL";
@@ -95,31 +96,50 @@ public static class UsbDevices
     /// </summary>
     public static List<UsbDeviceInfo> Build(IEnumerable<Raw> raw, IReadOnlyDictionary<string, string>? storageNames = null)
     {
-        var all = raw.Where(d => !string.IsNullOrWhiteSpace(d.InstanceId) && !IsHub(d)).ToList();
-        var interfaces = all.Where(d => ParseInstanceId(d.InstanceId).Interface is not null)
-            .GroupBy(d => { var (v, p, _, _) = ParseInstanceId(d.InstanceId); return $"{v}|{p}"; }, StringComparer.OrdinalIgnoreCase)
-            .ToDictionary(g => g.Key, g => g.ToList(), StringComparer.OrdinalIgnoreCase);
-        var result = new List<UsbDeviceInfo>();
-        foreach (var d in all)
+        // VID 0000 = "Device Descriptor Request Failed" (no real device information).
+        var all = raw.Where(d => !string.IsNullOrWhiteSpace(d.InstanceId) && !IsHub(d) && ParseInstanceId(d.InstanceId).VendorId != "0000").ToList();
+        var byId = all.GroupBy(d => d.InstanceId, StringComparer.OrdinalIgnoreCase).ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
+        // 0.2.15: functions of a composite device (MI_xx, or vendor bus drivers such as Samsung dg_ssudbus) are children
+        // of another USB entry in the device tree; fold them into the top-most USB ancestor. Devices behind hubs stay separate (hubs are not in byId).
+        string Root(UsbDevices.Raw d)
         {
-            var (vid, pid, serial, mi) = ParseInstanceId(d.InstanceId);
-            if (mi is not null) continue; // reported through the parent device
-            interfaces.TryGetValue($"{vid}|{pid}", out var children);
+            var current = d;
+            for (var depth = 0; depth < 8 && current.Parent is { } parent && byId.TryGetValue(parent, out var up); depth++) current = up;
+            if (current == d && ParseInstanceId(d.InstanceId) is { Interface: not null, VendorId: var v, ProductId: var p })
+            {
+                // No parent recorded: fall back to the VID/PID of a non-interface entry.
+                var owner = all.FirstOrDefault(x => ParseInstanceId(x.InstanceId) is { Interface: null } o && o.VendorId == v && o.ProductId == p);
+                if (owner is not null) return owner.InstanceId;
+            }
+            return current.InstanceId;
+        }
+        var groups = all.GroupBy(Root, StringComparer.OrdinalIgnoreCase).ToDictionary(g => g.Key, g => g.ToList(), StringComparer.OrdinalIgnoreCase);
+        var result = new List<UsbDeviceInfo>();
+        foreach (var (rootId, members) in groups)
+        {
+            var d = byId[rootId];
+            var (vid, pid, serial, _) = ParseInstanceId(d.InstanceId);
+            var children = members.Where(m => !ReferenceEquals(m, d)).ToList();
             var category = new[] { Category(d.Class, d.Service) }
-                .Concat((children ?? []).Select(c => Category(c.Class, c.Service)))
+                .Concat(children.Select(c => Category(c.Class, c.Service)))
                 .OrderBy(Rank).First();
             string? storageName = null;
             if (serial is not null && storageNames is not null) storageNames.TryGetValue(serial, out storageName);
             var candidates = new[] { storageName, CleanDescription(d.FriendlyName), d.BusReportedName, CleanDescription(d.DeviceDesc) }
-                .Concat((children ?? []).SelectMany(c => new[] { c.BusReportedName, CleanDescription(c.FriendlyName) }));
-            var name = candidates.FirstOrDefault(n => !string.IsNullOrWhiteSpace(n) && !IsGenericUsbName(n))
-                ?? candidates.FirstOrDefault(n => !string.IsNullOrWhiteSpace(n)) ?? $"USB {vid}:{pid}";
-            var manufacturer = Peripherals.UsbVendor(vid) ?? CleanManufacturer(d.Manufacturer);
-            bool? present = d.Present ?? children?.Select(c => c.Present).FirstOrDefault(p => p is not null);
+                .Concat(children.SelectMany(c => new[] { c.BusReportedName, CleanDescription(c.FriendlyName) }));
+            // Prefer a child function's specific name ("Galaxy Tab A11+") over a bus driver's ("SAMSUNG_Android") only when the parent name is generic.
+            var name = candidates.Select(SanitizeName).FirstOrDefault(n => !string.IsNullOrWhiteSpace(n) && !IsGenericUsbName(n))
+                ?? candidates.Select(SanitizeName).FirstOrDefault(n => !string.IsNullOrWhiteSpace(n)) ?? $"USB {vid}:{pid}";
+            var mobileName = category == "MOBILE" ? children.Where(c => Category(c.Class, c.Service) == "MOBILE")
+                .Select(c => SanitizeName(CleanDescription(c.FriendlyName) ?? CleanDescription(c.DeviceDesc)))
+                .FirstOrDefault(n => n is not null && !IsGenericUsbName(n) && !n.Contains("Interface", StringComparison.OrdinalIgnoreCase)) : null;
+            if (mobileName is not null) name = mobileName;
+            var manufacturer = Peripherals.UsbVendor(vid) ?? CleanManufacturer(d.Manufacturer, vid);
+            bool? present = d.Present ?? children.Select(c => c.Present).FirstOrDefault(p => p is not null);
             result.Add(new UsbDeviceInfo(Peripherals.Truncate(d.InstanceId, 500)!, category, Peripherals.Truncate(name.Trim(), 255)!,
                 Peripherals.Truncate(manufacturer, 255), vid?[..Math.Min(vid.Length, 8)], pid?[..Math.Min(pid.Length, 8)], Peripherals.Truncate(serial, 255),
                 Peripherals.Truncate(d.Class, 100), Peripherals.Truncate(d.Service, 100), present,
-                d.FirstInstall, Max(d.LastArrival, children?.Max(c => c.LastArrival)), Max(d.LastRemoval, children?.Max(c => c.LastRemoval))));
+                d.FirstInstall, Max(d.LastArrival, children.Max(c => c.LastArrival)), Max(d.LastRemoval, children.Max(c => c.LastRemoval))));
         }
         return result
             .OrderByDescending(x => x.Present == true)
@@ -132,9 +152,25 @@ public static class UsbDevices
     public static bool IsGenericUsbName(string? name) =>
         string.IsNullOrWhiteSpace(name) || Peripherals.IsGenericName(name) || GenericUsbNames.Any(g => name.Trim().StartsWith(g, StringComparison.OrdinalIgnoreCase));
 
-    static string? CleanManufacturer(string? value)
+    /// <summary>
+    /// 0.2.15: some devices report strings with a corrupted high byte ("Wired Keyboard ࠶00" = 0x0836 for '6').
+    /// In an otherwise ASCII name, a U+0100–U+0FFF char whose low byte is printable ASCII is restored to that byte; control chars are dropped.
+    /// </summary>
+    public static string? SanitizeName(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return null;
+        var ascii = value.Count(c => c < 0x80);
+        var chars = value.Where(c => !char.IsControl(c)).Select(c =>
+            ascii >= value.Length - 2 && c is >= '\u0100' and <= '\u0FFF' && (c & 0xFF) is >= 0x20 and < 0x7F ? (char)(c & 0xFF) : c).ToArray();
+        var text = new string(chars).Trim();
+        return text.Length == 0 ? null : text;
+    }
+
+    static string? CleanManufacturer(string? value, string? vid = null)
     {
         var text = CleanDescription(value);
+        // The INF provider of class drivers is "Microsoft" (e.g. generic printer, HID); only trust it for Microsoft hardware.
+        if (text is not null && text.StartsWith("Microsoft", StringComparison.OrdinalIgnoreCase) && vid != "045E") return null;
         return text is null || text.StartsWith('(') || text.StartsWith("Standard", StringComparison.OrdinalIgnoreCase) || text.StartsWith("Generic", StringComparison.OrdinalIgnoreCase) || text.StartsWith("Compatible", StringComparison.OrdinalIgnoreCase)
             || text.StartsWith("Microsoft", StringComparison.OrdinalIgnoreCase) && text.Contains("Compatible", StringComparison.OrdinalIgnoreCase) ? null : text;
     }
