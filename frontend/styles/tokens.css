@@ -154,4 +154,11 @@
   --badge-info-line: #c9d6f5;
   /* 어두운 배경(사이드바·터미널) 위 보조 글자 — 4.5:1 이상 */
   --text-on-dark-muted: #a9b4c7;
+  /* 여백 단계(2026-11-23 밀도 조정) — 화면 여백은 이 단계만 쓴다 */
+  --space-1: 4px;
+  --space-2: 6px;
+  --space-3: 8px;
+  --space-4: 10px;
+  --space-5: 12px;
+  --space-6: 16px;
 }

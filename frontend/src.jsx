@@ -137,7 +137,9 @@ function DataGrid({ rows = [], columns, loading = false, empty = "조회된 데�
   if (!loading && rows.length === 0 && !quickFilter) return <section className={`x-grid-panel x-grid-empty ${className}`} aria-label={label}>
     <p className="grid-empty-state" role="status"><Core16Icon name="table" /><span>{empty}</span></p>
   </section>;
-  return <section className={`x-grid-panel ${autoHeight ? "content-grid" : ""} ${className}`} aria-label={label}>
+  // 행이 한 페이지 이하이면 표 높이를 행 수에 맞춘다(고정 높이 아래 빈 공간 제거).
+  const fitHeight = autoHeight || rows.length <= pageSize;
+  return <section className={`x-grid-panel ${fitHeight ? "content-grid" : ""} ${className}`} aria-label={label}>
     <div className="x-grid-toolbar">
       <label><Core16Icon name="search"/><input value={quickFilter} onChange={(e)=>setQuickFilter(e.target.value)} placeholder={searchLabel || "현재 목록 검색"} aria-label={searchLabel || `${label} 검색`}/></label>
       <span role="status" aria-live="polite"><b>{displayed}</b> / {rows.length}건</span>
@@ -159,7 +161,7 @@ function DataGrid({ rows = [], columns, loading = false, empty = "조회된 데�
         pagination
         paginationPageSize={pageSize}
         paginationPageSizeSelector={pageSizes}
-        domLayout={autoHeight ? "autoHeight" : "normal"}
+        domLayout={fitHeight ? "autoHeight" : "normal"}
         localeText={localeText}
         popupParent={document.body}
         noRowsOverlayComponent={() => <span className="grid-empty">{empty}</span>}
@@ -1477,6 +1479,7 @@ function DesignGuide() {
       <li><b>글자 크기</b>: 11px(배지·보조) · 12px(표 머리·라벨) · 13px(표 본문) · 14px(본문) · 16px(카드 제목) · 18~20px(수치) · 24~30px(화면 제목). <b>11px 미만 금지.</b></li>
       <li><b>모서리</b>: 버튼·입력 4px, 카드·패널 8px, 상태 점·아바타만 원형.</li>
       <li><b>명도 대비</b>: 본문·보조 문구 4.5:1 이상(회색 보조 문구는 #5f6b7c 이상 진하게).</li>
+      <li><b>여백</b>: 4·6·8·10·12·16px 단계(<code>--space-1~6</code>)만 쓴다. 화면 바깥 12~16px, 카드·패널 머리 10×16px. 행이 한 페이지 이하인 표는 높이를 행 수에 맞춘다(빈 공간 금지).</li>
       <li><b>표 행 간격</b>: 기본 <b>조밀 38px</b>(머리 36px) — 한 화면에 더 많은 행. 필요하면 표 도구의 "보통 간격으로"(48px)로 넓힌다.</li>
       <li><b>표</b>: 장치·장비 이름을 첫 열로 고정, 판단에 필요한 열(상태·시각)을 앞에. 참/거짓은 체크박스 대신 "연결됨/과거 연결"처럼 글자로. 결과 0건이면 "✓ … 없습니다" 한 줄.</li>
       <li><b>터치 영역</b>: 모바일에서 버튼·링크 24px 이상.</li>

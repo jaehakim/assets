@@ -6550,3 +6550,66 @@ code, pre, kbd, samp {
 .grid-primary { line-height: 1.25; }
 .grid-primary .asset-detail-link { min-height: 0; line-height: 1.25; }
 .grid-primary small { margin-top: 1px; font-size: var(--fs-11); }
+
+/* ===== 화면 밀도 조정(2026-11-23): 화면 비율 대비 과한 여백 축소 — 여백은 --space-* 단계만 ===== */
+.workspace-tabs { min-height: 40px !important; padding: var(--space-1) var(--space-6) 0 !important; }
+.workspace-tabs .workspace-tab > button { height: 34px !important; }
+.data-freshness { padding: var(--space-3) var(--space-6) 0 !important; }
+main > section { padding: var(--space-5) var(--space-6) !important; }
+main > section.panel.table { margin: 0 var(--space-6) var(--space-5) !important; }
+.intro { padding: var(--space-4) var(--space-6) !important; margin-bottom: var(--space-3) !important; align-items: center !important; gap: var(--space-5) !important; }
+.intro h1 { font-size: var(--fs-20) !important; margin: 0 0 2px !important; line-height: 1.3 !important; }
+.intro p { font-size: var(--fs-13) !important; margin: 0 !important; }
+.stats { gap: var(--space-4) !important; }
+.stats article { padding: var(--space-4) var(--space-5) !important; }
+.stats article strong { font-size: var(--fs-24) !important; line-height: 1.2 !important; }
+.dashboard-insights { margin: var(--space-3) 0 var(--space-4) !important; gap: var(--space-4) !important; }
+.dashboard-insights > div { padding: var(--space-2) var(--space-5) !important; }
+.compliance-summary { gap: var(--space-3) !important; margin-bottom: var(--space-4) !important; }
+.compliance-summary article { padding: var(--space-4) var(--space-5) !important; gap: 2px !important; }
+.compliance-summary b { font-size: var(--fs-20) !important; line-height: 1.2; }
+.peripheral-page .detail-sections, .compliance-page .detail-sections { padding: var(--space-3) var(--space-5) !important; margin-bottom: var(--space-3) !important; }
+.peripheral-page .detail-sections button { min-height: 32px !important; padding: 4px 12px !important; }
+.panel-heading, .title { padding: var(--space-4) var(--space-6) !important; }
+.panel-heading h3, .title h3 { font-size: var(--fs-16) !important; }
+.panel-heading p, .title p { margin-top: 1px !important; }
+.x-grid-toolbar { padding: var(--space-2) var(--space-3) !important; }
+.x-grid-toolbar input { min-height: 30px !important; }
+.ag-paging-panel { height: 40px !important; min-height: 40px !important; padding: 0 var(--space-3) !important; }
+.action-list .action-row { padding: var(--space-3) var(--space-6) !important; }
+.action-row strong { font-size: var(--fs-18) !important; }
+.panel + .panel, article.panel + article.panel { margin-top: var(--space-4); }
+@media (width <= 900px) {
+  main > section { padding: var(--space-4) !important; }
+  main > section.panel.table { margin: 0 var(--space-4) var(--space-4) !important; }
+  .intro { flex-direction: row !important; flex-wrap: wrap; align-items: center !important; padding: var(--space-4) var(--space-5) !important; }
+  .intro > div:first-child { flex: 1 1 200px; min-width: 0; }
+  .intro h1 { font-size: var(--fs-18) !important; }
+  .intro p { font-size: var(--fs-12) !important; }
+  .intro > button, .intro > .list-metrics { flex: none; }
+  .stats article { padding: var(--space-3) var(--space-4) !important; }
+  .data-freshness { padding: var(--space-2) var(--space-4) 0 !important; }
+}
+/* 행 수 맞춤 표: AG Grid 자동 높이 모드의 기본 최소 높이(150px) 제거 — 2행 표 아래 빈 공간·마지막 행 잘림 방지 */
+.content-grid .ag-layout-auto-height, .content-grid .ag-grid-scrolling-rows { min-height: 0 !important; }
+.x-grid-panel.content-grid .enterprise-grid, .x-grid-panel.content-grid.asset-grid .enterprise-grid { height: auto !important; }
+/* 대시보드: 두 패널을 내용 높이로(왼쪽 패널 빈 영역 제거) */
+.operations-grid { align-items: start !important; }
+/* 행 수 맞춤 표: 가로 스크롤바(겹침형)가 마지막 행을 가리지 않게 행 아래 흐름에 둔다 */
+.content-grid .ag-layout-auto-height .ag-body-horizontal-scroll { position: static !important; }
+/* 모바일: 옛 개수 표시 숨김 규칙이 버튼 글자까지 숨기던 문제 — 버튼은 아이콘+글자 유지 */
+@media (width <= 650px) { .list-metrics button > span, .list-metrics a > span { display: inline !important; } }
+/* 자산 목록: 행이 한 페이지 이하이면 화면 높이 고정 해제 */
+.x-grid-panel.full-grid.content-grid { height: auto !important; min-height: 0 !important; }
+/* Agent 배포 등록 폼: 토큰·버전·파일을 한 줄에, 간격 축소 / 표 도구 버튼은 공통 크기 */
+.release form { gap: var(--space-4) var(--space-5) !important; grid-template-columns: 1fr 160px 1.2fr !important; align-items: end !important; }
+.release form > label { grid-column: auto !important; gap: var(--space-1) !important; }
+.release form > label:has(textarea), .release form > .release-notes-input, .release form > p, .release form > button { grid-column: 1 / -1 !important; }
+.release form > button { justify-self: end; min-width: 140px; }
+.release input, .release textarea { min-height: 34px !important; padding: 6px 10px !important; }
+.release textarea { min-height: 56px !important; }
+.release .x-grid-toolbar button { width: auto !important; height: 30px !important; min-height: 30px !important; padding: 0 10px !important; }
+@media (width <= 900px) { .release form { grid-template-columns: 1fr !important; } }
+.release form > p { grid-column: 1 / 3 !important; margin: 0 !important; align-self: center; }
+.release form > button { grid-column: 3 !important; justify-self: end !important; width: auto !important; min-width: 160px; }
+@media (width <= 900px) { .release form > p, .release form > button { grid-column: 1 / -1 !important; } .release form > button { justify-self: stretch !important; } }
