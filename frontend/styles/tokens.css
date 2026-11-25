@@ -161,4 +161,7 @@
   --space-4: 10px;
   --space-5: 12px;
   --space-6: 16px;
+  /* 글꼴 — 본문 1종, 코드 1종 */
+  --font-sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Malgun Gothic", sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
 }

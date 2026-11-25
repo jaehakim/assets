@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>24. 디자인 전문가 전수검사 — 정적·동적 검사 결과 | AssetFlow 검토</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<style>
+:root{--bg:#ffffff;--panel:#f7f8fa;--text:#1f2937;--muted:#6b7280;--line:#e5e7eb;--accent:#3b5bdb;--accent-soft:#edf2ff;--code:#f3f4f6}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);color-scheme:light}
+body{font-family:"Pretendard","Malgun Gothic","Apple SD Gothic Neo",system-ui,sans-serif;font-size:15px;line-height:1.7;display:flex;min-height:100vh}
+nav{width:270px;flex:none;background:var(--panel);border-right:1px solid var(--line);padding:24px 16px;position:sticky;top:0;height:100vh;overflow:auto}
+nav .brand{font-weight:800;font-size:17px;margin:0 8px 4px}
+nav .sub{color:var(--muted);font-size:12px;margin:0 8px 18px}
+nav a{display:block;padding:8px 10px;border-radius:8px;color:var(--text);text-decoration:none;font-size:14px;margin-bottom:2px}
+nav a:hover{background:#eceff3}
+nav a.active{background:var(--accent-soft);color:var(--accent);font-weight:700}
+main{flex:1;min-width:0;padding:40px 48px 80px;max-width:1180px}
+h1{font-size:28px;margin:0 0 12px;padding-bottom:12px;border-bottom:2px solid var(--line)}
+h2{font-size:21px;margin:40px 0 12px;padding-left:10px;border-left:4px solid var(--accent)}
+h3{font-size:17px;margin:28px 0 10px}
+a{color:var(--accent)}
+blockquote{margin:12px 0;padding:10px 16px;background:var(--accent-soft);border-left:4px solid var(--accent);border-radius:0 8px 8px 0;color:#374151}
+blockquote p{margin:4px 0}
+table{border-collapse:collapse;width:100%;margin:12px 0 20px;font-size:13.5px;display:block;overflow-x:auto}
+th,td{border:1px solid var(--line);padding:7px 10px;text-align:left;vertical-align:top}
+th{background:var(--panel);font-weight:700;white-space:nowrap}
+tr:nth-child(even) td{background:#fbfbfc}
+code{background:var(--code);padding:1px 5px;border-radius:4px;font-family:"D2Coding",Consolas,monospace;font-size:.9em}
+pre{background:#f6f8fa;border:1px solid var(--line);border-radius:8px;padding:14px;overflow:auto}
+pre code{background:none;padding:0}
+.mermaid{background:#fff;border:1px solid var(--line);border-radius:10px;padding:16px;margin:14px 0 22px;text-align:center;overflow-x:auto}
+.foot{margin-top:56px;color:var(--muted);font-size:12px;border-top:1px solid var(--line);padding-top:12px}
+@media (max-width:860px){body{display:block}nav{position:static;width:auto;height:auto;border-right:0;border-bottom:1px solid var(--line)}main{padding:24px 16px 60px}}
+@media print{nav{display:none}main{max-width:none;padding:0}}
+</style>
+</head>
+<body>
+<nav>
+  <div class="brand">AssetFlow 검토</div>
+  <div class="sub">IT자산관리 · 보안 · 인프라 · 디자인 · 웹</div>
+  <a href="index.html">개요 (README)</a>
+  <a href="01_현황분석.html">01. AssetFlow 소스 현황 분석</a>
+  <a href="02_IT자산관리_전문가_검토.html">02. IT 자산관리 전문가 관점 검토</a>
+  <a href="03_보안전문가_검토.html">03. 보안 전문가 관점 검토</a>
+  <a href="04_인프라유지보수_검토.html">04. 인프라 유지보수 관리 관점 검토</a>
+  <a href="05_개선기획_로드맵.html">05. 통합 개선 기획 및 로드맵</a>
+  <a href="06_기술검토서.html">06. 기술검토서</a>
+  <a href="07_수정요청서.html">07. 수정요청서 (결함 시정 요청)</a>
+  <a href="08_기능추가요청서.html">08. 기능추가요청서 (신규 기능 요구)</a>
+  <a href="09_조치결과보고서_양식.html">09. 조치결과보고서 (양식)</a>
+  <a href="10_디자인전문가_UI검토.html">10. 디자인 전문가 UI 검토 — 화면 대비·타이포그래피·그리드 헤더 메뉴</a>
+  <a href="11_웹전문가_프런트엔드검토.html">11. 웹 전문가 프런트엔드 검토 — AG Grid 컬럼 메뉴 기능 검증·접근성·성능</a>
+  <a href="12_IT자산관리전문가_화면검토.html">12. IT자산관리 전문가 화면 검토 — 자산 목록 그리드 구성·컬럼 옵션의 업무 적합성</a>
+  <a href="13_수정요청서_UI.html">13. 수정요청서 (화면·UI)</a>
+  <a href="14_보안웹취약점_점검보고서.html">14. 보안·웹 취약점 점검 보고서</a>
+  <a href="15_수정요청서_보안웹취약점.html">15. 수정요청서 (보안·웹 취약점)</a>
+  <a href="16_수정요청_적용계획서.html">16. 수정요청 적용계획서 (07·13·15 통합)</a>
+  <a href="17_추가요구사항_검토서.html">17. 추가 요구사항 검토서</a>
+  <a href="18_조치결과보고서_1차.html">18. 조치결과보고서 (1차)</a>
+  <a href="19_전문가_검토_프롬프트.html">19. IT 자산관리 시스템 전문가 검토·기획·분석·테스팅 프롬프트</a>
+  <a href="20_추가수정요청서.html">20. 추가수정요청서 (프롬프트 기준 적용·누락 비교)</a>
+  <a href="21_주변기기수집_검토시험보고서.html">21. 주변기기(모니터·키보드·마우스)·USB 장치 수집 기능 검토·시험 보고서</a>
+  <a href="22_기능추가_이력_및_추가기능_검토.html">22. 기능추가 이력 및 추가 필요 기능 검토</a>
+  <a href="23_디자인_가이드_및_전수검사.html">23. 디자인 가이드 및 디자인 전수검사 결과</a>
+  <a href="24_디자인_정적동적_전수검사.html" class="active">24. 디자인 전문가 전수검사 — 정적·동적 검사 결과</a>
+  <a href="windows-agent-communication-status.html">Agent 0.2.11 통신 상태와 로그</a>
+  <a href="windows-agent-removal-protection-plan.html">Windows 정보 수집 에이전트 임의 삭제 방지 적용 계획</a>
+  <a href="windows-agent-tray-validation.html">Agent 0.2.10 트레이 변경 및 Windows 검증</a>
+</nav>
+<main id="content"></main>
+<script id="md" type="application/json">"# 24. 디자인 전문가 전수검사 — 정적·동적 검사 결과\n\n| 항목 | 내용 |\n|---|---|\n| 문서번호 | AF-DG-2026-002 |\n| 검사일 | 2026-11-23 |\n| 대상 | 운영 https://assets.2734.store (Frontend 0.5.3) 전 화면 — 로그인, 업무 화면 10개, 자산 상세 탭 5개, 모바일 메뉴 |\n| 반영 버전 | Frontend **0.6.0** (아래 §3 조치) |\n| 관련 | [23 디자인 가이드 및 전수검사](23_디자인_가이드_및_전수검사.md) |\n\n## 1. 검사 방법\n\n| 구분 | 방법 |\n|---|---|\n| **정적검사** | 소스(`src.jsx`, `styles/*.css`, `nginx.conf`) 분석 — 토큰 준수(색·글자·모서리·여백), `!important`, 화면 폭 기준점·z-index·그림자 종류, 미사용 CSS(전 화면·상태를 실제로 띄워 선택자 일치 여부 측정), 문구 언어 혼용, 브라우저 기본 대화상자 사용, 마크업 접근성 패턴 |\n| **동적검사** | 운영 화면을 실제 브라우저로 실행(관리자 세션, 읽기 전용) — axe-core 4.10 자동 접근성 검사(WCAG 2.0~2.2 AA + 모범 사례), 해상도 1920·1440·1280·1024·768·390·360px와 200% 확대(720×450), 키보드 탐색·포커스 표시·모달 포커스 가둠·Esc, 성능(LCP·CLS·전송량), 콘솔 오류 |\n| 검증 | 수정마다 운영 데이터 고정본 45개 화면 픽셀 비교, axe 재검사, Playwright 회귀 28건, 로컬 이미지로 nginx 응답 확인 |\n\n## 2. 발견 사항\n\n### 2.1 동적검사\n\n| # | 구분 | 발견 | 심각도 |\n|---|---|---|---|\n| D1 | 성능 | **JS 1.95MB·CSS 113KB가 압축 없이 전송**(전송량 = 원본 크기). 캐시 헤더 없음 | 높음 |\n| D2 | 키보드 | Tab 키가 표의 **모든 셀**을 하나씩 거침 — 대시보드에서 표를 지나가려면 40회 이상 | 높음 |\n| D3 | 키보드 | 표 검색칸 포커스 표시 없음(WCAG 2.4.7) | 중간 |\n| D4 | 접근성(axe) | 제목 단계 건너뜀 h1→h3 — 8개 화면(moderate) | 중간 |\n| D5 | 접근성(axe) | 로그인 화면 주요 영역(main) 표시 없음, 영역 밖 콘텐츠(moderate) | 낮음 |\n| D6 | 레이아웃 | 1920×1080에서 왼쪽 메뉴 항목이 화면 높이를 채우며 벌어짐 | 중간 |\n| D7 | 레이아웃 | 1024px에서 대시보드 보조 지표 5개가 2열로 접혀 하나가 홀로 남음 | 낮음 |\n| D8 | 레이아웃 | 가로로 나란한 카드·패널 윗선이 10px 어긋남(모니터링 자원 카드, 워크로드·노드 패널) — 0.5.3 여백 규칙의 부작용 | 중간 |\n| — | 통과 | axe 치명·심각 위반 0, 모든 해상도·200% 확대 가로 넘침 0·글자 잘림 0, 모달 포커스 가둠·Esc 정상, LCP 0.3초·CLS 0, 콘솔 오류 0 | — |\n\n### 2.2 정적검사\n\n| # | 구분 | 발견 | 심각도 |\n|---|---|---|---|\n| S1 | 문구 | 영문 대문자 라벨 14개 + 영문 값(`CONTROL PLANE`, `WORKLOAD STATUS`, `MANAGED WINDOWS DEVICE`, `CPU UTILIZATION`, `ONLINE/OFFLINE`, `DETECTED/FALSE`, `Auto refresh · 20 sec` 등)이 한국어 화면에 혼재. \"에이전트\"/\"Agent\" 혼용 1곳 | 중간 |\n| S2 | CSS | 미사용 선택자 **379개(25%)** — 옛 `table/th/td`, `.compliance-badge`, `.asset-row` 등 | 중간 |\n| S3 | CSS | 모니터링 라벨이 고정폭 글꼴·넓은 자간(0.8px) 그대로(글꼴 단축 속성 `font:`에 남아 있음) | 낮음 |\n| S4 | CSS | `font-family` 값이 13곳에 서로 다른 목록으로 하드코딩 | 낮음 |\n| S5 | CSS | `!important` 201, 여백 값 36종(단계 밖 220곳), 화면 폭 기준점 12종, z-index 12종, 그림자 30종 | 중간(구조) |\n| S6 | UX | 차단·해제·삭제 확인이 브라우저 기본 `confirm/prompt` 6곳 — 디자인과 분리, 모바일에서 입력 불편 | 중간 |\n| S7 | 성능 | 단일 JS 번들 1.56MB(다이어그램 라이브러리 mermaid 포함 — 시스템 가이드에서만 사용) | 중간 |\n\n## 3. 조치 (Frontend 0.6.0)\n\n| 대상 | 조치 | 검증 |\n|---|---|---|\n| D1 | nginx `gzip`(JS·CSS·JSON·SVG), 해시 파일 `/assets/` 1년 캐시(`expires` — 보안 헤더 상속 유지) | 로컬 이미지: **JS 1,559KB → 447KB(-71%), CSS 88.6KB → 16.9KB(-81%)**, `Content-Encoding: gzip`, CSP·X-Frame-Options 유지 |\n| D2 | 표에서 Tab이 셀을 돌지 않고 다음 요소로 이동(`tabToNextCell/Header`) — 셀 이동은 방향키 | 검색칸 → 도구 → 머리 1칸 → 페이지 이동 |\n| D3 | 검색칸 포커스 시 2px 테두리 | 계산값 `outline: solid` |\n| D4 | 업무 화면 패널 제목 h3→h2(23곳)·가이드 h4→h2(6곳), 모달 안 h3 유지. 모양 유지용 선택자 병기 | 계산 스타일 비교 + 픽셀 비교: 3개 화면(패널 제목 14→16px 통일)만 의도적 변화 |\n| D5 | 로그인 화면 `role=\"main\"` | axe 0 |\n| D6 | 메뉴 grid `align-content: start` | 1920×1080 육안 확인 |\n| D7 | 보조 지표 flex wrap(줄 끝까지 채움) | 1024·1920 육안 확인 |\n| D8 | 패널 간 위 간격을 세로로 쌓인 경우에만 | 나란한 카드 윗선 전 화면 일치(측정) |\n| S1 | 영문 라벨·값 한국어화(기술 고유명 Kubernetes·k3s·GHCR·PostgreSQL 유지), 페이지 이동 버튼 보조기기용 이름 한국어 | 남은 영문 대문자: 로그인 장식 `AF-OPS / 01`, 버튼 `USB CSV` |\n| S2 | 소스에 클래스·태그가 전혀 없는 선택자만 제거(동적 접두사·라이브러리 제외) — **선택자 241개, 규칙 209개** | 제거 전후 45개 화면 **픽셀 변화 0**, 미사용 25% → **12%** |\n| S3·S4 | 글꼴을 `--font-sans`/`--font-mono` 토큰으로, 라벨 자간 0.2px | — |\n\n### 조치 후 측정\n\n| 지표 | 0.5.3 | **0.6.0** |\n|---|---|---|\n| axe 위반(전 화면) | moderate 3종 19건 | **0** |\n| 표 통과에 필요한 Tab 횟수(대시보드) | 40+ | **4** |\n| JS·CSS 전송량 | 1,954KB + 113KB | **447KB + 17KB** |\n| CSS 원본 / 규칙 수 | 123KB / 1,260 | **104KB / 1,056** |\n| 미사용 선택자 | 379 (25%) | **156 (12%)** — 오류·로딩 등 검사에서 띄우지 않은 상태 포함 |\n| 영문 대문자 라벨 | 14 | 2 (의도) |\n| 가로 넘침(7개 해상도·200%) | 0 | 0 |\n| Playwright 회귀 | 28/28 | 28/28 |\n\n## 4. 남은 과제 (권장 순서)\n\n| 순위 | 과제 | 이유 |\n|---|---|---|\n| 1 | 브라우저 기본 `confirm/prompt` 6곳 → 앱 대화상자 컴포넌트 | 디자인 일관성, 차단 사유 입력의 모바일 사용성, 위험 동작 강조 |\n| 2 | mermaid를 시스템 가이드 진입 시에만 로드(코드 분할) | 첫 화면 JS 약 −40% 예상 |\n| 3 | 화면 폭 기준점 10종 → 3종(1100·900·650), z-index 11종 → 계층 토큰 5단계, 그림자 26종 → 3단계 | 반응형 동작 예측성, 겹침 사고 방지 |\n| 4 | 단계 밖 여백 180곳을 `--space-*`로 | 여백 리듬 통일 |\n| 5 | `!important` 201개 단계적 제거 | 통합으로 순서가 고정됐으므로 제거마다 픽셀 비교로 검증 가능 |\n| 6 | 미사용 선택자 156개 재확인 | 오류·로딩 상태를 띄운 커버리지로 재측정 후 정리 |\n"</script>
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js"></script>
+<script>
+  const links = {"README.md":"index.html","01_현황분석.md":"01_현황분석.html","02_IT자산관리_전문가_검토.md":"02_IT자산관리_전문가_검토.html","03_보안전문가_검토.md":"03_보안전문가_검토.html","04_인프라유지보수_검토.md":"04_인프라유지보수_검토.html","05_개선기획_로드맵.md":"05_개선기획_로드맵.html","06_기술검토서.md":"06_기술검토서.html","07_수정요청서.md":"07_수정요청서.html","08_기능추가요청서.md":"08_기능추가요청서.html","09_조치결과보고서_양식.md":"09_조치결과보고서_양식.html","10_디자인전문가_UI검토.md":"10_디자인전문가_UI검토.html","11_웹전문가_프런트엔드검토.md":"11_웹전문가_프런트엔드검토.html","12_IT자산관리전문가_화면검토.md":"12_IT자산관리전문가_화면검토.html","13_수정요청서_UI.md":"13_수정요청서_UI.html","14_보안웹취약점_점검보고서.md":"14_보안웹취약점_점검보고서.html","15_수정요청서_보안웹취약점.md":"15_수정요청서_보안웹취약점.html","16_수정요청_적용계획서.md":"16_수정요청_적용계획서.html","17_추가요구사항_검토서.md":"17_추가요구사항_검토서.html","18_조치결과보고서_1차.md":"18_조치결과보고서_1차.html","19_전문가_검토_프롬프트.md":"19_전문가_검토_프롬프트.html","20_추가수정요청서.md":"20_추가수정요청서.html","21_주변기기수집_검토시험보고서.md":"21_주변기기수집_검토시험보고서.html","22_기능추가_이력_및_추가기능_검토.md":"22_기능추가_이력_및_추가기능_검토.html","23_디자인_가이드_및_전수검사.md":"23_디자인_가이드_및_전수검사.html","24_디자인_정적동적_전수검사.md":"24_디자인_정적동적_전수검사.html","windows-agent-communication-status.md":"windows-agent-communication-status.html","windows-agent-removal-protection-plan.md":"windows-agent-removal-protection-plan.html","windows-agent-tray-validation.md":"windows-agent-tray-validation.html"};
+  const main = document.getElementById("content");
+  main.innerHTML = marked.parse(JSON.parse(document.getElementById("md").textContent), { gfm: true });
+  main.querySelectorAll("a[href]").forEach((a) => {
+    const target = decodeURIComponent(a.getAttribute("href"));
+    if (links[target]) a.setAttribute("href", links[target]);
+  });
+  main.querySelectorAll("pre > code.language-mermaid").forEach((code) => {
+    const box = document.createElement("div");
+    box.className = "mermaid";
+    box.textContent = code.textContent;
+    code.parentElement.replaceWith(box);
+  });
+  const foot = document.createElement("div");
+  foot.className = "foot";
+  foot.textContent = "원본: 24_디자인_정적동적_전수검사.md · 생성: build-html.mjs";
+  main.appendChild(foot);
+  mermaid.initialize({ startOnLoad: false, theme: "default", securityLevel: "strict",
+    themeVariables: { darkMode: false, background: "#ffffff", fontFamily: "Pretendard, Malgun Gothic, sans-serif" },
+    flowchart: { htmlLabels: true, curve: "basis" }, gantt: { axisFormat: "%y-%m" } });
+  mermaid.run({ querySelector: ".mermaid" });
+</script>
+</body>
+</html>
