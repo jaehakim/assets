@@ -1,6 +1,8 @@
 package com.assetflow.api;
 
 import com.assetflow.service.AgentAuth;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Value;
@@ -18,7 +20,9 @@ public class AgentController {
   private final JdbcTemplate db;
   private final AgentAuth auth;
   private final int softwareLimit; // CR-023
-  public AgentController(JdbcTemplate db,AgentAuth auth,@Value("${assetflow.software-limit:2000}")int softwareLimit){this.db=db;this.auth=auth;this.softwareLimit=softwareLimit;}
+  private final boolean removalProtection; // Agent 0.3.1: 제거 보호 정책(킬 스위치 AGENT_REMOVAL_PROTECTION=false)
+  public AgentController(JdbcTemplate db,AgentAuth auth,@Value("${assetflow.software-limit:2000}")int softwareLimit,
+      @Value("${assetflow.agent-removal-protection:true}")boolean removalProtection){this.db=db;this.auth=auth;this.softwareLimit=softwareLimit;this.removalProtection=removalProtection;}
 
   @PostMapping("/register")
   public ResponseEntity<?> register(@RequestHeader(value="X-Registration-Token",required=false)String key,@Valid @RequestBody Models.Register x,HttpServletRequest req){
@@ -47,8 +51,28 @@ public class AgentController {
     // Agent 0.3.0: 관리자가 승인한 유효한 제거가 있으면 알려 준다(구버전 Agent는 이 필드를 무시).
     var approved=db.queryForList("SELECT id,expires_at FROM agent_uninstall_request WHERE agent_id=? AND status='APPROVED' AND (expires_at IS NULL OR expires_at>now()) ORDER BY decided_at DESC LIMIT 1",id);
     var body=new LinkedHashMap<String,Object>(); body.put("serverTime",OffsetDateTime.now());
+    // Agent 0.3.1+: 보호는 서버 정책을 받은 뒤(정상 통신 확인 후)에만 적용하고, false면 기본 권한으로 되돌린다.
+    body.put("protection",removalProtection);
     if(!approved.isEmpty())body.put("uninstall",Map.of("approved",true,"requestId",approved.getFirst().get("id")));
     return ResponseEntity.ok(body);
+  }
+
+  private static final ObjectMapper JSON = new ObjectMapper();
+  private static final Set<String> STAGE_RESULTS = Set.of("PRECHECK:PASSED","PRECHECK:BLOCKED","POSTCHECK:INSTALLED","POSTCHECK:ROLLED_BACK","POSTCHECK:FAILED");
+
+  /**
+   * Agent 0.3.1: 설치·업데이트 전 보안 점검(PRECHECK)과 설치 후 점검(POSTCHECK) 보고. 업데이트 차단·롤백·실패는 업데이트 이력에도 남긴다.
+   */
+  @PostMapping("/install-report")
+  public ResponseEntity<?> installReport(@RequestHeader(value="Authorization",required=false)String h,@Valid @RequestBody Models.InstallReport x,HttpServletRequest req) throws JsonProcessingException{
+    UUID id=auth.authenticate(h);if(id==null)return ResponseEntity.status(401).build();
+    if(!STAGE_RESULTS.contains(x.stage()+":"+x.result()))return ResponseEntity.unprocessableEntity().body(Map.of("error","result does not match stage"));
+    String checks=JSON.writeValueAsString(x.checks()==null?List.of():x.checks());
+    Long rid=db.queryForObject("INSERT INTO agent_install_report(agent_id,kind,stage,result,from_version,to_version,checks,summary,checked_at,remote_ip) VALUES(?,?,?,?,?,?,?::jsonb,?,?,?) RETURNING id",
+        Long.class,id,x.kind(),x.stage(),x.result(),x.fromVersion(),x.toVersion(),checks,x.summary(),x.checkedAt(),req.getRemoteAddr());
+    String event=switch(x.result()){case "BLOCKED"->"UPDATE_BLOCKED";case "ROLLED_BACK"->"UPDATE_ROLLED_BACK";case "FAILED"->"UPDATE_FAILED";default->null;};
+    if(event!=null)db.update("INSERT INTO agent_update_history(agent_id,from_version,to_version,event_type) VALUES(?,?,?,?)",id,x.fromVersion(),x.toVersion(),event);
+    return ResponseEntity.status(201).body(Map.of("id",rid));
   }
 
   /** Agent 0.3.0: PC의 제거 도구가 보낸 제거 요청. 열린 요청이 있으면 그것을 돌려준다(중복 생성 안 함). */

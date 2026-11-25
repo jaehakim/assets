@@ -12,6 +12,8 @@
     <Compile Include="../agent/UsbDevices.cs" Link="UsbDevices.cs" />
     <Compile Include="../agent/UninstallCode.cs" Link="UninstallCode.cs" />
     <Compile Include="../agent/ServiceProtection.cs" Link="ServiceProtection.cs" />
+    <Compile Include="../agent/UpdatePlan.cs" Link="UpdatePlan.cs" />
+    <Compile Include="../agent/InstallChecks.cs" Link="InstallChecks.cs" />
     <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="8.0.0" />
   </ItemGroup>
 </Project>

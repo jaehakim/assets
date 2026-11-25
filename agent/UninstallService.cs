@@ -8,17 +8,35 @@ namespace AssetFlow.Agent;
 /// (a) the server reports an approved removal in the heartbeat response, or
 /// (b) the elevated uninstall tool drops a request file containing an offline code issued by an administrator for this PC.
 /// A request file without a code is forwarded to the server as a removal request for an administrator to approve.
+/// 0.3.1: protection is no longer applied on the startup path. It follows the server policy delivered in each heartbeat
+/// (ApplyPolicy), so it only happens after this version has proven it can talk to the server, and it can be switched off remotely.
 /// </summary>
 public sealed class UninstallService(AgentClient client, AgentState state, IHostApplicationLifetime lifetime, ILogger<UninstallService> log) : BackgroundService
 {
     public static readonly string RequestPath = Path.Combine(AgentState.Dir, "uninstall-request.json");
     public static readonly string ResultPath = Path.Combine(AgentState.Dir, "uninstall-result.json");
     int started;
+    bool? appliedPolicy;
+
+    /// <summary>Called with the heartbeat's "protection" value; applies or reverts protection once per change, off the heartbeat path.</summary>
+    public void ApplyPolicy(bool? protect)
+    {
+        if (protect is null || appliedPolicy == protect) return; // older servers send no policy: leave the PC as it is
+        appliedPolicy = protect;
+        _ = Task.Run(() =>
+        {
+            try
+            {
+                foreach (var note in ServiceProtection.Apply(AppContext.BaseDirectory, protect.Value))
+                    if (note.Contains("FAILED")) log.LogWarning("{Note}", note); else log.LogInformation("{Note}", note);
+            }
+            catch (Exception e) { log.LogWarning(e, "Removal protection policy could not be applied"); }
+        });
+    }
 
     protected override async Task ExecuteAsync(CancellationToken ct)
     {
-        foreach (var note in ServiceProtection.Apply(AppContext.BaseDirectory))
-            if (note.Contains("FAILED")) log.LogWarning("{Note}", note); else log.LogInformation("{Note}", note);
+        await Task.Yield(); // never hold up host startup
         while (!ct.IsCancellationRequested)
         {
             try { await CheckRequestFile(ct); }

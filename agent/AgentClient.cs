@@ -68,6 +68,9 @@ public sealed class AgentClient
         return doc.RootElement.TryGetProperty("requestId", out var id) && id.TryGetInt64(out var v) ? v : null;
     }
 
+    /// <summary>0.3.1: pre-/post-install check results (update, clean install, repair).</summary>
+    public Task SendInstallReport(InstallReport report, CancellationToken ct) => Send("install-report", report, ct);
+
     public async Task CompleteUninstall(long? requestId, string method, CancellationToken ct) =>
         await Send("uninstall/complete", new { requestId, method }, ct);
 

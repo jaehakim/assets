@@ -71,7 +71,8 @@ dotnet publish -c Release -r win-x64 --self-contained true -o publish
   -RegistrationToken "서버의-AGENT_REGISTRATION_TOKEN"
 ```
 
-**0.3.0부터 제거 보호**: 사용자(로컬 관리자 포함)는 Agent를 임의로 중지·삭제할 수 없습니다. 제거는 관리 콘솔(자산 상세 › 관리·이력 › Agent 제거 승인)에서 승인하거나, 콘솔이 발급한 이 PC 전용 제거 코드를 `uninstall-service.bat`에 입력해야 합니다 — [삭제 방지 계획·구현](docs/windows-agent-removal-protection-plan.md) §8.
+**0.3.1부터 설치 전·후 점검**: 새 버전은 설치 전 보안 점검(무결성·실행 파일 버전·백신 격리 확인·디스크)을 통과해야 기존 버전을 교체하고, 설치 후 점검 결과와 함께 서버(업데이트 이력 › 설치·업데이트 점검 기록)에 기록됩니다. 새 버전이 3분 안에 기동하지 않으면 이전 버전으로 자동 복원됩니다.
+**제거 보호(0.3.1, 서버 정책 `AGENT_REMOVAL_PROTECTION`)**: 사용자(로컬 관리자 포함)는 Agent를 임의로 중지·삭제할 수 없습니다. 제거는 관리 콘솔(자산 상세 › 관리·이력 › Agent 제거 승인)에서 승인하거나, 콘솔이 발급한 이 PC 전용 제거 코드를 `uninstall-service.bat`에 입력해야 합니다 — [삭제 방지 계획·구현](docs/windows-agent-removal-protection-plan.md) §8.
 장치 설정과 발급 토큰은 `%ProgramData%\AssetFlow\agent.json`에 저장됩니다. 0.2.12부터 장치 토큰은 DPAPI(LocalMachine)로 암호화되고 등록 토큰은 최초 등록 후 삭제되며, 폴더는 SYSTEM·Administrators 전용 ACL로 보호됩니다(트레이는 `tray.json`만 읽음). 서비스 제거는 `scripts\uninstall-service.ps1`을 사용합니다.
 0.2.11부터 실행 로그는 `%ProgramData%\AssetFlow\logs\agent-YYYYMMDD.log`, 통신 이력은 같은 폴더의 `communication-YYYYMMDD.log`에 저장됩니다. `CollectionMinutes`의 기본값은 60분, `UpdateCheckMinutes`의 기본값은 5분이며 최소 실행 주기는 각각 5분입니다.
 Windows 서비스는 활성 사용자 세션의 트레이 앱을 주기적으로 확인합니다. 트레이 앱이 종료되거나 Agent 자동 업데이트로 교체된 경우에도 로그인된 사용자 세션에서 자동으로 다시 실행됩니다.
@@ -106,6 +107,8 @@ Windows 서비스는 활성 사용자 세션의 트레이 앱을 주기적으로
 | GET | `/api/v1/admin/asset-audit` | 관리자 세션 | 폐기·분실 통신, 중복 의심, 기준정보 누락, 차단 Agent |
 | POST | `/api/v1/admin/agents/{id}/block`, `/unblock` | 관리자 세션 | Agent 차단(장치 토큰·재등록 거부)·해제 |
 | POST | `/api/v1/agents/uninstall/request`, `/uninstall/complete` | `Bearer DEVICE_TOKEN` | PC의 제거 요청 / 제거 시작 보고(장치 토큰 폐기) |
+| POST | `/api/v1/agents/install-report` | `Bearer DEVICE_TOKEN` | 설치·업데이트 전/후 점검 결과 보고(PRECHECK·POSTCHECK) |
+| GET | `/api/v1/admin/agent-install-reports` | 관리자 세션 | 설치·업데이트 점검 기록 |
 | GET | `/api/v1/admin/agent-uninstalls` | 관리자 세션 | Agent 제거 요청 대장 |
 | POST | `/api/v1/admin/agents/{id}/uninstall/approve`, `/uninstall/code`, `/api/v1/admin/agent-uninstalls/{id}/reject` | 관리자 세션 | 제거 승인(최대 5분 내 자동 제거) / 오프라인 제거 코드 발급 / 거절 |
 | GET | `/api/v1/admin/software-compliance` | 관리자 세션 | 판정 목록·탐지 장비·동기화 이력 |
@@ -137,6 +140,14 @@ Windows 서비스는 활성 사용자 세션의 트레이 앱을 주기적으로
 - Agent ID만으로 인증하지 않고 등록 토큰과 장치별 Bearer 토큰을 분리합니다.
 
 ## 변경 이력
+
+### 2026-11-25 — Agent 0.3.1 / Backend 0.4.1 / Frontend 0.7.1 (0.3.0 배포 보류·보완, 설치 전·후 점검)
+
+- 0.3.0 배포 보류: 파일럿 PC가 업데이트 후 재접속하지 않아 릴리스 회수(분석: [삭제 방지 계획](docs/windows-agent-removal-protection-plan.md) §9)
+- Agent 0.3.1: 보호를 외부 명령(`sc sdset`/`icacls`) 대신 Win32 API로 적용, 서버 통신 확인 뒤 서버 정책에 따라 적용·해제, 업데이트 기동 확인·자동 롤백, 설치 전 보안 점검(차단 시 기존 버전 유지)·설치 후 점검 서버 보고
+- Backend 0.4.1: Flyway `V8` 설치 점검 기록, `POST /api/v1/agents/install-report`, 하트비트 `protection` 정책(`AGENT_REMOVAL_PROTECTION`, 기본 true), 차단·롤백·실패 업데이트 이력
+- Frontend 0.7.1: 업데이트 이력 › 설치·업데이트 점검 기록, 자산 상세 점검 기록 카드, 시스템 가이드 설치 절차 갱신
+- 설치 도구: 기존 Agent 확인 → 다운로드 → 설치 전 점검 → 기존 버전 삭제·재설치 순서, 보호 중 멈춘 Agent 복구 설치
 
 ### 2026-11-25 — Agent 0.3.0 / Backend 0.4.0 / Frontend 0.7.0 (Agent 제거 보호·승인 제거)
 

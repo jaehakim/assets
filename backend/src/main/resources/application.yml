@@ -36,6 +36,7 @@ management.endpoint.health.group.readiness.include: readinessState,db
 management.endpoint.health.group.liveness.include: livenessState
 management.endpoint.health.show-details: never
 assetflow.software-limit: ${SOFTWARE_LIMIT:2000}
+assetflow.agent-removal-protection: ${AGENT_REMOVAL_PROTECTION:true}
 assetflow.require-strong-secrets: ${REQUIRE_STRONG_SECRETS:true}
 spring.servlet.multipart.max-file-size: 120MB
 spring.servlet.multipart.max-request-size: 120MB

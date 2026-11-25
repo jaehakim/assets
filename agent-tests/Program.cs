@@ -273,11 +273,73 @@ Console.WriteLine("PASS: 0.2.16 — generic MTP names skipped, wireless receiver
     var req = UninstallRequestFile.Parse("{\"code\":\"493560-5881393028\",\"reason\":\"반납\",\"requestedBy\":\"PC01\\\\it\"}");
     U(req is { Code: "493560-5881393028", Reason: "반납", RequestedBy: "PC01\\it" }, "request file");
     U(UninstallRequestFile.Parse("{broken") is { Code: null, Reason: null }, "broken request file");
-    // installers apply the same SDDL as the Agent (the Agent re-applies it on every start)
-    foreach (var f in new[] { "agent/release/install-service.bat", "agent/scripts/install-service.ps1" })
-        if (File.Exists(f)) U(File.ReadAllText(f).Contains(ServiceProtection.ProtectedSddl), f + " uses the Agent SDDL");
     if (File.Exists("agent/release/uninstall-service.bat")) U(!File.ReadAllText("agent/release/uninstall-service.bat").Contains("sc.exe delete"), "uninstall tool no longer deletes the service directly");
     Console.WriteLine("PASS: 0.3.0 removal protection — shared code vector, expiry/tamper/other-PC checks, service DACL rights, removal script, heartbeat approval, request file");
+}
+
+// 0.3.1: 0.3.0 did not come back after the update on a pilot PC — protection moved off the startup path and out of
+// sc.exe/icacls.exe command lines, follows the server policy, and updates verify the new version (rollback otherwise).
+{
+    void R(bool ok, string what) { if (!ok) throw new Exception("0.3.1: " + what); }
+    // server policy in the heartbeat
+    R(HeartbeatResult.Parse("{\"serverTime\":\"x\",\"protection\":true}").Protection == true, "policy on");
+    R(HeartbeatResult.Parse("{\"protection\":false,\"uninstall\":{\"approved\":true,\"requestId\":3}}") is { Protection: false, UninstallApproved: true, UninstallRequestId: 3 }, "policy off with approval");
+    R(HeartbeatResult.Parse("{\"serverTime\":\"x\"}").Protection is null && HeartbeatResult.Parse("{\"protection\":\"true\"}").Protection is null, "missing / non-boolean policy = leave as is");
+    // the restored default DACL gives administrators their normal rights back
+    var dba = ServiceProtection.Rights(ServiceProtection.DefaultSddl, "BA");
+    R(dba.Contains("WP") && dba.Contains("SD") && dba.Contains("DC") && dba.Contains("WD"), "default DACL: administrators may stop/delete/configure");
+    R(!ServiceProtection.Rights(ServiceProtection.DefaultSddl, "SY").Contains("SD"), "default DACL matches sc create (SYSTEM without delete)");
+    // no tamper-looking command lines anywhere in the Agent or installers
+    foreach (var f in new[] { "agent/ServiceProtection.cs", "agent/UninstallService.cs", "agent/release/install-service.bat", "agent/scripts/install-service.ps1" })
+        if (File.Exists(f)) R(!File.ReadAllText(f).Contains("sdset") && !File.ReadAllText(f).Contains("\"icacls.exe\""), f + " runs no sc sdset / icacls process for protection");
+    if (File.Exists("agent/UninstallService.cs"))
+    {
+        var svc = File.ReadAllText("agent/UninstallService.cs");
+        var exec = svc[svc.IndexOf("ExecuteAsync", StringComparison.Ordinal)..];
+        R(!exec[..exec.IndexOf("while", StringComparison.Ordinal)].Contains("ServiceProtection.Apply"), "protection is not applied on the startup path");
+    }
+    // installers: repair a protected Agent that is not running
+    if (File.Exists("agent/release/install-service.bat"))
+    {
+        var bat = File.ReadAllText("agent/release/install-service.bat");
+        R(bat.Contains(":repair") && bat.Contains("if errorlevel 1 goto :repair") && bat.Contains("if defined REPAIR goto :start") && bat.Contains("goto :protected"), "install-service.bat repair mode keeps the running-Agent protection");
+    }
+    // update helper: health check and rollback
+    var plan = UpdatePlan.ApplyScript(4242, @"C:\Program Files\AssetFlow\Agent\AssetFlow.Agent.exe", @"C:\Program Files\AssetFlow\Agent\updates\AssetFlow.Agent-0.3.2.exe", @"C:\ProgramData\AssetFlow", "0.3.2");
+    int At(string x) { var i = plan.IndexOf(x, StringComparison.Ordinal); R(i >= 0, "update script has " + x); return i; }
+    R(At("del /f /q \"C:\\ProgramData\\AssetFlow\\agent-started.txt\"") < At("sc start AssetFlowAgent") && At("sc start AssetFlowAgent") < At("findstr /l /x /c:\"0.3.2\""), "marker cleared, new version started, then verified");
+    R(At("goto done") < plan.LastIndexOf("copy /Y \"C:\\Program Files\\AssetFlow\\Agent\\AssetFlow.Agent.exe.bak\" \"C:\\Program Files\\AssetFlow\\Agent\\AssetFlow.Agent.exe\"", StringComparison.Ordinal), "rollback restores the .bak");
+    R(At("> \"C:\\ProgramData\\AssetFlow\\update-rollback.txt\" echo 0.3.2") < At(":done"), "rolled-back version recorded");
+    R(plan.Contains($"lss {UpdatePlan.VerifySeconds / 5} goto verify") && UpdatePlan.VerifySeconds >= 120, "waits long enough for a slow start");
+    R(!plan.Contains("\n\n") && plan.Split("\r\n").All(l => !l.EndsWith(' ')), "no blank/trailing-space lines (cmd parsing)");
+    var t0 = new DateTime(2026, 11, 25, 5, 0, 0, DateTimeKind.Utc);
+    R(UpdatePlan.IsHeldBack("0.3.2", "0.3.2 \r\n", t0.AddHours(-1), t0), "rolled-back version held back");
+    R(!UpdatePlan.IsHeldBack("0.3.2", "0.3.2", t0.AddHours(-25), t0) && !UpdatePlan.IsHeldBack("0.3.3", "0.3.2", t0.AddHours(-1), t0) && !UpdatePlan.IsHeldBack("0.3.2", null, null, t0), "hold expires / other versions / no file");
+    // pre-/post-install checks reported to the server
+    var pass = InstallCheck.Of("SHA-256 무결성", true, "abc"); var warn = InstallCheck.Of("코드 서명", false, "미적용", warnOnly: true); var fail = InstallCheck.Of("백신 격리·차단 확인", false, "격리 의심");
+    R(pass.Status == "PASS" && warn.Status == "WARN" && fail.Status == "FAIL", "check status");
+    R(!InstallChecks.Blocks(new[] { pass, warn }) && InstallChecks.Blocks(new[] { pass, fail }), "only FAIL blocks the install");
+    R(InstallChecks.Summary(new[] { pass, warn, fail }) == "1/3 통과 — 코드 서명: 미적용 | 백신 격리·차단 확인: 격리 의심", "summary lists non-passing checks");
+    R(InstallChecks.IsPortableExecutable(new byte[] { 0x4D, 0x5A }) && !InstallChecks.IsPortableExecutable(new byte[] { 0x50, 0x4B }) && !InstallChecks.IsPortableExecutable(Array.Empty<byte>()), "PE header");
+    R(InstallChecks.VersionMatches("0.3.2.0", "0.3.2") && !InstallChecks.VersionMatches("0.3.1.0", "0.3.2") && !InstallChecks.VersionMatches(null, "0.3.2") && !InstallChecks.VersionMatches("x", "0.3.2"), "exe version belongs to the release");
+    var pend = new PendingInstall("UPDATE", "0.3.1", "0.3.2", DateTimeOffset.Parse("2026-11-25T14:00:00+09:00"));
+    R(PendingInstall.Parse(pend.ToJson()) == pend with { PreChecks = null } || PendingInstall.Parse(pend.ToJson()) is { Kind: "UPDATE", FromVersion: "0.3.1", ToVersion: "0.3.2" }, "pending round trip");
+    // the installers write PowerShell JSON (BOM-less after File.ReadAllText, camelCase, preChecks array)
+    var fromPs = PendingInstall.Parse("{\"kind\":\"REPAIR\",\"fromVersion\":\"0.3.0\",\"toVersion\":\"0.3.1\",\"startedAt\":\"2026-11-25T14:00:00.0000000+09:00\",\"preChecks\":[{\"name\":\"AV_PROBE\",\"status\":\"PASS\",\"detail\":\"file intact after 20s\"}]}");
+    R(fromPs is { Kind: "REPAIR", ToVersion: "0.3.1", PreChecks.Count: 1 } && fromPs.PreChecks[0].Name == "AV_PROBE", "installer pending file");
+    R(PendingInstall.Parse("{\"kind\":\"DELETE\",\"toVersion\":\"0.3.1\"}") is null && PendingInstall.Parse("{broken") is null && PendingInstall.Parse(null) is null, "invalid pending ignored");
+    R(InstallChecks.PostResult("0.3.2", pend, null, new[] { pass, warn }) == "INSTALLED", "installed");
+    R(InstallChecks.PostResult("0.3.1", pend, "0.3.2", new[] { fail }) == "ROLLED_BACK", "rolled back (old version reports)");
+    R(InstallChecks.PostResult("0.3.2", pend, null, new[] { fail }) == "FAILED" && InstallChecks.PostResult("0.3.1", pend, null, new[] { pass }) == "FAILED", "failed post-check / wrong version");
+    if (File.Exists("agent/release/install-service.bat"))
+    {
+        var bat = File.ReadAllText("agent/release/install-service.bat");
+        int B(string x) { var i = bat.IndexOf(x, StringComparison.Ordinal); R(i >= 0, "install-service.bat has " + x); return i; }
+        R(B("[0/7] Checking the existing Agent") < B("[1/7] Registering") && B("[2/7] Security pre-checks") < B("[3/7] Stopping and deleting") && B("if errorlevel 4 goto :blocked") < B("[3/7]"), "existing-Agent check before registering; pre-checks before removal");
+        R(B("/api/v1/agents/install-report") > 0 && B("install-pending.json") > B("[6/7]") && B("AV_PROBE") > 0, "pre-check report sent, pending record installed");
+        foreach (var line in bat.Split('\n')) R(line.Length < 8000, "batch line under the cmd limit");
+    }
+    Console.WriteLine("PASS: 0.3.1 safe rollout — server protection policy, default DACL restore, no sc sdset/icacls processes, protection off the startup path, installer repair, update health check + rollback, pre/post-install checks + report");
 }
 
 sealed class StubHandler(Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> send) : HttpMessageHandler

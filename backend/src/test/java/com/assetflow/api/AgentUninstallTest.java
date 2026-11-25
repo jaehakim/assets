@@ -34,7 +34,7 @@ class AgentUninstallTest {
   }
 
   static AgentController agentController(JdbcTemplate db) {
-    AgentAuth auth = mock(AgentAuth.class); when(auth.authenticate("Bearer t")).thenReturn(AGENT); return new AgentController(db, auth, 2000);
+    AgentAuth auth = mock(AgentAuth.class); when(auth.authenticate("Bearer t")).thenReturn(AGENT); return new AgentController(db, auth, 2000, true);
   }
 
   @Test void heartbeatTellsAgentAboutApprovedUninstall() {
@@ -44,6 +44,14 @@ class AgentUninstallTest {
     assertEquals(Map.of("approved", true, "requestId", 7L), body.get("uninstall"));
     JdbcTemplate none = mock(JdbcTemplate.class);
     assertFalse(((Map<?, ?>) agentController(none).heartbeat("Bearer t", new Models.Heartbeat("0.3.0")).getBody()).containsKey("uninstall"));
+  }
+
+  @Test void heartbeatCarriesProtectionPolicy() {
+    JdbcTemplate db = mock(JdbcTemplate.class);
+    AgentAuth auth = mock(AgentAuth.class); when(auth.authenticate("Bearer t")).thenReturn(AGENT);
+    assertEquals(true, ((Map<?, ?>) agentController(db).heartbeat("Bearer t", new Models.Heartbeat("0.3.1")).getBody()).get("protection"));
+    var off = new AgentController(db, auth, 2000, false);
+    assertEquals(false, ((Map<?, ?>) off.heartbeat("Bearer t", new Models.Heartbeat("0.3.1")).getBody()).get("protection"));
   }
 
   @Test void deviceRequestIsNotDuplicated() {

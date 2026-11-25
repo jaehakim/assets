@@ -8,6 +8,7 @@ public sealed class Worker(AgentClient client, AgentState state, InventoryCollec
     protected override async Task ExecuteAsync(CancellationToken ct)
     {
         foreach (var note in ConfigProtection.Notes) log.LogWarning("Startup: {Note}", note);
+        UpdateService.MarkStarted(log); // 0.3.1: tells the update helper that this version came up (otherwise it rolls back)
         while (string.IsNullOrEmpty(state.Options.DeviceToken) && !ct.IsCancellationRequested)
         {
             if (await RunOperation("등록", () => client.EnsureRegistered(ct), ct)) break;
@@ -19,6 +20,9 @@ public sealed class Worker(AgentClient client, AgentState state, InventoryCollec
             Loop("하트비트", async () =>
             {
                 var heartbeat = await client.Heartbeat(ct);
+                uninstaller.ApplyPolicy(heartbeat.Protection); // 0.3.1: protection only after a successful server round trip
+                try { await updater.ReportPendingInstall(heartbeat.Protection, ct); } // 0.3.1: post-install checks (retried next heartbeat on failure)
+                catch (Exception e) when (e is not OperationCanceledException) { log.LogWarning(e, "Post-install report failed; retrying with the next heartbeat"); }
                 if (heartbeat.UninstallApproved) await uninstaller.ExecuteApproved(heartbeat.UninstallRequestId, ct); // 0.3.0 approved removal
             }, TimeSpan.FromMinutes(5), ct),
             Loop("업데이트", () => updater.CheckAndApply(ct),

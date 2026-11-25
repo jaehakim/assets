@@ -35,6 +35,15 @@ public static class ConfigProtection
     static bool GrantsWrite(FileSystemAccessRule rule) =>
         GrantsWrite(rule.AccessControlType == AccessControlType.Allow, (rule.IdentityReference as SecurityIdentifier)?.Value, rule.FileSystemRights);
 
+    /// <summary>0.3.1 install checks: true when the data folder has a trusted owner, no inherited rules and no write access for non-administrators.</summary>
+    public static bool IsDataFolderSecure(string dir)
+    {
+        if (!OperatingSystem.IsWindows()) return true;
+        var security = new DirectoryInfo(dir).GetAccessControl();
+        return IsTrustedOwner(security.GetOwner(typeof(SecurityIdentifier)) as SecurityIdentifier) && security.AreAccessRulesProtected
+            && !security.GetAccessRules(true, true, typeof(SecurityIdentifier)).Cast<FileSystemAccessRule>().Any(GrantsWrite);
+    }
+
     /// <summary>Verifies the data folder. Throws when the owner is untrusted and we run as the service (SYSTEM); otherwise self-heals the DACL.</summary>
     public static void EnsureProtected(string dir, string tokenFile, string trayFile)
     {

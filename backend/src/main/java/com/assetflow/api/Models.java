@@ -24,6 +24,18 @@ public final class Models {
   /** Agent 0.3.0: PC에서 보낸 제거 요청 / 제거 완료 보고. */
   public record UninstallRequest(@Size(max = 500) String reason, @Size(max = 255) String requestedBy) {}
   public record UninstallComplete(Long requestId, @NotBlank @Pattern(regexp = "APPROVED|CODE") String method) {}
+  /** Agent 0.3.1: 설치·업데이트 전/후 점검 한 항목(PASS/WARN/FAIL). */
+  public record InstallCheck(@NotBlank @Size(max = 60) String name, @NotBlank @Pattern(regexp = "PASS|WARN|FAIL") String status, @Size(max = 300) String detail) {}
+  /** Agent 0.3.1: 설치·업데이트 점검 보고. PRECHECK는 PASSED/BLOCKED, POSTCHECK는 INSTALLED/ROLLED_BACK/FAILED. */
+  public record InstallReport(
+      @NotBlank @Pattern(regexp = "UPDATE|INSTALL|REPAIR") String kind,
+      @NotBlank @Pattern(regexp = "PRECHECK|POSTCHECK") String stage,
+      @NotBlank @Pattern(regexp = "PASSED|BLOCKED|INSTALLED|ROLLED_BACK|FAILED") String result,
+      @Size(max = 30) String fromVersion,
+      @NotBlank @Size(max = 30) String toVersion,
+      @Size(max = 40) List<@Valid InstallCheck> checks,
+      @Size(max = 1000) String summary,
+      OffsetDateTime checkedAt) {}
   public record Disk(@Size(max = 100) String name, @Size(max = 50) String filesystem, long totalBytes, long freeBytes) {}
   public record Software(@NotBlank @Size(max = 500) String name, @Size(max = 100) String version, @Size(max = 255) String publisher, @Size(max = 20) String installDate) {}
   /** Agent 0.2.13: 모니터·키보드·마우스. model은 모니터 EDID 제품코드 또는 VID/PID. */

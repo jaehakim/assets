@@ -39,7 +39,7 @@ class AgentControllerTest {
   static AgentController controller(JdbcTemplate db) {
     AgentAuth auth = mock(AgentAuth.class);
     when(auth.authenticate("Bearer t")).thenReturn(AGENT);
-    return new AgentController(db, auth, 2000);
+    return new AgentController(db, auth, 2000, true);
   }
 
   @Test void olderAgentWithoutPeripheralsKeepsExistingList() {

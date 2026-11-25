@@ -44,7 +44,7 @@ class AssetAuditControllerTest {
     when(auth.registrationValid("reg")).thenReturn(true);
     var row = new HashMap<String, Object>(Map.of("id", AGENT, "version", "0.2.16", "blocked_at", new java.sql.Timestamp(0)));
     when(db.queryForList(startsWith("SELECT id,version,blocked_at FROM agent"), eq("KEY"))).thenReturn(List.of(row));
-    var res = new AgentController(db, auth, 2000).register("reg", new Models.Register("KEY", "PC-01", "0.2.16"), mock(HttpServletRequest.class));
+    var res = new AgentController(db, auth, 2000, true).register("reg", new Models.Register("KEY", "PC-01", "0.2.16"), mock(HttpServletRequest.class));
     assertEquals(403, res.getStatusCode().value());
     verify(db, never()).update(contains("token_hash"), any(Object[].class));
   }

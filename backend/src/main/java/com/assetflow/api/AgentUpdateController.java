@@ -66,6 +66,16 @@ public class AgentUpdateController {
         """);
   }
 
+  /** Agent 0.3.1: 설치·업데이트 전/후 점검 기록(최근 500건). */
+  @GetMapping("/api/v1/admin/agent-install-reports")
+  public List<Map<String, Object>> installReports() {
+    return db.queryForList("""
+        SELECT r.id,a.hostname,r.kind,r.stage,r.result,r.from_version,r.to_version,r.checks::text AS checks,r.summary,r.checked_at,r.reported_at
+        FROM agent_install_report r JOIN agent a ON a.id=r.agent_id
+        ORDER BY r.reported_at DESC,r.id DESC LIMIT 500
+        """);
+  }
+
   /** CR-002 + CR-S05: 관리자 세션(SecurityConfig) + 업데이트 토큰, 버전 불변, PE 헤더·크기·단조 증가 검사, 업로드 기록. */
   @PostMapping(value = "/api/v1/admin/agent-releases", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   public ResponseEntity<?> upload(@RequestHeader(value = "X-Update-Token", required = false) String token,

@@ -14,3 +14,5 @@ data:
   SOFTWARE_POLICY_SOURCE_NAME: "공공기관 기초자료"
   SOFTWARE_POLICY_SYNC_CRON: "0 20 3 * * *"
   SYSTEM_INSPECTION_CRON: "0 10 6 * * *"
+  # Agent 0.3.1 제거 보호 정책(하트비트로 전달). 파일럿 확인 전까지 false — 확인 후 "true"로 바꿔 배포하면 다음 하트비트에 적용.
+  AGENT_REMOVAL_PROTECTION: "false"

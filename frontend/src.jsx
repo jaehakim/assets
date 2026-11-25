@@ -413,6 +413,40 @@ function ReleaseList() {
     </div>
   );
 }
+const updateEvents = { REGISTERED: "최초 등록", VERSION_CHANGED: "업데이트", UPDATE_BLOCKED: "업데이트 차단(점검)", UPDATE_ROLLED_BACK: "롤백(미기동)", UPDATE_FAILED: "설치 후 점검 실패" };
+/** Agent 0.3.1: 전체 PC의 설치·업데이트 전/후 점검 기록. 행을 누르면 점검 항목을 펼친다. */
+function InstallReports() {
+  const [rows, setRows] = useState([]), [loading, setLoading] = useState(true), [error, setError] = useState(""), [selected, setSelected] = useState(null);
+  const columns = useMemo(() => [
+    { field: "reported_at", headerName: "보고 시각", minWidth: 165, pinned: "left", sort: "desc", valueFormatter: ({ value }) => date(value) },
+    { field: "hostname", headerName: "장비명", minWidth: 150 },
+    { field: "kind", headerName: "구분", width: 120, valueFormatter: ({ value }) => installKind[value] || value },
+    { field: "stage", headerName: "단계", width: 120, valueFormatter: ({ value }) => installStage[value] || value },
+    { field: "result", headerName: "결과", width: 150, cellRenderer: ({ value }) => <InstallResultBadge value={value} />, getQuickFilterText: ({ value }) => installResult[value]?.[1] || value },
+    { colId: "version", headerName: "버전", width: 150, valueGetter: ({ data }) => `${data.from_version ? `v${data.from_version} → ` : ""}v${data.to_version}` },
+    { colId: "attention", headerName: "확인 필요 항목", minWidth: 220, flex: 1,
+      valueGetter: ({ data }) => parseChecks(data.checks).filter(c => c.status !== "PASS").map(c => `${checkLabels[c.name] || c.name}${c.detail ? `: ${c.detail}` : ""}`).join(" | ") || "없음" },
+  ], []);
+  async function load() {
+    setLoading(true);
+    try { setRows(await api("/api/v1/admin/agent-install-reports")); setError(""); }
+    catch (e) { setError(e.message); } finally { setLoading(false); }
+  }
+  useEffect(() => { load(); const timer = setInterval(load, 30000); return () => clearInterval(timer); }, []);
+  return (
+    <div className="releaselist">
+      <h2>설치·업데이트 점검 기록</h2>
+      <p>새 버전은 설치 전 보안 점검을 모두 통과해야 기존 버전을 교체합니다(실패 시 차단·기존 버전 유지). 설치 후 점검에서 새 버전이 3분 안에 기동하지 않으면 이전 버전으로 자동 복원(롤백)됩니다.</p>
+      {error ? <p className="result">점검 기록 조회 실패: {error}</p> : <>
+        <DataGrid label="설치·업데이트 점검 기록" rows={rows} columns={columns} loading={loading} empty="점검 기록이 없습니다(Agent 0.3.1부터 기록)." className="menu-grid" onRowClicked={({ data }) => setSelected(data)} />
+        {selected && <div className="install-report-detail" role="region" aria-label="점검 항목">
+          <p><InstallResultBadge value={selected.result} /> <b>{selected.hostname}</b> · {installKind[selected.kind] || selected.kind} · {installStage[selected.stage] || selected.stage} · {date(selected.reported_at)}</p>
+          <InstallCheckList checks={parseChecks(selected.checks)} />
+        </div>}
+      </>}
+    </div>
+  );
+}
 function UpdateHistory() {
   const [rows, setRows] = useState([]),
     [loading, setLoading] = useState(true),
@@ -421,7 +455,8 @@ function UpdateHistory() {
     { field: "hostname", headerName: "장비명", minWidth: 170, pinned: "left" },
     { field: "from_version", headerName: "이전 버전", width: 120, valueFormatter: ({ value }) => value ? `v${value}` : "-" },
     { field: "to_version", headerName: "현재 버전", width: 120, valueFormatter: ({ value }) => `v${value}` },
-    { field: "event_type", headerName: "구분", width: 120, valueFormatter: ({ value }) => value === "REGISTERED" ? "최초 등록" : "업데이트" },
+    { field: "event_type", headerName: "구분", width: 150, valueFormatter: ({ value }) => updateEvents[value] || "업데이트",
+      cellClass: ({ value }) => value === "UPDATE_BLOCKED" || value === "UPDATE_FAILED" ? "bad-text" : value === "UPDATE_ROLLED_BACK" ? "warn-text" : undefined },
     { field: "created_at", headerName: "확인 시각", minWidth: 180, flex: 1, sort: "desc", valueFormatter: ({ value }) => date(value) },
   ], []);
   async function load() {
@@ -441,7 +476,7 @@ function UpdateHistory() {
   return (
     <div className="releaselist">
       <h2>장비 업데이트 이력</h2>
-      <p>Agent가 등록되거나 하트비트에서 버전 변경이 확인된 시점입니다.</p>
+      <p>Agent가 등록되거나 하트비트에서 버전 변경이 확인된 시점과, 점검으로 차단·롤백·실패한 업데이트입니다.</p>
       {error ? (
         <p className="result">이력 조회 실패: {error}</p>
       ) : (
@@ -912,7 +947,7 @@ function AgentOps({ view }) {
               <div><h2>Windows Agent 설치 및 제거</h2><p>배치 파일은 관리자 권한을 자동 요청하며 서비스와 트레이 프로세스를 함께 관리합니다.</p></div>
               <span>Windows · 관리자 권한</span>
             </div>
-            <ReferenceGrid label="Windows Agent 설치 및 제거" rows={[["install-service.bat", "등록 토큰 입력 후 최신 Agent를 내려받아 크기와 SHA-256을 검증하고 서비스·트레이 앱을 설치합니다. 설치 즉시 제거 보호(서비스 권한 잠금)가 적용됩니다. 이미 보호 중인 Agent는 승인 제거 후 다시 설치합니다.", "신규 설치"], ["uninstall-service.bat → 1", "관리 콘솔(자산 상세 › 관리·이력 › Agent 제거 승인)에서 발급한 이 PC 전용 제거 코드를 입력합니다. 네트워크 없이 Agent가 검증하고 스스로 제거합니다(코드 유효 1~72시간).", "오프라인 제거"], ["uninstall-service.bat → 2", "제거 사유를 입력해 관리자에게 요청을 보냅니다. 관리 콘솔에서 승인하면 Agent가 5분 이내 스스로 제거하고 장치 토큰은 폐기됩니다.", "승인 요청"], ["관리 콘솔 › 제거 승인", "PC 요청 없이 관리자가 바로 승인할 수도 있습니다(반납·폐기 PC). 승인은 7일 안에 Agent가 받지 않으면 만료됩니다. 요청·승인·거절·코드 발급·완료가 관리 이력에 남습니다.", "관리자"], ["보호 범위", "표준 사용자와 로컬 관리자 모두 sc stop/delete·서비스 관리자·이전 제거 도구로 Agent를 중지·삭제할 수 없습니다(SYSTEM만 가능). 소유권 탈취·오프라인 디스크 접근까지 막지는 못하며, 그 경우 하트비트 중단이 ‘장기 미접속’으로 드러납니다.", "한계"]]} />
+            <ReferenceGrid label="Windows Agent 설치 및 제거" rows={[["install-service.bat", "① 기존 Agent 상태 확인(보호 중이고 실행 중이면 중단) ② 등록·최신 버전 다운로드 ③ 설치 전 보안 점검(크기·SHA-256·실행 파일 버전·백신 격리 확인 20초·디스크) — 통과해야만 ④ 기존 버전 삭제 후 재설치 ⑤ Agent가 설치 후 점검을 서버에 보고합니다. 점검 결과는 업데이트 이력 › 설치·업데이트 점검 기록과 자산 상세 › 관리·이력에 남습니다.", "신규 설치"], ["install-service.bat (복구)", "보호 중인 Agent가 실행되지 않는 경우(오류·차단) 서비스는 그대로 두고 파일만 다시 설치해 기동합니다. 실행 중인 보호 Agent는 바꿀 수 없습니다.", "복구 설치"], ["자동 업데이트", "새 버전은 설치 전 점검을 통과해야 교체되고, 3분 안에 기동하지 않으면 이전 버전으로 자동 복원(롤백)됩니다. 차단·롤백된 버전은 24시간 다시 시도하지 않습니다.", "업데이트"], ["uninstall-service.bat → 1", "관리 콘솔(자산 상세 › 관리·이력 › Agent 제거 승인)에서 발급한 이 PC 전용 제거 코드를 입력합니다. 네트워크 없이 Agent가 검증하고 스스로 제거합니다(코드 유효 1~72시간).", "오프라인 제거"], ["uninstall-service.bat → 2", "제거 사유를 입력해 관리자에게 요청을 보냅니다. 관리 콘솔에서 승인하면 Agent가 5분 이내 스스로 제거하고 장치 토큰은 폐기됩니다.", "승인 요청"], ["관리 콘솔 › 제거 승인", "PC 요청 없이 관리자가 바로 승인할 수도 있습니다(반납·폐기 PC). 승인은 7일 안에 Agent가 받지 않으면 만료됩니다. 요청·승인·거절·코드 발급·완료가 관리 이력에 남습니다.", "관리자"], ["보호 범위", "Agent가 서버와 정상 통신한 뒤 서버 정책(AGENT_REMOVAL_PROTECTION, 기본 사용)에 따라 보호를 적용·해제합니다. 표준 사용자와 로컬 관리자 모두 sc stop/delete·서비스 관리자·이전 제거 도구로 Agent를 중지·삭제할 수 없습니다(SYSTEM만 가능). 소유권 탈취·오프라인 디스크 접근까지 막지는 못하며, 그 경우 하트비트 중단이 ‘장기 미접속’으로 드러납니다.", "한계"]]} />
           </article>
           <article className="panel ops">
             <h2>자동 업데이트 흐름</h2>
@@ -994,6 +1029,7 @@ API --> DB[(PostgreSQL)]`}</Diagram>
       {view === "history" && (
         <article className="panel release">
           <UpdateHistory />
+          <InstallReports />
         </article>
       )}
     </section>
@@ -1281,6 +1317,7 @@ function AssetDetailModal({ assetId, onClose: closeModal }) {
                   <ManagementForm data={data} onSaved={loadDetail} onDirtyChange={setDirty} />
                   <AgentAccessCard data={data} onChanged={loadDetail} />
                   <AgentRemovalCard data={data} onChanged={loadDetail} />
+                  <InstallReportCard data={data} />
                   <article className="detail-card hardware-card">
                     <h3>
                       <Icon name="device" />
@@ -1519,6 +1556,34 @@ function AgentAccessCard({ data, onChanged }) {
         ? <button type="button" className="btn-success" disabled={busy} onClick={unblock}><BtnLabel icon="unlock">차단 해제</BtnLabel></button>
         : <button type="button" className="danger-button" disabled={busy || !data.agent_id} onClick={block}><BtnLabel icon="ban">Agent 차단</BtnLabel></button>}
     </div>
+  </article>;
+}
+
+// Agent 0.3.1: 설치·업데이트 전/후 점검 기록
+const installResult = { PASSED: ["ok", "점검 통과"], BLOCKED: ["danger", "설치 차단"], INSTALLED: ["ok", "설치 확인"], ROLLED_BACK: ["warn", "롤백"], FAILED: ["danger", "설치 후 점검 실패"] };
+const installKind = { UPDATE: "자동 업데이트", INSTALL: "신규·재설치", REPAIR: "복구 설치" };
+const installStage = { PRECHECK: "설치 전 점검", POSTCHECK: "설치 후 점검" };
+const checkLabels = { ADMIN: "관리자 권한", OS: "운영체제", REGISTER: "서버 등록", SIZE: "파일 크기", SHA256: "SHA-256 무결성", PE: "실행 파일 형식", FILE_VERSION: "실행 파일 버전", SIGNATURE: "코드 서명", AV_PROBE: "백신 격리·차단 확인", DISK: "디스크 여유 공간", EXISTING: "기존 설치" };
+const checkTone = { PASS: "ok", WARN: "warn", FAIL: "danger" };
+const parseChecks = (v) => { try { const x = typeof v === "string" ? JSON.parse(v) : v; return Array.isArray(x) ? x : []; } catch { return []; } };
+const InstallResultBadge = ({ value }) => { const [tone, label] = installResult[value] || ["neutral", value]; return <StatusBadge tone={tone}>{label}</StatusBadge>; };
+const InstallCheckList = ({ checks }) => <ul className="install-checks">{checks.map((c, i) =>
+  <li key={i}><StatusBadge tone={checkTone[c.status] || "neutral"}>{c.status}</StatusBadge><b>{checkLabels[c.name] || c.name}</b><span>{c.detail || ""}</span></li>)}</ul>;
+
+/** 자산 상세 › 관리·이력: 이 PC의 최근 설치·업데이트 점검 기록. */
+function InstallReportCard({ data }) {
+  const reports = data.installReports || [];
+  const [openId, setOpenId] = useState(null);
+  return <article className="detail-card management-card install-report-card">
+    <h3><Icon name="shield" />설치·업데이트 점검 기록</h3>
+    <p className="usb-history-note">새 버전은 설치 전 보안 점검(무결성·실행 파일 버전·백신 격리 확인·디스크)을 통과해야 기존 버전을 교체하고, 설치 후 점검(실행 버전·서버 통신·데이터 폴더 보안)을 서버에 보고합니다.</p>
+    {reports.length === 0 ? <p className="usb-history-note">기록이 없습니다(Agent 0.3.1부터 기록).</p>
+      : <ul className="install-report-list">{reports.map(r => { const checks = parseChecks(r.checks); return <li key={r.id}>
+        <button type="button" className="install-report-row" aria-expanded={openId === r.id} onClick={() => setOpenId(openId === r.id ? null : r.id)}>
+          <InstallResultBadge value={r.result} /><span>{date(r.reported_at)} · {installKind[r.kind] || r.kind} · {installStage[r.stage] || r.stage} · {r.from_version ? `v${r.from_version} → ` : ""}v{r.to_version}</span><small>{show(r.summary)}</small>
+        </button>
+        {openId === r.id && <InstallCheckList checks={checks} />}
+      </li>; })}</ul>}
   </article>;
 }
 

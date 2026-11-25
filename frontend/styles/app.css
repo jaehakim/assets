@@ -5474,3 +5474,15 @@ main .releaselist > h2 { margin: 0 !important; }
 .removal-history li { display: flex; align-items: center; gap: var(--space-2); }
 .grid-actions { display: inline-flex; gap: var(--space-1); }
 @media (width <= 900px) { .compliance-summary.audit-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* Agent 0.3.1: 설치·업데이트 전/후 점검 기록 */
+.install-report-list { list-style: none; margin: var(--space-2) 0 0; padding: 0; display: grid; gap: var(--space-1); }
+.install-report-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); width: 100%; min-height: 32px; padding: var(--space-1) var(--space-2); border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface); color: var(--text-primary); font-size: var(--fs-12); text-align: left; cursor: pointer; }
+.install-report-row:hover { background: var(--neutral-93); }
+.install-report-row small { color: var(--text-secondary); flex-basis: 100%; }
+.install-checks { list-style: none; margin: var(--space-2) 0 0; padding: 0; display: grid; gap: var(--space-1); font-size: var(--fs-12); }
+.install-checks li { display: grid; grid-template-columns: 56px minmax(120px, 160px) 1fr; align-items: center; gap: var(--space-2); }
+.install-checks li span { color: var(--text-secondary); overflow-wrap: anywhere; }
+.install-report-detail { margin-top: var(--space-3); padding: var(--space-3); border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface); }
+.install-report-detail > p { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); margin: 0; font-size: var(--fs-13); }
+@media (max-width: 640px) { .install-checks li { grid-template-columns: 52px 1fr; } .install-checks li span { grid-column: 2; } }
