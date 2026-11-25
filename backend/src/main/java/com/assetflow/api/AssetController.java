@@ -32,10 +32,11 @@ public class AssetController {
     // FR-005·FR-016: 폐기·분실 처리 후에도 7일 내 통신한 자산, 차단된 Agent
     int retiredActive = count("SELECT count(*) FROM asset s JOIN agent a ON a.id=s.agent_id WHERE s.lifecycle_status IN ('LOST','RETIRED','DISPOSED') AND GREATEST(s.last_seen_at,a.last_seen_at)>now()-interval '7 days'");
     int blocked = count("SELECT count(*) FROM agent WHERE blocked_at IS NOT NULL");
+    int uninstallPending = count("SELECT count(*) FROM agent_uninstall_request WHERE status='REQUESTED'");
     return Map.of("total", total, "online", online, "offline", total-online, "stale", stale,
         "security", Map.of("bitlocker", bitlocker, "antivirus", antivirus),
         "management", Map.of("warrantyExpiring",warranty,"overdueAudit",overdueAudit,"assigned",assigned),
-        "audit", Map.of("retiredActive", retiredActive, "blockedAgents", blocked));
+        "audit", Map.of("retiredActive", retiredActive, "blockedAgents", blocked, "uninstallPending", uninstallPending));
   }
 
   @GetMapping("/assets")
@@ -64,7 +65,7 @@ public class AssetController {
   @GetMapping("/assets/{id}")
   public ResponseEntity<?> asset(@PathVariable UUID id) {
     var rows = db.queryForList("""
-        SELECT s.*,a.version agent_version,a.registered_at agent_registered_at,a.blocked_at agent_blocked_at,a.blocked_reason agent_blocked_reason,a.blocked_by agent_blocked_by,
+        SELECT s.*,a.version agent_version,a.registered_at agent_registered_at,a.blocked_at agent_blocked_at,a.blocked_reason agent_blocked_reason,a.blocked_by agent_blocked_by,a.uninstalled_at agent_uninstalled_at,
                a.last_seen_at agent_last_seen_at,a.last_ip agent_last_ip,
                GREATEST(s.last_seen_at,a.last_seen_at) effective_last_seen_at
         FROM asset s JOIN agent a ON a.id=s.agent_id WHERE s.id=?
@@ -75,6 +76,7 @@ public class AssetController {
     out.put("peripherals", db.queryForList("SELECT device_type,name,manufacturer,model,serial_no,connection,vendor_id,product_id,manufacture_year,size_inches,first_seen_at,last_seen_at FROM asset_peripheral WHERE asset_id=? ORDER BY CASE device_type WHEN 'MONITOR' THEN 0 WHEN 'KEYBOARD' THEN 1 ELSE 2 END,name", id));
     out.put("usbDevices", db.queryForList("SELECT category,name,manufacturer,vendor_id,product_id,serial_no,device_class,present,first_install_at,last_arrival_at,last_removal_at,first_reported_at,last_reported_at FROM asset_usb_device WHERE asset_id=? ORDER BY present DESC,coalesce(last_arrival_at,first_install_at,first_reported_at) DESC NULLS LAST LIMIT 1000", id));
     out.put("software", db.queryForList("SELECT name,version,publisher,install_date FROM asset_software WHERE asset_id=? ORDER BY name", id));
+    out.put("uninstallRequests", db.queryForList("SELECT r.id,r.status,r.source,r.reason,r.requested_by,r.requested_at,r.decided_by,r.decided_at,r.decision_note,r.expires_at,r.completed_at FROM agent_uninstall_request r JOIN asset s ON s.agent_id=r.agent_id WHERE s.id=? ORDER BY r.requested_at DESC LIMIT 10", id));
     out.put("managementHistory", db.queryForList("SELECT id,action,changed_by,details,created_at FROM asset_management_history WHERE asset_id=? ORDER BY created_at DESC LIMIT 30", id));
     return ResponseEntity.ok(out);
   }

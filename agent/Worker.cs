@@ -3,7 +3,7 @@ using System.Net;
 namespace AssetFlow.Agent;
 
 public sealed class Worker(AgentClient client, AgentState state, InventoryCollector collector,
-    UpdateService updater, AgentHealth health, ILogger<Worker> log) : BackgroundService
+    UpdateService updater, UninstallService uninstaller, AgentHealth health, ILogger<Worker> log) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken ct)
     {
@@ -16,7 +16,11 @@ public sealed class Worker(AgentClient client, AgentState state, InventoryCollec
         await Task.WhenAll(
             Loop("인벤토리", async () => await client.SendInventory(await collector.CollectAsync(), ct),
                 TimeSpan.FromMinutes(Math.Max(5, state.Options.CollectionMinutes)), ct),
-            Loop("하트비트", () => client.Heartbeat(ct), TimeSpan.FromMinutes(5), ct),
+            Loop("하트비트", async () =>
+            {
+                var heartbeat = await client.Heartbeat(ct);
+                if (heartbeat.UninstallApproved) await uninstaller.ExecuteApproved(heartbeat.UninstallRequestId, ct); // 0.3.0 approved removal
+            }, TimeSpan.FromMinutes(5), ct),
             Loop("업데이트", () => updater.CheckAndApply(ct),
                 TimeSpan.FromMinutes(Math.Max(5, state.Options.UpdateCheckMinutes)), ct));
     }

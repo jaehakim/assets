@@ -48,7 +48,28 @@ public sealed class AgentClient
             data.Disks.Count, data.Software.Count, data.Peripherals?.Count.ToString() ?? "failed", data.UsbDevices?.Count.ToString() ?? "failed",
             data.CollectionErrors is null ? "-" : string.Join(" | ", data.CollectionErrors));
     }
-    public async Task Heartbeat(CancellationToken ct) => await Send("heartbeat", new { version = Version }, ct);
+    /// <summary>0.3.0: the response may carry an approved removal ({"uninstall":{"approved":true,"requestId":7}}).</summary>
+    public async Task<HeartbeatResult> Heartbeat(CancellationToken ct)
+    {
+        using var req = Authorized(HttpMethod.Post, "heartbeat");
+        req.Content = JsonContent.Create(new { version = Version });
+        using var res = await http.SendAsync(req, ct);
+        res.EnsureSuccessStatusCode();
+        return HeartbeatResult.Parse(await res.Content.ReadAsStringAsync(ct));
+    }
+
+    public async Task<long?> RequestUninstall(string? reason, string? requestedBy, CancellationToken ct)
+    {
+        using var req = Authorized(HttpMethod.Post, "uninstall/request");
+        req.Content = JsonContent.Create(new { reason, requestedBy });
+        using var res = await http.SendAsync(req, ct);
+        res.EnsureSuccessStatusCode();
+        using var doc = System.Text.Json.JsonDocument.Parse(await res.Content.ReadAsStringAsync(ct));
+        return doc.RootElement.TryGetProperty("requestId", out var id) && id.TryGetInt64(out var v) ? v : null;
+    }
+
+    public async Task CompleteUninstall(long? requestId, string method, CancellationToken ct) =>
+        await Send("uninstall/complete", new { requestId, method }, ct);
 
     public async Task<AgentRelease?> LatestRelease(CancellationToken ct)
     {
@@ -95,3 +116,4 @@ public sealed class AgentClient
 }
 
 public sealed record AgentRelease(string Version, string Sha256, long Size, string DownloadUrl);
+

@@ -70,6 +70,12 @@ public static class TrayApplication
             Directory.CreateDirectory(directory);
             Process.Start(new ProcessStartInfo(directory) { UseShellExecute = true });
         });
+        menu.Items.Add("프로그램 제거 안내", null, (_, _) => MessageBox.Show(
+            "이 PC의 AssetFlow Agent는 회사 IT 자산관리 정책에 따라 임의로 제거할 수 없습니다.\n\n" +
+            "제거가 필요하면 IT 관리자에게 요청하세요.\n" +
+            "• 관리자가 관리 콘솔에서 승인하면 5분 이내 자동으로 제거됩니다.\n" +
+            "• PC가 네트워크에 연결되지 않으면 관리자가 발급한 제거 코드를 uninstall-service.bat에 입력해 제거합니다.",
+            "AssetFlow 프로그램 제거", MessageBoxButtons.OK, MessageBoxIcon.Information));
         menu.Items.Add("정보 수집은 Windows 서비스에서 실행됩니다").Enabled = false;
         icon.DoubleClick += (_, _) => ShowPcInformation();
         var colors = new Dictionary<AgentHealthColor, Icon>();

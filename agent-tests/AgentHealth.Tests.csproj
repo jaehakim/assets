@@ -10,6 +10,8 @@
     <Compile Include="../agent/Models.cs" Link="Models.cs" />
     <Compile Include="../agent/Peripherals.cs" Link="Peripherals.cs" />
     <Compile Include="../agent/UsbDevices.cs" Link="UsbDevices.cs" />
+    <Compile Include="../agent/UninstallCode.cs" Link="UninstallCode.cs" />
+    <Compile Include="../agent/ServiceProtection.cs" Link="ServiceProtection.cs" />
     <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="8.0.0" />
   </ItemGroup>
 </Project>

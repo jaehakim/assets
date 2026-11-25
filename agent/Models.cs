@@ -23,3 +23,18 @@ public record Inventory(
     List<PeripheralInfo>? Peripherals, // 0.2.13: null = collection failed (server keeps the previous list)
     List<UsbDeviceInfo>? UsbDevices, // 0.2.14: present and previously connected USB devices; null = collection failed
     List<string>? CollectionErrors); // 0.2.14: short failure notes for remote diagnosis
+public sealed record HeartbeatResult(bool UninstallApproved, long? UninstallRequestId)
+{
+    public static HeartbeatResult Parse(string json)
+    {
+        try
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(json);
+            if (doc.RootElement.ValueKind == System.Text.Json.JsonValueKind.Object && doc.RootElement.TryGetProperty("uninstall", out var u)
+                && u.ValueKind == System.Text.Json.JsonValueKind.Object && u.TryGetProperty("approved", out var a) && a.ValueKind == System.Text.Json.JsonValueKind.True)
+                return new(true, u.TryGetProperty("requestId", out var id) && id.TryGetInt64(out var v) ? v : null);
+        }
+        catch (System.Text.Json.JsonException) { }
+        return new(false, null);
+    }
+}

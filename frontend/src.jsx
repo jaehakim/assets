@@ -912,7 +912,7 @@ function AgentOps({ view }) {
               <div><h2>Windows Agent 설치 및 제거</h2><p>배치 파일은 관리자 권한을 자동 요청하며 서비스와 트레이 프로세스를 함께 관리합니다.</p></div>
               <span>Windows · 관리자 권한</span>
             </div>
-            <ReferenceGrid label="Windows Agent 설치 및 제거" rows={[["install-service.bat", "등록 토큰 입력 후 최신 Agent를 내려받아 크기와 SHA-256을 검증하고 서비스·트레이 앱을 설치합니다.", "신규 설치"], ["uninstall-service.bat", "서비스, 트레이 자동 시작, 실행 프로세스와 설치 파일을 제거하며 재설치를 위해 장비 식별 정보는 보존합니다.", "기본 제거"], ["uninstall-service.bat /purge", "기본 제거에 더해 ProgramData의 설정, 장비 토큰과 로컬 로그까지 영구 삭제합니다.", "완전 제거"]]} />
+            <ReferenceGrid label="Windows Agent 설치 및 제거" rows={[["install-service.bat", "등록 토큰 입력 후 최신 Agent를 내려받아 크기와 SHA-256을 검증하고 서비스·트레이 앱을 설치합니다. 설치 즉시 제거 보호(서비스 권한 잠금)가 적용됩니다. 이미 보호 중인 Agent는 승인 제거 후 다시 설치합니다.", "신규 설치"], ["uninstall-service.bat → 1", "관리 콘솔(자산 상세 › 관리·이력 › Agent 제거 승인)에서 발급한 이 PC 전용 제거 코드를 입력합니다. 네트워크 없이 Agent가 검증하고 스스로 제거합니다(코드 유효 1~72시간).", "오프라인 제거"], ["uninstall-service.bat → 2", "제거 사유를 입력해 관리자에게 요청을 보냅니다. 관리 콘솔에서 승인하면 Agent가 5분 이내 스스로 제거하고 장치 토큰은 폐기됩니다.", "승인 요청"], ["관리 콘솔 › 제거 승인", "PC 요청 없이 관리자가 바로 승인할 수도 있습니다(반납·폐기 PC). 승인은 7일 안에 Agent가 받지 않으면 만료됩니다. 요청·승인·거절·코드 발급·완료가 관리 이력에 남습니다.", "관리자"], ["보호 범위", "표준 사용자와 로컬 관리자 모두 sc stop/delete·서비스 관리자·이전 제거 도구로 Agent를 중지·삭제할 수 없습니다(SYSTEM만 가능). 소유권 탈취·오프라인 디스크 접근까지 막지는 못하며, 그 경우 하트비트 중단이 ‘장기 미접속’으로 드러납니다.", "한계"]]} />
           </article>
           <article className="panel ops">
             <h2>자동 업데이트 흐름</h2>
@@ -1280,6 +1280,7 @@ function AssetDetailModal({ assetId, onClose: closeModal }) {
                 <div className="detail-main">
                   <ManagementForm data={data} onSaved={loadDetail} onDirtyChange={setDirty} />
                   <AgentAccessCard data={data} onChanged={loadDetail} />
+                  <AgentRemovalCard data={data} onChanged={loadDetail} />
                   <article className="detail-card hardware-card">
                     <h3>
                       <Icon name="device" />
@@ -1521,6 +1522,54 @@ function AgentAccessCard({ data, onChanged }) {
   </article>;
 }
 
+const removalStatus = { REQUESTED: ["warn", "승인 대기"], APPROVED: ["info", "승인됨 · 제거 대기"], REJECTED: ["neutral", "거절"], COMPLETED: ["ok", "제거 완료"], EXPIRED: ["neutral", "만료"] };
+const removalSource = { DEVICE: "PC 요청", ADMIN: "관리자", CODE: "제거 코드" };
+const RemovalBadge = ({ status }) => { const [tone, label] = removalStatus[status] || ["neutral", status]; return <StatusBadge tone={tone}>{label}</StatusBadge>; };
+
+/** Agent 0.3.0 승인된 제거: 사용자는 Agent를 임의로 지울 수 없고, 관리자 승인 또는 이 PC 전용 제거 코드로만 제거된다. */
+function AgentRemovalCard({ data, onChanged }) {
+  const [busy, setBusy] = useState(false), [message, setMessage] = useState(""), [code, setCode] = useState(null);
+  const requests = data.uninstallRequests || [];
+  const open = requests.find(r => r.status === "REQUESTED" || r.status === "APPROVED");
+  async function approve() {
+    const note = prompt(`${data.hostname}의 Agent 제거를 승인합니다. Agent가 다음 통신(최대 5분)에 스스로 제거되고 장치 토큰이 폐기됩니다.\n승인 메모(선택):`, open?.reason || "");
+    if (note === null) return;
+    setBusy(true);
+    try { await api(`/api/v1/admin/agents/${data.agent_id}/uninstall/approve`, { method: "POST", body: JSON.stringify({ note }) }); setMessage("제거를 승인했습니다. 5분 이내 Agent가 제거됩니다."); await onChanged(); }
+    catch (e) { setMessage(`승인 실패: ${e.message}`); } finally { setBusy(false); }
+  }
+  async function reject() {
+    const note = prompt("제거 요청을 거절합니다. 거절 사유:", "");
+    if (note === null) return;
+    setBusy(true);
+    try { await api(`/api/v1/admin/agent-uninstalls/${open.id}/reject`, { method: "POST", body: JSON.stringify({ note }) }); setMessage("요청을 거절했습니다."); await onChanged(); }
+    catch (e) { setMessage(`거절 실패: ${e.message}`); } finally { setBusy(false); }
+  }
+  async function issueCode() {
+    const hours = Number(prompt("오프라인 제거 코드 유효 시간(1~72시간):", "24"));
+    if (!hours) return;
+    setBusy(true);
+    try { setCode(await api(`/api/v1/admin/agents/${data.agent_id}/uninstall/code`, { method: "POST", body: JSON.stringify({ hours }) })); setMessage("제거 코드를 발급했습니다. 이 PC에서만, 유효기간 안에만 쓸 수 있습니다."); await onChanged(); }
+    catch (e) { setMessage(`코드 발급 실패: ${e.message}`); } finally { setBusy(false); }
+  }
+  const removed = !!data.agent_uninstalled_at;
+  return <article className="detail-card management-card agent-removal-card">
+    <h3><Icon name="shield" />Agent 제거 승인</h3>
+    {removed
+      ? <p className="usb-history-note"><StatusBadge tone="ok">제거 완료</StatusBadge> {date(data.agent_uninstalled_at)} — 장치 토큰이 폐기되었습니다. 다시 설치하면 새로 등록됩니다.</p>
+      : <p className="usb-history-note">사용자는 Agent를 임의로 제거할 수 없습니다(서비스 보호). 승인하면 Agent가 다음 통신(최대 5분)에 스스로 제거되고, 네트워크가 없는 PC는 제거 코드를 발급해 PC의 uninstall-service.bat에 입력합니다.</p>}
+    {open && <p className="removal-open"><RemovalBadge status={open.status} /> {removalSource[open.source] || open.source} · {show(open.requested_by)} · {date(open.requested_at)} · 사유: {show(open.reason)}{open.expires_at && open.status === "APPROVED" ? ` · 승인 만료 ${date(open.expires_at)}` : ""}</p>}
+    {code && <div className="removal-code" role="status"><code>{code.code}</code><small>{code.hostname} 전용 · 만료 {date(code.expiresAt)}</small>
+      <button type="button" onClick={() => navigator.clipboard?.writeText(code.code)}><BtnLabel icon="copy">복사</BtnLabel></button></div>}
+    {!removed && <div className="management-actions"><Feedback as="small" text={message} />
+      <button type="button" disabled={busy || !data.agent_id} onClick={issueCode}><BtnLabel icon="lock">제거 코드 발급</BtnLabel></button>
+      {open?.status === "REQUESTED" && <button type="button" disabled={busy} onClick={reject}><BtnLabel icon="close">요청 거절</BtnLabel></button>}
+      {open?.status !== "APPROVED" && <button type="button" className="danger-button" disabled={busy || !data.agent_id} onClick={approve}><BtnLabel icon="trash">제거 승인</BtnLabel></button>}
+    </div>}
+    {requests.length > 0 && <ul className="removal-history">{requests.slice(0, 5).map(r => <li key={r.id}><RemovalBadge status={r.status} /> <span>{date(r.requested_at)} · {removalSource[r.source] || r.source} · {show(r.reason)}{r.decided_by ? ` · 처리 ${r.decided_by}` : ""}</span></li>)}</ul>}
+  </article>;
+}
+
 const hostColumn = (onDetail, extra = {}) => ({ field: "hostname", headerName: "장비", minWidth: 140, pinned: "left", ...extra,
   cellRenderer: ({ data }) => <button className="asset-detail-link" onClick={() => onDetail(data.asset_id || data.id)} aria-label={`${data.hostname} 상세 보기`}>{data.hostname}</button> });
 const personColumn = { colId: "person", headerName: "담당·사용자", minWidth: 140, valueGetter: ({ data }) => data.assigned_to || userLabel(data.username) };
@@ -1608,7 +1657,10 @@ function AssetAudit({ onDetail, onChanged }) {
   const [loading, setLoading] = useState(true), [loadError, setLoadError] = useState(""), [message, setMessage] = useState("");
   async function load() {
     setLoading(true);
-    try { const d = await api("/api/v1/admin/asset-audit"); setData({ retiredActive: [], duplicates: [], duplicateGroups: 0, incomplete: [], blockedAgents: [], ...d }); setLoadError(""); }
+    try {
+      const [d, removals] = await Promise.all([api("/api/v1/admin/asset-audit"), api("/api/v1/admin/agent-uninstalls").catch(() => [])]);
+      setData({ retiredActive: [], duplicates: [], duplicateGroups: 0, incomplete: [], blockedAgents: [], ...d, removals: Array.isArray(removals) ? removals : [] }); setLoadError("");
+    }
     catch (e) { setLoadError(`조회 실패: ${e.message}`); } finally { setLoading(false); }
   }
   useEffect(() => { load(); }, []);
@@ -1648,6 +1700,24 @@ function AssetAudit({ onDetail, onChanged }) {
     personColumn,
     { field: "serial_no", headerName: "수집 시리얼", minWidth: 140, valueFormatter: ({ value }) => show(value) },
   ], [onDetail]);
+  async function decideRemoval(row, approve) {
+    const note = prompt(approve ? `${row.hostname}의 Agent 제거를 승인합니다(최대 5분 안에 자동 제거). 메모(선택):` : `${row.hostname}의 제거 요청을 거절합니다. 사유:`, approve ? row.reason || "" : "");
+    if (note === null) return;
+    try {
+      await api(approve ? `/api/v1/admin/agents/${row.agent_id}/uninstall/approve` : `/api/v1/admin/agent-uninstalls/${row.id}/reject`, { method: "POST", body: JSON.stringify({ note }) });
+      setMessage(approve ? `${row.hostname} 제거를 승인했습니다.` : `${row.hostname} 제거 요청을 거절했습니다.`); await load(); onChanged?.();
+    } catch (e) { setMessage(`${approve ? "승인" : "거절"} 실패: ${e.message}`); }
+  }
+  const removalColumns = useMemo(() => [
+    hostColumn(onDetail),
+    { field: "status", headerName: "상태", width: 150, cellRenderer: ({ value }) => <RemovalBadge status={value} /> },
+    { field: "reason", headerName: "사유", minWidth: 200, flex: 1, valueFormatter: ({ value }) => show(value) },
+    { field: "requested_by", headerName: "요청자", minWidth: 130, valueFormatter: ({ value, data }) => value || removalSource[data.source] || "-" },
+    { field: "requested_at", headerName: "요청 시각", minWidth: 150, valueFormatter: ({ value }) => date(value) },
+    { headerName: "조치", width: 190, filter: false, sortable: false, cellRenderer: ({ data }) => data.status === "REQUESTED"
+      ? <span className="grid-actions"><button className="danger-button grid-action" onClick={() => decideRemoval(data, true)}><BtnLabel icon="trash">승인</BtnLabel></button> <button className="grid-action" onClick={() => decideRemoval(data, false)}><BtnLabel icon="close">거절</BtnLabel></button></span>
+      : <span>{data.decided_by ? `처리: ${data.decided_by}` : "-"}</span> },
+  ], [onDetail]);
   const blockedColumns = useMemo(() => [
     { field: "hostname", headerName: "장비", minWidth: 140, pinned: "left", cellRenderer: ({ data }) => data.asset_id
       ? <button className="asset-detail-link" onClick={() => onDetail(data.asset_id)} aria-label={`${data.hostname} 상세 보기`}>{data.hostname}</button> : data.hostname },
@@ -1664,7 +1734,10 @@ function AssetAudit({ onDetail, onChanged }) {
       <article className={data.duplicateGroups ? "danger" : undefined}><small>중복 의심</small><b>{data.duplicateGroups}</b><span>같은 시리얼·UUID·MAC 그룹</span></article>
       <article><small>기준정보 누락</small><b>{data.incomplete.length}</b><span>사용 중 자산 기준</span></article>
       <article><small>차단된 Agent</small><b>{data.blockedAgents.length}</b><span>통신·재등록 거부</span></article>
+      <article className={(data.removals || []).some(r => r.status === "REQUESTED") ? "danger" : undefined}><small>제거 승인 대기</small><b>{(data.removals || []).filter(r => r.status === "REQUESTED").length}</b><span>PC에서 보낸 Agent 제거 요청</span></article>
     </div>
+    <article className="panel table"><div className="panel-heading"><div><h2>Agent 제거 요청</h2><p>Agent는 사용자가 임의로 제거할 수 없습니다. 승인하면 다음 통신(최대 5분)에 스스로 제거되고 장치 토큰이 폐기됩니다.</p></div></div>
+      <AuditGrid label="Agent 제거 요청" loading={loading} rows={data.removals || []} columns={removalColumns} okText="Agent 제거 요청이 없습니다." /></article>
     <article className="panel table"><div className="panel-heading"><div><h2>폐기·분실 처리 후 통신 중인 자산</h2><p>실제 분실·유출이면 Agent를 차단하고, 처리 오류면 관리 상태를 바로잡으세요.</p></div></div>
       <AuditGrid label="폐기·분실 자산 통신" loading={loading} rows={data.retiredActive} columns={retiredColumns} okText="폐기·분실 처리 후 통신한 자산이 없습니다." /></article>
     <article className="panel table"><div className="panel-heading"><div><h2>중복 등록 의심</h2><p>PC 이름 변경·OS 재설치로 같은 장비가 두 번 등록된 경우입니다. BIOS 기본값(예: "Default string")은 제외합니다.</p></div></div>
@@ -1928,6 +2001,14 @@ function Dashboard({ stats, rows, loading, load, all, onDetail, hasData, openVie
                   <small>폐기·분실 처리 후 7일 내 Agent가 보고한 장비</small>
                 </span>
                 <strong>{hasData ? (stats.audit?.retiredActive ?? 0) : "—"}</strong>
+              </button>
+              <button className="action-row" onClick={()=>openView?.("자산 점검")}>
+                <i className="shield-action"><Core16Icon name="trash" /></i>
+                <span>
+                  <b>Agent 제거 승인 대기</b>
+                  <small>PC에서 보낸 제거 요청</small>
+                </span>
+                <strong>{hasData ? (stats.audit?.uninstallPending ?? 0) : "—"}</strong>
               </button>
               <button className="action-row" onClick={()=>openView?.("자산 점검")}>
                 <i className="stale-action"><Core16Icon name="ban" /></i>

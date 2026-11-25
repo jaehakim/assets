@@ -29,6 +29,9 @@ internal static class Program
         builder.Services.AddHostedService<AgentHealthService>();
         builder.Services.AddSingleton<InventoryCollector>();
         builder.Services.AddSingleton<UpdateService>();
+        // 0.3.0: removal protection + approved removal (heartbeat approval or offline code)
+        builder.Services.AddSingleton<UninstallService>();
+        builder.Services.AddHostedService(sp => sp.GetRequiredService<UninstallService>());
         // Begin session monitoring before inventory collection can block on WMI.
         builder.Services.AddHostedService<TraySessionService>();
         builder.Services.AddHostedService<Worker>();

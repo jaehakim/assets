@@ -34,7 +34,7 @@ public class AgentController {
     }else{
       String previous=Objects.toString(found.getFirst().get("version"),null);
       if(!Objects.equals(previous,x.version()))db.update("INSERT INTO agent_update_history(agent_id,from_version,to_version,event_type) VALUES(?,?,?,'VERSION_CHANGED')",id,previous,x.version());
-      db.update("UPDATE agent SET hostname=?,version=?,token_hash=?,last_seen_at=now(),last_ip=? WHERE id=?",x.hostname(),x.version(),AgentAuth.hash(token),req.getRemoteAddr(),id);
+      db.update("UPDATE agent SET hostname=?,version=?,token_hash=?,last_seen_at=now(),last_ip=?,uninstalled_at=NULL WHERE id=?",x.hostname(),x.version(),AgentAuth.hash(token),req.getRemoteAddr(),id);
     }
     return ResponseEntity.ok(new Models.Registered(id,token));
   }
@@ -44,7 +44,38 @@ public class AgentController {
     UUID id=auth.authenticate(h);if(id==null)return ResponseEntity.status(401).build();
     db.update("INSERT INTO agent_update_history(agent_id,from_version,to_version,event_type) SELECT id,version,?,'VERSION_CHANGED' FROM agent WHERE id=? AND version<>?",x.version(),id,x.version());
     db.update("UPDATE agent SET version=?,last_seen_at=now() WHERE id=?",x.version(),id);
-    return ResponseEntity.ok(Map.of("serverTime",OffsetDateTime.now()));
+    // Agent 0.3.0: 관리자가 승인한 유효한 제거가 있으면 알려 준다(구버전 Agent는 이 필드를 무시).
+    var approved=db.queryForList("SELECT id,expires_at FROM agent_uninstall_request WHERE agent_id=? AND status='APPROVED' AND (expires_at IS NULL OR expires_at>now()) ORDER BY decided_at DESC LIMIT 1",id);
+    var body=new LinkedHashMap<String,Object>(); body.put("serverTime",OffsetDateTime.now());
+    if(!approved.isEmpty())body.put("uninstall",Map.of("approved",true,"requestId",approved.getFirst().get("id")));
+    return ResponseEntity.ok(body);
+  }
+
+  /** Agent 0.3.0: PC의 제거 도구가 보낸 제거 요청. 열린 요청이 있으면 그것을 돌려준다(중복 생성 안 함). */
+  @Transactional
+  @PostMapping("/uninstall/request")
+  public ResponseEntity<?> uninstallRequest(@RequestHeader(value="Authorization",required=false)String h,@Valid @RequestBody Models.UninstallRequest x){
+    UUID id=auth.authenticate(h);if(id==null)return ResponseEntity.status(401).build();
+    var open=db.queryForList("SELECT id,status FROM agent_uninstall_request WHERE agent_id=? AND status IN ('REQUESTED','APPROVED') ORDER BY requested_at DESC LIMIT 1",id);
+    if(!open.isEmpty())return ResponseEntity.ok(Map.of("requestId",open.getFirst().get("id"),"status",open.getFirst().get("status")));
+    String reason=x.reason()==null||x.reason().isBlank()?"사유 미입력":x.reason().trim();
+    Long rid=db.queryForObject("INSERT INTO agent_uninstall_request(agent_id,status,source,reason,requested_by) VALUES(?,'REQUESTED','DEVICE',?,?) RETURNING id",Long.class,id,reason,x.requestedBy());
+    db.update("INSERT INTO asset_management_history(asset_id,action,changed_by,details) SELECT id,'UNINSTALL_REQUESTED',?,? FROM asset WHERE agent_id=?",
+        Objects.toString(x.requestedBy(),"PC"),"Agent 제거 요청: "+reason,id);
+    return ResponseEntity.status(201).body(Map.of("requestId",rid,"status","REQUESTED"));
+  }
+
+  /** Agent 0.3.0: 승인 또는 제거 코드로 제거를 시작하기 직전의 보고. 장치 토큰을 폐기해 이후 통신을 막는다(재설치는 새 등록). */
+  @Transactional
+  @PostMapping("/uninstall/complete")
+  public ResponseEntity<?> uninstallComplete(@RequestHeader(value="Authorization",required=false)String h,@Valid @RequestBody Models.UninstallComplete x){
+    UUID id=auth.authenticate(h);if(id==null)return ResponseEntity.status(401).build();
+    int n=x.requestId()==null?0:db.update("UPDATE agent_uninstall_request SET status='COMPLETED',completed_at=now() WHERE id=? AND agent_id=? AND status='APPROVED'",x.requestId(),id);
+    if(n==0)db.update("INSERT INTO agent_uninstall_request(agent_id,status,source,reason,completed_at) VALUES(?,'COMPLETED',?,?,now())",id,"CODE".equals(x.method())?"CODE":"ADMIN","CODE".equals(x.method())?"관리자 발급 제거 코드로 제거":"승인된 제거");
+    db.update("INSERT INTO asset_management_history(asset_id,action,changed_by,details) SELECT id,'AGENT_UNINSTALLED','agent',? FROM asset WHERE agent_id=?",
+        "CODE".equals(x.method())?"Agent 제거 완료(관리자 발급 제거 코드)":"Agent 제거 완료(관리자 승인)",id);
+    db.update("UPDATE agent SET uninstalled_at=now(),token_hash=? WHERE id=?","uninstalled:"+UUID.randomUUID(),id);
+    return ResponseEntity.ok(Map.of("status","COMPLETED"));
   }
 
   @Transactional

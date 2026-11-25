@@ -39,7 +39,7 @@ echo [2/6] Stopping and deleting the existing service...
 sc.exe query "%SERVICE_NAME%" >nul 2>&1
 if not errorlevel 1 (
   powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "$ErrorActionPreference='Stop';$s=Get-Service -Name '%SERVICE_NAME%' -ErrorAction SilentlyContinue;if($s -and $s.Status -ne 'Stopped'){Stop-Service -Name '%SERVICE_NAME%' -Force;$s.WaitForStatus('Stopped',[TimeSpan]::FromSeconds(30))};$s=Get-Service -Name '%SERVICE_NAME%' -ErrorAction SilentlyContinue;if($s -and $s.Status -ne 'Stopped'){exit 1}"
-  if errorlevel 1 goto :failed
+  if errorlevel 1 goto :protected
   sc.exe delete "%SERVICE_NAME%" >nul 2>&1
   if errorlevel 1 goto :failed
   powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "$limit=(Get-Date).AddSeconds(30);do{$s=Get-Service -Name '%SERVICE_NAME%' -ErrorAction SilentlyContinue;if(-not $s){exit 0};Start-Sleep -Milliseconds 500}while((Get-Date) -lt $limit);exit 1"
@@ -80,6 +80,8 @@ sc.exe create "%SERVICE_NAME%" binPath= "\"%INSTALL_DIR%\AssetFlow.Agent.exe\"" 
 if errorlevel 1 goto :failed
 sc.exe description "%SERVICE_NAME%" "Collects PC inventory and checks verified release metadata for AssetFlow." >nul
 sc.exe failure "%SERVICE_NAME%" reset= 86400 actions= restart/60000/restart/60000/restart/60000 >nul
+rem Agent 0.3.0 removal protection: only SYSTEM may stop/delete/reconfigure the service (the Agent re-applies this on every start).
+sc.exe sdset "%SERVICE_NAME%" "D:(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;SY)(A;;CCLCSWRPLOCRRC;;;BA)(A;;CCLCSWLOCRRC;;;IU)(A;;CCLCSWLOCRRC;;;SU)(A;;CCLCSWLOCRRC;;;AU)" >nul
 sc.exe start "%SERVICE_NAME%" >nul
 if errorlevel 1 goto :failed
 reg.exe add "HKLM\Software\Microsoft\Windows\CurrentVersion\Run" /v "AssetFlowAgentTray" /t REG_SZ /d "\"%INSTALL_DIR%\AssetFlow.Agent.exe\" --tray" /f >nul
@@ -93,6 +95,17 @@ echo The device was registered with the supplied token and will connect automati
 echo Logs: %CONFIG_DIR%\logs
 pause
 exit /b 0
+
+:protected
+del /f /q "%DOWNLOAD_FILE%" "%DOWNLOAD_CONFIG%" >nul 2>&1
+set "REGISTRATION_TOKEN="
+set "ASSETFLOW_SETUP_TOKEN="
+echo.
+echo [PROTECTED] The installed AssetFlow Agent is protected against removal and cannot be replaced directly.
+echo Remove it first with administrator approval: run uninstall-service.bat (removal code or request),
+echo or approve the removal in the AssetFlow console, then run this installer again.
+pause
+exit /b 5
 
 :failed
 set "RESULT=%errorlevel%"

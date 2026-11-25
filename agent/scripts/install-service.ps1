@@ -26,8 +26,8 @@ if (Test-Path $configPath) {
 }
 $service = Get-Service $name -ErrorAction SilentlyContinue
 if ($service -and $service.Status -ne 'Stopped') {
-    Stop-Service $name -Force
-    $service.WaitForStatus('Stopped', [TimeSpan]::FromSeconds(30))
+    try { Stop-Service $name -Force; $service.WaitForStatus('Stopped', [TimeSpan]::FromSeconds(30)) }
+    catch { throw 'The installed Agent is protected against removal (0.3.0+). Remove it with administrator approval (uninstall-service.ps1 -Code/-Reason or the AssetFlow console) and run the installer again.' }
 }
 # Stop only this installation's interactive processes before replacing its executable.
 Get-Process 'AssetFlow.Agent' -ErrorAction SilentlyContinue | Where-Object { $_.Path -eq $exe } | Stop-Process -Force
@@ -54,6 +54,8 @@ if ($service) {
 }
 & sc.exe failure $name reset= 86400 actions= restart/60000/restart/60000/restart/60000 | Out-Null
 if ($LASTEXITCODE -ne 0) { throw 'Unable to configure service recovery.' }
+# Agent 0.3.0 removal protection: only SYSTEM may stop/delete/reconfigure the service (re-applied by the Agent on every start).
+& sc.exe sdset $name 'D:(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;SY)(A;;CCLCSWRPLOCRRC;;;BA)(A;;CCLCSWLOCRRC;;;IU)(A;;CCLCSWLOCRRC;;;SU)(A;;CCLCSWLOCRRC;;;AU)' | Out-Null
 New-ItemProperty -Path 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Run' -Name 'AssetFlowAgentTray' -Value ('"'+$exe+'" --tray') -PropertyType String -Force | Out-Null
 Start-Service $name
 Write-Host 'Agent installed. The service starts the tray as each active user within 30 seconds.'

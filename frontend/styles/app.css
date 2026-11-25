@@ -5463,3 +5463,14 @@ main .releaselist > h2 { margin: 0 !important; }
 /* 대시보드 보조 지표: 폭에 따라 줄 끝까지 채움(1024px에서 홀로 남는 항목 방지) */
 .dashboard-insights { display: flex !important; flex-wrap: wrap; }
 .dashboard-insights > div { flex: 1 1 220px; }
+
+/* Agent 0.3.0 승인된 제거 */
+.compliance-summary.audit-summary { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.removal-open { margin: 0 0 var(--space-3); font-size: var(--fs-13); color: var(--text-secondary); display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+.removal-code { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-3); margin: 0 0 var(--space-3); padding: var(--space-3) var(--space-5); border: 1px dashed var(--c-primary); border-radius: var(--radius-sm); background: var(--badge-info-bg); }
+.removal-code code { font-family: var(--font-mono); font-size: var(--fs-20); font-weight: 700; letter-spacing: 1px; color: var(--text-primary); }
+.removal-code small { color: var(--text-secondary); font-size: var(--fs-12); }
+.removal-history { list-style: none; margin: var(--space-3) 0 0; padding: 0; display: grid; gap: var(--space-1); font-size: var(--fs-12); color: var(--text-secondary); }
+.removal-history li { display: flex; align-items: center; gap: var(--space-2); }
+.grid-actions { display: inline-flex; gap: var(--space-1); }
+@media (width <= 900px) { .compliance-summary.audit-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

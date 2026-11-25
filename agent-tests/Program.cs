@@ -240,6 +240,46 @@ Check(receiver.Single(x => x.Type == "MOUSE") is { Name: "Logitech USB Receiver"
 Check(receiver.Single(x => x.Type == "KEYBOARD" && x.VendorId is null) is { Name: "내장 키보드", Connection: "Internal" }, "laptop keyboard keeps internal name");
 Console.WriteLine("PASS: 0.2.16 — generic MTP names skipped, wireless receiver keyboard/mouse named with maker");
 
+// 0.3.0: removal protection and approved removal.
+{
+    void U(bool ok, string what) { if (!ok) throw new Exception("Uninstall: " + what); }
+    const string token = "test-device-token-0123456789", agent = "3f2b8c1e-4d5a-4b6c-9e7f-0a1b2c3d4e5f";
+    U(UninstallCode.TokenHash(token) == "3a687cf072887bd7202df693adc926eb0ab393e3b58e2e64d60f55a6ec8e64b7", "token hash equals server token_hash");
+    U(UninstallCode.Compute(UninstallCode.TokenHash(token), agent, 493560) == "493560-5881393028", "shared vector with the server");
+    var at = DateTimeOffset.FromUnixTimeSeconds(493560L * 3600 - 1800); // 30 minutes before expiry
+    U(UninstallCode.Verify("493560-5881393028", token, agent, at) == UninstallCode.Result.Valid, "valid code");
+    U(UninstallCode.Verify(" 493560 - 588139 3028 ".Replace(" - ", "-"), token, agent, at) == UninstallCode.Result.Valid, "spaces tolerated");
+    U(UninstallCode.Verify("493560-5881393028", token, agent, at.AddHours(1)) == UninstallCode.Result.Expired, "expired code");
+    U(UninstallCode.Verify("493560-5881393029", token, agent, at) == UninstallCode.Result.Mismatch, "tampered digits");
+    U(UninstallCode.Verify("493560-5881393028", "other-token", agent, at) == UninstallCode.Result.Mismatch, "other PC (token)");
+    U(UninstallCode.Verify("493560-5881393028", token, "00000000-0000-0000-0000-000000000000", at) == UninstallCode.Result.Mismatch, "other PC (agent id)");
+    U(UninstallCode.Verify("999999-5881393028", token, agent, at) == UninstallCode.Result.Malformed, "far-future expiry refused");
+    U(UninstallCode.Verify("hello", token, agent, at) == UninstallCode.Result.Malformed && UninstallCode.Verify("493560-5881393028", null, agent, at) == UninstallCode.Result.NotRegistered, "malformed / unregistered");
+    // service DACL: only SYSTEM may stop/delete/reconfigure/change permissions; Administrators keep query/start.
+    var ba = ServiceProtection.Rights(ServiceProtection.ProtectedSddl, "BA"); var sy = ServiceProtection.Rights(ServiceProtection.ProtectedSddl, "SY");
+    foreach (var right in new[] { "WP", "SD", "DC", "WD", "WO", "DT" }) U(!ba.Contains(right) && sy.Contains(right), "BA lacks / SY has " + right);
+    U(ba.Contains("RP") && ba.Contains("LC") && ba.Contains("RC"), "admins can start and query");
+    foreach (var t in new[] { "IU", "SU", "AU" }) U(ServiceProtection.Rights(ServiceProtection.ProtectedSddl, t) == "CCLCSWLOCRRC", t + " read-only");
+    U(ServiceProtection.ShouldApply(@"C:\Program Files\AssetFlow\Agent\", true, @"C:\Program Files") || !OperatingSystem.IsWindows(), "applies to Program Files install");
+    U(!ServiceProtection.ShouldApply(@"C:\Users\dev\src\agent\bin\", true, @"C:\Program Files") || !OperatingSystem.IsWindows(), "not to a developer build");
+    U(!ServiceProtection.ShouldApply(@"C:\Program Files\AssetFlow\Agent\", false, @"C:\Program Files"), "not when not SYSTEM");
+    var script = ServiceProtection.RemovalScript(4242, @"C:\Program Files\AssetFlow\Agent\", @"C:\ProgramData\AssetFlow");
+    U(script.Contains("PID eq 4242") && script.Contains("sc.exe delete AssetFlowAgent") && script.Contains("rmdir /s /q \"C:\\Program Files\\AssetFlow\\Agent\"") && script.Contains("rmdir /s /q \"C:\\ProgramData\\AssetFlow\"") && script.Contains("del \"%~f0\""), "removal script");
+    U(script.IndexOf("goto wait") < script.IndexOf("sc.exe delete"), "waits for the service process before deleting");
+    // heartbeat response and request file
+    var hb = HeartbeatResult.Parse("{\"serverTime\":\"x\",\"uninstall\":{\"approved\":true,\"requestId\":7}}");
+    U(hb.UninstallApproved && hb.UninstallRequestId == 7, "approved removal in heartbeat");
+    U(!HeartbeatResult.Parse("{\"serverTime\":\"x\"}").UninstallApproved && !HeartbeatResult.Parse("not json").UninstallApproved && !HeartbeatResult.Parse("{\"uninstall\":{\"approved\":\"true\"}}").UninstallApproved, "old server / garbage / string true ignored");
+    var req = UninstallRequestFile.Parse("{\"code\":\"493560-5881393028\",\"reason\":\"반납\",\"requestedBy\":\"PC01\\\\it\"}");
+    U(req is { Code: "493560-5881393028", Reason: "반납", RequestedBy: "PC01\\it" }, "request file");
+    U(UninstallRequestFile.Parse("{broken") is { Code: null, Reason: null }, "broken request file");
+    // installers apply the same SDDL as the Agent (the Agent re-applies it on every start)
+    foreach (var f in new[] { "agent/release/install-service.bat", "agent/scripts/install-service.ps1" })
+        if (File.Exists(f)) U(File.ReadAllText(f).Contains(ServiceProtection.ProtectedSddl), f + " uses the Agent SDDL");
+    if (File.Exists("agent/release/uninstall-service.bat")) U(!File.ReadAllText("agent/release/uninstall-service.bat").Contains("sc.exe delete"), "uninstall tool no longer deletes the service directly");
+    Console.WriteLine("PASS: 0.3.0 removal protection — shared code vector, expiry/tamper/other-PC checks, service DACL rights, removal script, heartbeat approval, request file");
+}
+
 sealed class StubHandler(Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> send) : HttpMessageHandler
 {
     protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct) => send(request, ct);

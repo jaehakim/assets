@@ -21,6 +21,9 @@ public final class Models {
   public record Register(@NotBlank @Size(max = 100) String agentKey, @NotBlank @Size(max = 255) String hostname, @NotBlank @Size(max = 30) String version) {}
   public record Registered(UUID agentId, String deviceToken) {}
   public record Heartbeat(@NotBlank @Size(max = 30) String version) {}
+  /** Agent 0.3.0: PC에서 보낸 제거 요청 / 제거 완료 보고. */
+  public record UninstallRequest(@Size(max = 500) String reason, @Size(max = 255) String requestedBy) {}
+  public record UninstallComplete(Long requestId, @NotBlank @Pattern(regexp = "APPROVED|CODE") String method) {}
   public record Disk(@Size(max = 100) String name, @Size(max = 50) String filesystem, long totalBytes, long freeBytes) {}
   public record Software(@NotBlank @Size(max = 500) String name, @Size(max = 100) String version, @Size(max = 255) String publisher, @Size(max = 20) String installDate) {}
   /** Agent 0.2.13: 모니터·키보드·마우스. model은 모니터 EDID 제품코드 또는 VID/PID. */

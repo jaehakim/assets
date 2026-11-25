@@ -71,6 +71,7 @@ dotnet publish -c Release -r win-x64 --self-contained true -o publish
   -RegistrationToken "서버의-AGENT_REGISTRATION_TOKEN"
 ```
 
+**0.3.0부터 제거 보호**: 사용자(로컬 관리자 포함)는 Agent를 임의로 중지·삭제할 수 없습니다. 제거는 관리 콘솔(자산 상세 › 관리·이력 › Agent 제거 승인)에서 승인하거나, 콘솔이 발급한 이 PC 전용 제거 코드를 `uninstall-service.bat`에 입력해야 합니다 — [삭제 방지 계획·구현](docs/windows-agent-removal-protection-plan.md) §8.
 장치 설정과 발급 토큰은 `%ProgramData%\AssetFlow\agent.json`에 저장됩니다. 0.2.12부터 장치 토큰은 DPAPI(LocalMachine)로 암호화되고 등록 토큰은 최초 등록 후 삭제되며, 폴더는 SYSTEM·Administrators 전용 ACL로 보호됩니다(트레이는 `tray.json`만 읽음). 서비스 제거는 `scripts\uninstall-service.ps1`을 사용합니다.
 0.2.11부터 실행 로그는 `%ProgramData%\AssetFlow\logs\agent-YYYYMMDD.log`, 통신 이력은 같은 폴더의 `communication-YYYYMMDD.log`에 저장됩니다. `CollectionMinutes`의 기본값은 60분, `UpdateCheckMinutes`의 기본값은 5분이며 최소 실행 주기는 각각 5분입니다.
 Windows 서비스는 활성 사용자 세션의 트레이 앱을 주기적으로 확인합니다. 트레이 앱이 종료되거나 Agent 자동 업데이트로 교체된 경우에도 로그인된 사용자 세션에서 자동으로 다시 실행됩니다.
@@ -104,6 +105,9 @@ Windows 서비스는 활성 사용자 세션의 트레이 앱을 주기적으로
 | GET | `/api/v1/peripherals`, `/api/v1/usb-devices?days&category` | 관리자 세션 | 전사 주변기기·USB 현황 (CSV: `*-export.csv`) |
 | GET | `/api/v1/admin/asset-audit` | 관리자 세션 | 폐기·분실 통신, 중복 의심, 기준정보 누락, 차단 Agent |
 | POST | `/api/v1/admin/agents/{id}/block`, `/unblock` | 관리자 세션 | Agent 차단(장치 토큰·재등록 거부)·해제 |
+| POST | `/api/v1/agents/uninstall/request`, `/uninstall/complete` | `Bearer DEVICE_TOKEN` | PC의 제거 요청 / 제거 시작 보고(장치 토큰 폐기) |
+| GET | `/api/v1/admin/agent-uninstalls` | 관리자 세션 | Agent 제거 요청 대장 |
+| POST | `/api/v1/admin/agents/{id}/uninstall/approve`, `/uninstall/code`, `/api/v1/admin/agent-uninstalls/{id}/reject` | 관리자 세션 | 제거 승인(최대 5분 내 자동 제거) / 오프라인 제거 코드 발급 / 거절 |
 | GET | `/api/v1/admin/software-compliance` | 관리자 세션 | 판정 목록·탐지 장비·동기화 이력 |
 | POST | `/api/v1/admin/software-compliance/policies` | 관리자 세션 | 기관 자체 판정 기준 등록 |
 | PUT / DELETE | `/api/v1/admin/software-compliance/policies/{id}` | 관리자 세션 | 판정 기준 수정·삭제 |
@@ -133,6 +137,13 @@ Windows 서비스는 활성 사용자 세션의 트레이 앱을 주기적으로
 - Agent ID만으로 인증하지 않고 등록 토큰과 장치별 Bearer 토큰을 분리합니다.
 
 ## 변경 이력
+
+### 2026-11-25 — Agent 0.3.0 / Backend 0.4.0 / Frontend 0.7.0 (Agent 제거 보호·승인 제거)
+
+- Agent 0.3.0: 서비스 권한 잠금(SYSTEM만 중지·삭제·설정 변경, 관리자는 조회·시작만), 설치 폴더 읽기 전용, 승인 시 자기 제거, 오프라인 제거 코드 검증, 트레이 "프로그램 제거 안내"
+- Backend 0.4.0: Flyway `V7` 제거 요청 대장, 하트비트로 승인 전달, 제거 완료 시 장치 토큰 폐기, 제거 코드 발급(장치 전용·최대 72시간)
+- Frontend 0.7.0: 자산 상세 "Agent 제거 승인" 카드, 자산 점검 "Agent 제거 요청" 목록, 대시보드 승인 대기 건수, 시스템 가이드 설치·제거 안내 갱신
+- 설치 도구: `install-service.bat`이 설치 직후 보호 적용·보호 중 Agent 덮어쓰기 거부, `uninstall-service.bat`은 제거 코드 입력/승인 요청 방식으로 변경
 
 ### 2026-11-23 — Frontend 0.6.0 (디자인 정적·동적 전수검사 조치)
 

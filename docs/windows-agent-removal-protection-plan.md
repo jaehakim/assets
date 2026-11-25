@@ -1,8 +1,8 @@
 # Windows 정보 수집 에이전트 임의 삭제 방지 적용 계획
 
-작성일: 2026-09-11  
+작성일: 2026-09-11 · 구현 반영: 2026-11-25 (Agent 0.3.0 / Backend 0.4.0 / Frontend 0.7.0)  
 대상: AssetFlow Agent / Windows 10·11 조직 관리 PC  
-상태: 검토 및 구현 계획. 이 문서 작성만으로 단말 ACL·서비스 보안 정책을 변경하지 않는다.
+상태: **단계 A(서비스·설치 폴더 권한)와 단계 B(승인된 제거·제거 코드) 구현 완료** — §8 참고. 실제 Windows 권한별 통합 시험은 파일럿 PC에서 수행한다.
 
 ## 1. 목표와 적용 경계
 
@@ -112,3 +112,48 @@ Windows 알림 영역의 숨김/고정은 사용자 설정이다. 아이콘을 �
 | 실제 Windows 권한별 통합 시험 | Windows 시험 단말에서 수행 필요 |
 
 계획서 검토 시 확정할 운영 항목: 관리 대상 Windows 빌드/CPU, 사용자 로컬 관리자 보유 현황, IT 관리자 그룹, 중앙 배포 도구, 코드 서명 인증서, 비상 제거 책임자와 감사 기록 보존 기간.
+
+## 8. 구현 결과 (2026-11-25)
+
+### 8.1 사용자 관점 동작
+
+| 누가 | 무엇을 하면 | 결과 |
+|---|---|---|
+| 표준 사용자 | 서비스 중지·삭제, 설치 폴더 삭제 | 거부(이전과 동일) |
+| **로컬 관리자** | `sc stop/delete/config`, 서비스 관리자(services.msc)에서 중지·사용 안 함, 이전 `uninstall-service.bat`, 설치 폴더 삭제 | **거부** — 서비스 권한은 SYSTEM만 전체 권한, 관리자는 조회·시작만 가능. 설치 폴더는 관리자 읽기 전용 |
+| 로컬 관리자 | `uninstall-service.bat` → 2 (제거 요청) | 서버에 요청 등록 → 관리자가 콘솔에서 승인하면 **5분 이내 Agent가 스스로 제거** |
+| 로컬 관리자 | `uninstall-service.bat` → 1 (제거 코드 입력) | 관리자가 콘솔에서 발급한 **이 PC 전용·유효기간 코드**면 네트워크 없이 제거, 아니면 거부(만료·다른 PC·변조) |
+| IT 관리자 | 콘솔 › 자산 상세 › 관리·이력 › **Agent 제거 승인** | 요청 승인/거절, 요청 없이 직접 승인(반납·폐기 PC), 제거 코드 발급(1~72시간) |
+| 트레이 | 메뉴 "프로그램 제거 안내" | 승인 절차 안내 |
+
+### 8.2 구성
+
+| 구성 | 구현 |
+|---|---|
+| 서비스 권한(단계 A-5) | `ServiceProtection.ProtectedSddl` = `D:(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;SY)(A;;CCLCSWRPLOCRRC;;;BA)(A;;CCLCSWLOCRRC;;;IU)(A;;CCLCSWLOCRRC;;;SU)(A;;CCLCSWLOCRRC;;;AU)`. 설치 스크립트가 설치 직후, Agent가 **매 기동 시** `sc sdset`으로 적용(업데이트로 기존 PC에도 적용). SYSTEM은 업데이트(`apply-update.cmd`)와 자기 제거를 위해 전체 권한 유지 |
+| 설치 폴더(단계 A-3) | `%ProgramFiles%\AssetFlow\Agent` 소유자 SYSTEM, SYSTEM 전체·Administrators/Users 읽기·실행. Program Files 설치이고 SYSTEM으로 실행될 때만 적용(개발 빌드 제외) |
+| 승인 제거(단계 B) | 서버 `agent_uninstall_request`(요청·승인·거절·완료·만료), 하트비트 응답 `uninstall.approved` → Agent `UninstallService`가 서버에 완료 보고 후 SYSTEM 정리 스크립트(서비스 삭제·트레이 자동 시작 해제·설치 폴더·ProgramData 삭제)를 실행하고 정상 종료(복구 재시작 안 됨) |
+| 제거 코드(단계 B-4 오프라인) | `{만료 UTC epoch-hour}-{10자리}` = HMAC-SHA256(키: 장치 토큰 SHA-256 = 서버 `token_hash`, 메시지: `assetflow-uninstall|{agentId}|{만료}`). 서버는 코드를 저장하지 않고 발급 사실만 기록. 최대 72시간, Agent가 시계 기준으로 만료·변조·다른 PC 검사 |
+| 요청 전달 | 관리자 권한 제거 도구가 `%ProgramData%\AssetFlow\uninstall-request.json`(SYSTEM·Administrators 전용 폴더)에 기록 → Agent가 10초마다 확인, 결과는 `uninstall-result.json` |
+| 서버 후속 처리 | 완료 보고 시 장치 토큰 폐기(`token_hash` 무효화)·`agent.uninstalled_at` 기록, 관리 이력 `UNINSTALL_REQUESTED/APPROVED/REJECTED/CODE_ISSUED`·`AGENT_UNINSTALLED`. 다시 설치하면 새 등록으로 정상 복귀 |
+| 재설치 | 보호 중인 Agent 위에 `install-service.bat`을 실행하면 덮어쓰지 않고 승인 제거를 안내(종료 코드 5) |
+
+### 8.3 보호 범위와 한계
+
+- 막는 것: 표준 사용자·로컬 관리자의 **일반 도구**를 통한 중지·삭제·사용 안 함·설치 폴더 삭제, 승인 없는 공식 제거.
+- 막지 못하는 것: 서비스 개체 **소유권 탈취(SeTakeOwnership)**, SYSTEM 권한 도구, 안전 모드·오프라인 디스크 편집, OS 재설치. 이 경우 하트비트가 끊겨 대시보드 "장기 미접속", 자산 점검에서 드러난다. 상시 로컬 관리자 권한 회수(단계 C)가 근본 대책이다.
+- 차단(FR-016)된 Agent는 서버와 통신하지 못해 온라인 승인을 받을 수 없다 → **제거 코드**로 제거한다.
+
+### 8.4 비상 복구(IT 관리자)
+
+정상 경로(승인·코드)가 모두 불가능할 때만: SYSTEM 권한 셸(예: Sysinternals `psexec -s cmd`)에서
+`sc sdset AssetFlowAgent D:(A;;CCLCSWRPWPDTLOCRRC;;;SY)(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;BA)(A;;CCLCSWLOCRRC;;;IU)(A;;CCLCSWLOCRRC;;;SU)` 로 기본 권한을 복원한 뒤 서비스를 중지·삭제한다. 단, Agent가 다시 기동하면 보호를 재적용하므로 서비스를 먼저 중지한다. 이 절차는 관리 이력에 남지 않으므로 별도로 기록한다.
+
+### 8.5 시험
+
+| 구분 | 결과 |
+|---|---|
+| Agent 콘솔 시험(서버와 공통 코드 시험 벡터, 만료·변조·다른 PC·형식, SDDL 권한 비트, 설치 스크립트 SDDL 일치, 정리 스크립트 순서, 하트비트 승인 해석, 요청 파일) | 통과 |
+| Backend JUnit 38건(신규 7: 코드 벡터·72시간 제한·하트비트 승인·중복 요청·완료 시 토큰 폐기·비활성 토큰 코드 거부·직접 승인/중복 승인) | 통과 |
+| 운영 DB 복제본 종단 간: 요청 → 중복 요청 무시 → 대시보드 대기 1 → 승인(재승인 409) → 하트비트에 승인 전달 → 완료 → 같은 토큰 401 / 코드 발급 → 독립 HMAC 검증 일치·24시간 / 거절 / 제거 PC 재설치 시 새 등록 / 세션 없는 관리자 API 401 | 통과 |
+| 실제 Windows(서비스 권한·자기 제거·업데이트 후 보호 유지) | **파일럿 PC에서 수행 필요** — §5 표 기준 |
