@@ -1,0 +1,3 @@
+# Windows batch files are stored with CRLF so raw downloads run correctly in cmd.exe (goto label lookup).
+*.bat -text
+*.cmd -text
